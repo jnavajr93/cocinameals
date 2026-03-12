@@ -346,7 +346,21 @@ export function SettingsTab() {
           <SectionHeader id="sections" title="My Meal Sections" />
           {expanded.has("sections") && (
             <div className="flex flex-col gap-1 pb-4">
-              <p className="font-body text-xs text-muted-foreground mb-2">Toggle sections on/off and optionally schedule them to specific days.</p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="font-body text-xs text-muted-foreground">Toggle sections on/off and optionally schedule them to specific days.</p>
+                <button
+                  onClick={() => {
+                    const defaults = MEAL_SECTIONS.map((s, i) => ({ id: s.id, name: s.name, enabled: s.defaultOn, order: i }));
+                    setMealSections(defaults);
+                    saveHouseholdProfile({ meal_sections: defaults });
+                    saveUserPreferences({ section_order: defaults });
+                    toast.success("Meal sections reset to defaults");
+                  }}
+                  className="shrink-0 font-body text-xs text-gold hover:underline"
+                >
+                  Reset
+                </button>
+              </div>
               {mealSections.sort((a, b) => a.order - b.order).map(section => (
                 <div key={section.id} className="rounded-lg border border-border overflow-hidden mb-1">
                   <button
