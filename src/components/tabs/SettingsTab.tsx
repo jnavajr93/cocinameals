@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useHousehold } from "@/hooks/useHousehold";
 import { Logo } from "@/components/Logo";
+import { CocinaText } from "@/components/CocinaText";
 import { toast } from "sonner";
 import { CUISINES, CUISINE_LABELS } from "@/data/cuisines";
 import { EQUIPMENT_CATEGORIES } from "@/data/equipment";
@@ -323,7 +324,7 @@ export function SettingsTab() {
           <SectionHeader id="taste" title="My Taste Profile" />
           {expanded.has("taste") && (
             <div className="pb-4">
-              <p className="font-body text-xs text-muted-foreground mb-3">cocina learns what you love. Liked and disliked meals shape your suggestions.</p>
+              <p className="font-body text-xs text-muted-foreground mb-3"><CocinaText /> learns what you love. Liked and disliked meals shape your suggestions.</p>
               {likedFeedback.length > 0 && (
                 <div className="mb-3">
                   <p className="font-body text-xs font-semibold text-muted-foreground mb-1">LIKED</p>
@@ -538,7 +539,7 @@ export function SettingsTab() {
         <section className="pt-4 pb-8">
           {showLogoutConfirm ? (
             <div className="flex flex-col gap-2">
-              <p className="font-body text-sm text-foreground">Log out of cocina?</p>
+              <p className="font-body text-sm text-foreground">Log out of <CocinaText />?</p>
               <div className="flex gap-2">
                 <button onClick={handleLogout} className="flex-1 rounded-lg bg-destructive px-4 py-2 font-body text-sm font-medium text-destructive-foreground">Log out</button>
                 <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 rounded-lg border border-border px-4 py-2 font-body text-sm text-foreground">Cancel</button>
