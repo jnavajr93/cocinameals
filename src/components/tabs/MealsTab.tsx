@@ -684,7 +684,7 @@ export function MealsTab() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    {cards.map(card => renderMealCard(card, section.id.startsWith("baby_")))}
+                    {cards.map(card => renderMealCard(card, section.id.startsWith("baby_"), section.id))}
                   </div>
                 )}
               </div>
