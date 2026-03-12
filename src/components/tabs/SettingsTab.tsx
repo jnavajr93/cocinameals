@@ -241,8 +241,14 @@ export function SettingsTab() {
       {expanded.has(id) ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
     </button>
   );
+  const updateSectionTime = (sectionId: string, mins: number) => {
+    const next = mealSections.map(s => s.id === sectionId ? { ...s, defaultTime: mins } : s);
+    setMealSections(next);
+    saveHouseholdProfile({ meal_sections: next });
+    saveUserPreferences({ section_order: next });
+  };
 
-  
+
 
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-24">
