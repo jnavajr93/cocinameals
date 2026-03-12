@@ -212,3 +212,12 @@ export const MEAL_POOLS: Record<string, MealCard[]> = {
     { name: "Steamed Salmon & Squash", cal: 200, protein: 18, carbs: 16, fat: 8, tags: [] },
   ],
 };
+
+// Map new section IDs to existing pools so sections render correctly
+MEAL_POOLS.lunch = [...(MEAL_POOLS.quick_lunch || []), ...(MEAL_POOLS.sit_down_lunch || [])];
+MEAL_POOLS.dinner = [...(MEAL_POOLS.light_dinner || []), ...(MEAL_POOLS.full_dinner || [])];
+MEAL_POOLS.snack = [...(MEAL_POOLS.afternoon_snack || [])];
+MEAL_POOLS.child_breakfast = [...(MEAL_POOLS.baby_breakfast || [])];
+MEAL_POOLS.child_lunch = (MEAL_POOLS.kid_friendly || []).filter(c => c.tags.includes("kid_friendly"));
+MEAL_POOLS.child_snack = (MEAL_POOLS.afternoon_snack || []).filter(c => c.tags.includes("kid_friendly") || c.cal < 300);
+MEAL_POOLS.child_dinner = [...(MEAL_POOLS.kid_friendly || [])];
