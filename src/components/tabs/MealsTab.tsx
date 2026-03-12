@@ -398,9 +398,9 @@ export function MealsTab() {
           </button>
           <button
             onClick={saveRecipe}
-            className="shrink-0 text-muted-foreground hover:text-gold transition-colors"
+            className={`shrink-0 transition-colors ${savedMealNames.has(recipeView.mealName) ? "text-gold" : "text-muted-foreground hover:text-gold"}`}
           >
-            <Star size={16} />
+            <Star size={16} fill={savedMealNames.has(recipeView.mealName) ? "currentColor" : "none"} />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-4 pb-8">
