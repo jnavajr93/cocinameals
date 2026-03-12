@@ -16,6 +16,8 @@ interface RecipeViewState {
   recipeText: string;
   loading: boolean;
   isBaby?: boolean;
+  sectionId?: string;
+  tags?: string[];
 }
 
 export function MealsTab() {
@@ -190,14 +192,13 @@ export function MealsTab() {
     return cards.slice(0, limit);
   };
 
-  const saveMeal = async (card: MealCardWithCookTime) => {
+  const saveMeal = async (card: MealCardWithCookTime, sectionId?: string) => {
     if (!householdId) return;
     if (savedMealNames.has(card.name)) {
       await supabase.from("saved_recipes").delete().eq("household_id", householdId).eq("meal_name", card.name);
       setSavedMealNames(prev => { const n = new Set(prev); n.delete(card.name); return n; });
       toast.success("Removed from saved");
     } else {
-      // Save with recipe text if we have it in cache
       const cacheKey = `recipe_${card.name.replace(/\s+/g, "_").toLowerCase()}`;
       let recipeText = "";
       try {
@@ -213,7 +214,9 @@ export function MealsTab() {
         meal_name: card.name,
         recipe_text: recipeText || `Recipe for ${card.name} — generate from Meals tab to see full instructions.`,
         saved_by: userName,
-      });
+        meal_section: sectionId || null,
+        tags: card.tags || [],
+      } as any);
       if (error) toast.error("Could not save");
       else {
         setSavedMealNames(prev => new Set(prev).add(card.name));
@@ -292,7 +295,7 @@ export function MealsTab() {
     setCraving("");
   };
 
-  const openRecipe = async (card: MealCardWithCookTime, isBaby = false) => {
+  const openRecipe = async (card: MealCardWithCookTime, isBaby = false, sectionId?: string) => {
     // Check localStorage cache
     const cacheKey = `recipe_${card.name}`;
     const cached = localStorage.getItem(cacheKey);
@@ -300,13 +303,13 @@ export function MealsTab() {
       try {
         const { text, ts } = JSON.parse(cached);
         if (Date.now() - ts < 24 * 3600000) {
-          setRecipeView({ mealName: card.name, recipeText: text, loading: false, isBaby });
+          setRecipeView({ mealName: card.name, recipeText: text, loading: false, isBaby, sectionId, tags: card.tags });
           return;
         }
       } catch {}
     }
 
-    setRecipeView({ mealName: card.name, recipeText: "", loading: true, isBaby });
+    setRecipeView({ mealName: card.name, recipeText: "", loading: true, isBaby, sectionId, tags: card.tags });
 
     try {
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-recipe`;
@@ -377,7 +380,9 @@ export function MealsTab() {
         meal_name: recipeView.mealName,
         recipe_text: recipeView.recipeText,
         saved_by: userName,
-      });
+        meal_section: recipeView.sectionId || null,
+        tags: recipeView.tags || [],
+      } as any);
       if (error) toast.error("Could not save recipe");
       else {
         setSavedMealNames(prev => new Set(prev).add(recipeView.mealName));
@@ -679,7 +684,7 @@ export function MealsTab() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    {cards.map(card => renderMealCard(card, section.id.startsWith("baby_")))}
+                    {cards.map(card => renderMealCard(card, section.id.startsWith("baby_"), section.id))}
                   </div>
                 )}
               </div>
@@ -692,7 +697,7 @@ export function MealsTab() {
     </div>
   );
 
-  function renderMealCard(card: MealCardWithCookTime, isBaby = false) {
+  function renderMealCard(card: MealCardWithCookTime, isBaby = false, sectionId?: string) {
     const cuisineTag = getCuisineTag(card);
     const isLiked = likedMeals.has(card.name);
     const isDisliked = dislikedMeals.has(card.name);
@@ -703,7 +708,7 @@ export function MealsTab() {
         key={card.name}
         className={`rounded-lg border bg-card p-3 transition-colors ${isLiked ? "border-gold/40" : "border-border"}`}
       >
-        <button onClick={() => openRecipe(card, isBaby)} className="text-left w-full">
+        <button onClick={() => openRecipe(card, isBaby, sectionId)} className="text-left w-full">
           <p className="font-body text-sm font-medium text-foreground leading-tight">{card.name}</p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="font-body text-xs text-muted-foreground">{card.cal} cal</span>
@@ -728,7 +733,7 @@ export function MealsTab() {
             <ThumbsDown size={16} />
           </button>
           <button
-            onClick={() => saveMeal(card)}
+            onClick={() => saveMeal(card, sectionId)}
             className={`transition-colors ${isSaved ? "text-gold" : "text-muted-foreground hover:text-gold"}`}
           >
             <Star size={16} fill={isSaved ? "currentColor" : "none"} />
