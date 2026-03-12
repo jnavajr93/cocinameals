@@ -3,7 +3,6 @@ export interface MealSectionDef {
   name: string;
   description: string;
   defaultOn: boolean;
-  isAuto?: boolean; // baby sections
 }
 
 export const MEAL_SECTIONS: MealSectionDef[] = [
