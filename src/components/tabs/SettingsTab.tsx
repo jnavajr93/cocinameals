@@ -26,6 +26,7 @@ export function SettingsTab() {
   const { householdId, userName } = useHousehold();
   const [householdName, setHouseholdName] = useState("");
   const [inviteCode, setInviteCode] = useState("");
+  const [householdSize, setHouseholdSize] = useState(2);
   const [members, setMembers] = useState<{ user_name: string; last_seen: string | null }[]>([]);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
@@ -65,7 +66,7 @@ export function SettingsTab() {
 
     const load = async () => {
       const [{ data: household }, { data: memberData }, { data: hProfile }, { data: uPrefs }, { data: childrenData }, { data: feedbackData }] = await Promise.all([
-        supabase.from("households").select("name, invite_code").eq("id", householdId).single(),
+        supabase.from("households").select("name, invite_code, household_size").eq("id", householdId).single(),
         supabase.from("household_members").select("user_name, last_seen").eq("household_id", householdId),
         supabase.from("household_profile").select("*").eq("household_id", householdId).maybeSingle(),
         supabase.from("user_preferences").select("*").eq("user_id", user.id).maybeSingle(),
@@ -73,7 +74,7 @@ export function SettingsTab() {
         supabase.from("meal_feedback").select("id, meal_name, feedback, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
       ]);
 
-      if (household) { setHouseholdName(household.name || ""); setInviteCode(household.invite_code); }
+      if (household) { setHouseholdName(household.name || ""); setInviteCode(household.invite_code); setHouseholdSize((household as any).household_size ?? 2); }
       if (memberData) setMembers(memberData);
       if (hProfile) {
         setEquipment((hProfile.equipment as string[]) || []);
@@ -116,6 +117,12 @@ export function SettingsTab() {
     if (!householdId) return;
     await supabase.from("households").update({ name: householdName }).eq("id", householdId);
     toast.success("Household name updated");
+  };
+
+  const updateHouseholdSize = async (size: number) => {
+    if (!householdId) return;
+    setHouseholdSize(size);
+    await supabase.from("households").update({ household_size: size } as any).eq("id", householdId);
   };
 
   const copyCode = () => { navigator.clipboard.writeText(inviteCode); toast.success("Copied to clipboard"); };
@@ -281,6 +288,24 @@ export function SettingsTab() {
                     <span className="font-body text-xs text-muted-foreground">{formatLastSeen(m.last_seen)}</span>
                   </div>
                 ))}
+              </div>
+
+              {/* Household size */}
+              <div className="mt-2 border-t border-border pt-3">
+                <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Total people in household</p>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+                    <button
+                      key={n}
+                      onClick={() => updateHouseholdSize(n)}
+                      className={`w-9 h-9 rounded-lg border font-body text-sm font-medium transition-colors ${
+                        householdSize === n ? "border-gold bg-gold/15 text-foreground" : "border-border bg-card text-muted-foreground hover:bg-secondary"
+                      }`}
+                    >
+                      {n}{n === 8 ? "+" : ""}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Children — inside household */}

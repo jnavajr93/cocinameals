@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { RefreshCw, Star, Send, ThumbsUp, ThumbsDown, ChevronDown, X, Filter, Clock, Flame, UtensilsCrossed, ArrowLeft } from "lucide-react";
+import { RefreshCw, Star, Send, ThumbsUp, ThumbsDown, ChevronDown, X, Filter, Clock, Flame, UtensilsCrossed, ArrowLeft, Users } from "lucide-react";
 import { RecipeDisplay } from "@/components/RecipeDisplay";
 import { supabase } from "@/integrations/supabase/client";
 import { useHousehold } from "@/hooks/useHousehold";
@@ -42,6 +42,7 @@ export function MealsTab() {
   const [filterProtein, setFilterProtein] = useState<string | null>(null);
   const [filterCuisine, setFilterCuisine] = useState<string | null>(null);
   const [filterMethod, setFilterMethod] = useState<string | null>(null);
+  const [filterPeople, setFilterPeople] = useState<string | null>(null);
   const [filterInStockOnly, setFilterInStockOnly] = useState(true);
   const [filterMustInclude, setFilterMustInclude] = useState<string | null>(null);
   const [showFilterSheet, setShowFilterSheet] = useState<string | null>(null);
@@ -100,15 +101,26 @@ export function MealsTab() {
   }, [householdId, user]);
 
   const activeSections = useMemo(() => {
-    return mealSections.filter(s => s.enabled).sort((a, b) => a.order - b.order);
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const today = dayNames[new Date().getDay()];
+    return mealSections
+      .filter(s => s.enabled)
+      .filter(s => {
+        const days = (s as any).scheduledDays as string[] | undefined;
+        // If no days scheduled, show every day
+        if (!days || days.length === 0) return true;
+        return days.includes(today);
+      })
+      .sort((a, b) => a.order - b.order);
   }, [mealSections]);
 
   const activeFiltersList = useMemo(() => {
     const list: { key: string; label: string }[] = [];
     if (filterCookTime) list.push({ key: "cookTime", label: filterCookTime });
     if (filterProtein) list.push({ key: "protein", label: filterProtein });
-    if (filterCuisine) list.push({ key: "cuisine", label: filterCuisine });
+    if (filterPeople) list.push({ key: "people", label: filterPeople });
     if (filterMethod) list.push({ key: "method", label: filterMethod });
+    if (filterCuisine) list.push({ key: "cuisine", label: filterCuisine });
     if (filterInStockOnly) list.push({ key: "inStock", label: "In-Stock Only" });
     if (filterMustInclude) list.push({ key: "mustInclude", label: filterMustInclude });
     if (activeFilter) list.push({ key: "quick", label: activeFilter });
@@ -118,6 +130,7 @@ export function MealsTab() {
   const clearFilter = (key: string) => {
     if (key === "cookTime") setFilterCookTime(null);
     if (key === "protein") setFilterProtein(null);
+    if (key === "people") setFilterPeople(null);
     if (key === "cuisine") setFilterCuisine(null);
     if (key === "method") setFilterMethod(null);
     if (key === "inStock") setFilterInStockOnly(false);
@@ -128,6 +141,7 @@ export function MealsTab() {
   const clearAllFilters = () => {
     setFilterCookTime(null);
     setFilterProtein(null);
+    setFilterPeople(null);
     setFilterCuisine(null);
     setFilterMethod(null);
     setFilterInStockOnly(false);
@@ -450,6 +464,14 @@ export function MealsTab() {
         { label: "French", value: "French" },
         { label: "Surprise Me", value: "Surprise Me" },
       ],
+      people: [
+        { label: "Any", value: "" },
+        { label: "1 person", value: "1 person" },
+        { label: "2 people", value: "2 people" },
+        { label: "3-4 people", value: "3-4 people" },
+        { label: "5-6 people", value: "5-6 people" },
+        { label: "7+ people", value: "7+ people" },
+      ],
       method: [
         { label: "Any", value: "" },
         { label: "Air Fryer Only", value: "Air Fryer Only" },
@@ -464,10 +486,12 @@ export function MealsTab() {
     const items = options[showFilterSheet] || [];
     const setter = showFilterSheet === "cookTime" ? setFilterCookTime
       : showFilterSheet === "protein" ? setFilterProtein
+      : showFilterSheet === "people" ? setFilterPeople
       : showFilterSheet === "cuisine" ? setFilterCuisine
       : setFilterMethod;
     const current = showFilterSheet === "cookTime" ? filterCookTime
       : showFilterSheet === "protein" ? filterProtein
+      : showFilterSheet === "people" ? filterPeople
       : showFilterSheet === "cuisine" ? filterCuisine
       : filterMethod;
 
@@ -475,7 +499,7 @@ export function MealsTab() {
       <div className="fixed inset-0 z-50 flex items-end bg-foreground/30" onClick={() => setShowFilterSheet(null)}>
         <div className="w-full rounded-t-2xl bg-background p-6 animate-slide-in" onClick={e => e.stopPropagation()}>
           <h3 className="font-display text-lg font-bold text-foreground mb-4">
-            {showFilterSheet === "cookTime" ? "Cook Time" : showFilterSheet === "protein" ? "Main Protein" : showFilterSheet === "cuisine" ? "Cuisine" : "Cooking Method"}
+            {showFilterSheet === "cookTime" ? "Cook Time" : showFilterSheet === "protein" ? "Main Protein" : showFilterSheet === "people" ? "Number of People" : showFilterSheet === "cuisine" ? "Cuisine" : "Cooking Method"}
           </h3>
           <div className="flex flex-col gap-1">
             {items.map(opt => (
@@ -543,6 +567,7 @@ export function MealsTab() {
           {[
             { key: "cookTime", label: "Cook Time", icon: Clock, active: !!filterCookTime },
             { key: "protein", label: "Protein", icon: Flame, active: !!filterProtein },
+            { key: "people", label: "People", icon: Users, active: !!filterPeople },
             { key: "method", label: "Method", icon: UtensilsCrossed, active: !!filterMethod },
             { key: "cuisine", label: "Cuisine", icon: Filter, active: !!filterCuisine },
           ].map(f => (

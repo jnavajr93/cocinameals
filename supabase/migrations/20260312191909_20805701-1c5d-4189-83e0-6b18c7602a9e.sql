@@ -1,0 +1,1 @@
+ALTER TABLE public.households ADD COLUMN IF NOT EXISTS household_size integer DEFAULT 2;
