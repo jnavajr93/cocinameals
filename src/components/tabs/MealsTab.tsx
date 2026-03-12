@@ -47,58 +47,72 @@ export function MealsTab() {
   const [filterMustInclude, setFilterMustInclude] = useState<string | null>(null);
   const [showFilterSheet, setShowFilterSheet] = useState<string | null>(null);
 
+  const loadMealsData = async () => {
+    if (!householdId || !user) return;
+    const [{ data: hProfile }, { data: uPrefs }, { data: feedbackData }, { data: savedData }, { data: pantryData }] = await Promise.all([
+      supabase.from("household_profile").select("quick_filters, meal_sections, equipment, cuisine_sliders").eq("household_id", householdId).maybeSingle(),
+      supabase.from("user_preferences").select("section_order, skill_level, spice_tolerance, diet_restrictions, health_conditions, weeknight_time").eq("user_id", user.id).maybeSingle(),
+      supabase.from("meal_feedback").select("meal_name, feedback, tags").eq("user_id", user.id),
+      supabase.from("saved_recipes").select("meal_name").eq("household_id", householdId),
+      supabase.from("pantry_items").select("name, in_stock, expires_at").eq("household_id", householdId).eq("is_hidden", false),
+    ]);
+
+    if (hProfile) {
+      setQuickFilters((hProfile.quick_filters as string[]) || []);
+      const sections = (uPrefs?.section_order as any[]) || (hProfile.meal_sections as any[]) || [];
+      setMealSections(sections);
+      setProfile({
+        equipment: (hProfile.equipment as string[]) || [],
+        cuisineSliders: hProfile.cuisine_sliders || {},
+        skillLevel: uPrefs?.skill_level || "intermediate",
+        spiceTolerance: uPrefs?.spice_tolerance || "medium",
+        dietRestrictions: (uPrefs?.diet_restrictions as string[]) || [],
+        healthConditions: (uPrefs?.health_conditions as string[]) || [],
+        weeknightTime: uPrefs?.weeknight_time || "30min",
+      });
+    }
+
+    if (feedbackData) {
+      const liked = new Set<string>();
+      const disliked = new Set<string>();
+      feedbackData.forEach(f => {
+        if (f.feedback === "liked") liked.add(f.meal_name);
+        else disliked.add(f.meal_name);
+      });
+      setLikedMeals(liked);
+      setDislikedMeals(disliked);
+    }
+
+    if (savedData) setSavedMealNames(new Set(savedData.map(s => s.meal_name)));
+
+    if (pantryData) {
+      const inStock = pantryData.filter(p => p.in_stock).map(p => p.name);
+      setPantryInStock(inStock);
+      const now = Date.now();
+      const expiring = pantryData
+        .filter(p => p.in_stock && p.expires_at && (new Date(p.expires_at).getTime() - now) / 86400000 <= 3)
+        .map(p => p.name);
+      setExpiringItems(expiring);
+    }
+  };
+
   useEffect(() => {
     if (!householdId || !user) return;
-
-    const load = async () => {
-      const [{ data: hProfile }, { data: uPrefs }, { data: feedbackData }, { data: savedData }, { data: pantryData }] = await Promise.all([
-        supabase.from("household_profile").select("quick_filters, meal_sections, equipment, cuisine_sliders").eq("household_id", householdId).maybeSingle(),
-        supabase.from("user_preferences").select("section_order, skill_level, spice_tolerance, diet_restrictions, health_conditions, weeknight_time").eq("user_id", user.id).maybeSingle(),
-        supabase.from("meal_feedback").select("meal_name, feedback, tags").eq("user_id", user.id),
-        supabase.from("saved_recipes").select("meal_name").eq("household_id", householdId),
-        supabase.from("pantry_items").select("name, in_stock, expires_at").eq("household_id", householdId).eq("is_hidden", false),
-      ]);
-
-      if (hProfile) {
-        setQuickFilters((hProfile.quick_filters as string[]) || []);
-        const sections = (uPrefs?.section_order as any[]) || (hProfile.meal_sections as any[]) || [];
-        setMealSections(sections);
-        setProfile({
-          equipment: (hProfile.equipment as string[]) || [],
-          cuisineSliders: hProfile.cuisine_sliders || {},
-          skillLevel: uPrefs?.skill_level || "intermediate",
-          spiceTolerance: uPrefs?.spice_tolerance || "medium",
-          dietRestrictions: (uPrefs?.diet_restrictions as string[]) || [],
-          healthConditions: (uPrefs?.health_conditions as string[]) || [],
-          weeknightTime: uPrefs?.weeknight_time || "30min",
-        });
-      }
-
-      if (feedbackData) {
-        const liked = new Set<string>();
-        const disliked = new Set<string>();
-        feedbackData.forEach(f => {
-          if (f.feedback === "liked") liked.add(f.meal_name);
-          else disliked.add(f.meal_name);
-        });
-        setLikedMeals(liked);
-        setDislikedMeals(disliked);
-      }
-
-      if (savedData) setSavedMealNames(new Set(savedData.map(s => s.meal_name)));
-
-      if (pantryData) {
-        const inStock = pantryData.filter(p => p.in_stock).map(p => p.name);
-        setPantryInStock(inStock);
-        const now = Date.now();
-        const expiring = pantryData
-          .filter(p => p.in_stock && p.expires_at && (new Date(p.expires_at).getTime() - now) / 86400000 <= 3)
-          .map(p => p.name);
-        setExpiringItems(expiring);
-      }
-    };
-    load();
+    loadMealsData();
   }, [householdId, user]);
+
+  // Realtime sync: refresh when household profile or pantry changes
+  useEffect(() => {
+    if (!householdId) return;
+
+    const channel = supabase
+      .channel(`meals-sync-${householdId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'household_profile', filter: `household_id=eq.${householdId}` }, () => loadMealsData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pantry_items', filter: `household_id=eq.${householdId}` }, () => loadMealsData())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [householdId]);
 
   const activeSections = useMemo(() => {
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
