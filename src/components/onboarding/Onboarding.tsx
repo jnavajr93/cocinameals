@@ -111,12 +111,12 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       return;
     }
 
-    // Go to name step, then save
+    // Go directly to join profile screen (no full onboarding)
     setProfile(p => ({ ...p, householdName: household.name || "" }));
+    setJoinHouseholdId(household.id);
+    setJoinHouseholdName(household.name || "");
     setJoinMode(false);
-    setStarted(true);
-    // Store household id for join flow
-    (window as any).__joinHouseholdId = household.id;
+    setJoinReady(true);
     setJoinLoading(false);
   };
 
