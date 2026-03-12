@@ -243,6 +243,23 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     );
   }
 
+  // Join profile screen — only name + skill level
+  if (joinReady) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
+        <div className="w-full max-w-sm animate-fade-in">
+          <StepJoinProfile
+            profile={profile}
+            update={update}
+            onFinish={finish}
+            saving={saving}
+            householdName={joinHouseholdName}
+          />
+        </div>
+      </div>
+    );
+  }
+
   if (!started) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
