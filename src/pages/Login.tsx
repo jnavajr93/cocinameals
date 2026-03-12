@@ -79,7 +79,7 @@ const TESTIMONIALS = [
     detail: "Home cook, Chicago IL",
   },
   {
-    quote: <>My kids are picky and my husband has celiac. <CocinaText /> is the first app that actually accounts for all of us.</>,
+    quote: "My kids are picky and my husband has celiac. cocina is the first app that actually accounts for all of us.",
     name: "Maria L.",
     detail: "Family of 5, Miami FL",
   },
