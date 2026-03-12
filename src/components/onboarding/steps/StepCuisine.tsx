@@ -51,9 +51,12 @@ export function StepCuisine({ profile, update, onNext, isLast, saving }: Props) 
       <div className="sticky bottom-0 bg-background pt-2 pb-4">
         <button
           onClick={onNext}
-          className="w-full rounded-lg bg-primary px-6 py-3.5 font-body font-semibold text-primary-foreground transition-colors hover:opacity-90"
+          disabled={saving}
+          className={`w-full rounded-lg px-6 py-3.5 font-body font-semibold transition-colors hover:opacity-90 disabled:opacity-40 ${
+            isLast ? "bg-gold text-gold-foreground" : "bg-primary text-primary-foreground"
+          }`}
         >
-          Continue
+          {saving ? "Setting up..." : isLast ? "Start cooking" : "Continue"}
         </button>
       </div>
     </div>
