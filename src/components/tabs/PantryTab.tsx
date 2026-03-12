@@ -308,25 +308,7 @@ export function PantryTab() {
           </div>
         </div>
 
-        {/* View toggle */}
-        <div className="flex gap-1 mb-3 rounded-lg bg-muted p-0.5">
-          <button
-            onClick={() => setViewMode("pantry")}
-            className={`flex-1 rounded-md py-1.5 font-body text-xs font-medium transition-colors ${
-              viewMode === "pantry" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-            }`}
-          >
-            Pantry
-          </button>
-          <button
-            onClick={() => setViewMode("shopping")}
-            className={`flex-1 rounded-md py-1.5 font-body text-xs font-medium transition-colors ${
-              viewMode === "shopping" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-            }`}
-          >
-            Shopping List
-          </button>
-        </div>
+
 
         {/* Search */}
         <div className="relative mb-3">
