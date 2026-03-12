@@ -1,4 +1,4 @@
-import { Lightbulb, Flame, Users, Clock, UtensilsCrossed, ListChecks, ChefHat } from "lucide-react";
+import { Lightbulb, Clock } from "lucide-react";
 
 interface RecipeDisplayProps {
   text: string;
