@@ -863,29 +863,6 @@ export function MealsTab() {
   );
 
 
-
-    if (mealImages[mealName]) return;
-    const cacheKey = `meal_img_${mealName.replace(/\s+/g, "_").toLowerCase()}`;
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      try {
-        const { url, ts } = JSON.parse(cached);
-        if (Date.now() - ts < 7 * 24 * 3600000 && url) {
-          setMealImages(prev => ({ ...prev, [mealName]: url }));
-          return;
-        }
-      } catch {}
-    }
-    supabase.functions.invoke("fetch-food-image", { body: { query: mealName } })
-      .then(({ data }) => {
-        if (data?.imageUrl) {
-          setMealImages(prev => ({ ...prev, [mealName]: data.imageUrl }));
-          localStorage.setItem(cacheKey, JSON.stringify({ url: data.imageUrl, ts: Date.now() }));
-        }
-      })
-      .catch(() => {});
-  }
-
   function renderMealCard(card: MealCardWithCookTime, isBaby = false, sectionId?: string) {
     const cuisineTag = getCuisineTag(card);
     const isLiked = likedMeals.has(card.name);
