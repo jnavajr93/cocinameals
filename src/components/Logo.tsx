@@ -14,7 +14,7 @@ export function Logo({ size = "md", className = "" }: LogoProps) {
     <span className={`font-display font-bold leading-none ${sizes[size]} ${className}`}>
       <span className="italic text-primary">c</span>
       <span className="italic text-gold" style={{ marginLeft: '-0.08em', letterSpacing: '-0.03em' }}>o</span>
-      <span className="text-foreground" style={{ letterSpacing: '-0.03em' }}>cina</span>
+      <span className="text-foreground" style={{ letterSpacing: '-0.045em' }}>cina</span>
     </span>
   );
 }
