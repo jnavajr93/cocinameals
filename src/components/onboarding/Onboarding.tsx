@@ -200,6 +200,8 @@ export function Onboarding({ onComplete }: OnboardingProps) {
         weeknight_time: profile.weeknightTime,
         diet_restrictions: profile.dietRestrictions,
         health_conditions: profile.healthConditions,
+        allergies: profile.allergies,
+        dislikes: profile.dislikes,
         section_order: profile.mealSections,
       });
 
