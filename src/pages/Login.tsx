@@ -368,18 +368,21 @@ export default function Login() {
       {/* Final CTA */}
       <section className="px-6 py-20 bg-primary">
         <div className="max-w-lg mx-auto flex flex-col items-center gap-6 text-center">
+          <div className="rounded-full bg-gold/20 px-4 py-1.5 font-body text-xs font-semibold text-gold tracking-wide uppercase">
+            ✨ Join the early wave
+          </div>
           <h2 className="font-display text-2xl md:text-3xl font-bold text-primary-foreground">
             Stop wasting food. Start cooking smarter.
           </h2>
           <p className="font-body text-sm text-primary-foreground/70 max-w-sm">
-            Join thousands of households saving money and eating better with cocina.
+            We're opening up to a small group of early users. Get in now and help us build the smartest kitchen assistant ever made.
           </p>
           <div className="flex flex-col gap-3 w-full max-w-sm">
             <button
               onClick={() => setView("signup")}
               className="w-full rounded-lg bg-gold px-6 py-3.5 font-body font-semibold text-gold-foreground transition-colors hover:opacity-90"
             >
-              Get started — it's free
+              Claim your early access — it's free
             </button>
             <p className="font-body text-xs text-primary-foreground/50">
               Already a member?{" "}
@@ -396,7 +399,7 @@ export default function Login() {
         <div className="max-w-4xl mx-auto flex flex-col items-center gap-2">
           <Logo size="sm" />
           <p className="font-body text-xs text-muted-foreground">
-            Cook smarter, waste less.
+            © {new Date().getFullYear()} cocina. All rights reserved.
           </p>
         </div>
       </footer>
