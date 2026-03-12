@@ -144,7 +144,18 @@ export function SettingsTab() {
   };
 
   const toggleMealSection = (id: string) => {
-    const next = mealSections.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s);
+    const next = mealSections.map(s => s.id === id ? { ...s, enabled: !s.enabled, scheduledDays: !s.enabled ? s.scheduledDays : undefined } : s);
+    setMealSections(next);
+    saveHouseholdProfile({ meal_sections: next });
+    saveUserPreferences({ section_order: next });
+  };
+
+  const toggleSectionDay = (sectionId: string, day: string) => {
+    const next = mealSections.map(s => {
+      if (s.id !== sectionId) return s;
+      const current = s.scheduledDays || [];
+      return { ...s, scheduledDays: current.includes(day) ? current.filter(d => d !== day) : [...current, day] };
+    });
     setMealSections(next);
     saveHouseholdProfile({ meal_sections: next });
     saveUserPreferences({ section_order: next });
@@ -162,12 +173,6 @@ export function SettingsTab() {
     }
     setQuickFilters(next);
     saveHouseholdProfile({ quick_filters: next });
-  };
-
-  const toggleMealPrepDay = (day: string) => {
-    const next = mealPrepDays.includes(day) ? mealPrepDays.filter(d => d !== day) : [...mealPrepDays, day];
-    setMealPrepDays(next);
-    saveHouseholdProfile({ meal_prep_days: next });
   };
 
   const updateSkillLevel = (v: string) => { setSkillLevel(v); saveUserPreferences({ skill_level: v }); };
