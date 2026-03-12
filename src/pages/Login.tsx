@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, ReactNode } from "react";
 import { Logo } from "@/components/Logo";
+import { CocinaText } from "@/components/CocinaText";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
@@ -14,34 +15,40 @@ const STATS = [
   { icon: Clock, value: "37 min", label: "Spent daily deciding what to cook" },
 ];
 
-const PAIN_POINTS = [
+interface ContentItem {
+  icon: typeof ShoppingCart;
+  title: string;
+  description: ReactNode;
+}
+
+const PAIN_POINTS: ContentItem[] = [
   {
     icon: ShoppingCart,
     title: "Groceries go bad before you use them",
-    description: "You buy with good intentions, but by Thursday half the fridge is forgotten. Cocina builds meals around what you actually have.",
+    description: <>You buy with good intentions, but by Thursday half the fridge is forgotten. <CocinaText /> builds meals around what you actually have.</>,
   },
   {
     icon: Clock,
     title: '"What\'s for dinner?" — every single night',
-    description: "Decision fatigue is real. Cocina generates personalized meal ideas based on your pantry, skill level, and family preferences.",
+    description: <>Decision fatigue is real. <CocinaText /> generates personalized meal ideas based on your pantry, skill level, and family preferences.</>,
   },
   {
     icon: DollarSign,
     title: "Eating out is draining your budget",
-    description: "When cooking feels like a chore, takeout wins. Cocina makes home cooking effortless with meals matched to what you own.",
+    description: <>When cooking feels like a chore, takeout wins. <CocinaText /> makes home cooking effortless with meals matched to what you own.</>,
   },
   {
     icon: Users,
     title: "Picky eaters and dietary needs",
-    description: "Kids, allergies, spice tolerance — everyone's different. Cocina factors in your whole household so every meal works for everyone.",
+    description: <>Kids, allergies, spice tolerance — everyone's different. <CocinaText /> factors in your whole household so every meal works for everyone.</>,
   },
 ];
 
-const FEATURES = [
+const FEATURES: ContentItem[] = [
   {
     icon: Utensils,
     title: "Smart pantry tracking",
-    description: "Mark what's in stock and cocina only suggests meals you can actually make. No more buying ingredients for one recipe.",
+    description: <>Mark what's in stock and <CocinaText /> only suggests meals you can actually make. No more buying ingredients for one recipe.</>,
   },
   {
     icon: ChefHat,
@@ -51,7 +58,7 @@ const FEATURES = [
   {
     icon: Leaf,
     title: "Reduce food waste to near zero",
-    description: "Cocina prioritizes ingredients that are about to expire and builds meals around what needs to be used first.",
+    description: <><CocinaText /> prioritizes ingredients that are about to expire and builds meals around what needs to be used first.</>,
   },
   {
     icon: Heart,
@@ -72,7 +79,7 @@ const TESTIMONIALS = [
     detail: "Home cook, Chicago IL",
   },
   {
-    quote: "My kids are picky and my husband has celiac. Cocina is the first app that actually accounts for all of us.",
+    quote: <>My kids are picky and my husband has celiac. <CocinaText /> is the first app that actually accounts for all of us.</>,
     name: "Maria L.",
     detail: "Family of 5, Miami FL",
   },
@@ -286,7 +293,7 @@ export default function Login() {
             Sound familiar?
           </h2>
           <p className="font-body text-muted-foreground text-center mb-12 max-w-md mx-auto">
-            These are the everyday frustrations cocina was built to solve.
+            These are the everyday frustrations <CocinaText /> was built to solve.
           </p>
           <div className="flex flex-col gap-8">
             {PAIN_POINTS.map((point) => (
@@ -308,7 +315,7 @@ export default function Login() {
       <section className="px-6 py-20 bg-card">
         <div className="max-w-3xl mx-auto">
           <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground text-center mb-4">
-            How cocina works
+            How <CocinaText /> works
           </h2>
           <p className="font-body text-muted-foreground text-center mb-12 max-w-md mx-auto">
             Set up once, cook smarter forever.
@@ -359,7 +366,7 @@ export default function Login() {
             Stop wasting food. Start cooking smarter.
           </h2>
           <p className="font-body text-sm text-primary-foreground/70 max-w-sm">
-            Join thousands of households saving money and eating better with cocina.
+            Join thousands of households saving money and eating better with <CocinaText />.
           </p>
           <div className="flex flex-col gap-3 w-full max-w-sm">
             <button
@@ -383,7 +390,7 @@ export default function Login() {
         <div className="max-w-4xl mx-auto flex flex-col items-center gap-2">
           <Logo size="sm" />
           <p className="font-body text-xs text-muted-foreground">
-            © {new Date().getFullYear()} cocina. Cook smarter, waste less.
+            © {new Date().getFullYear()} <CocinaText />. Cook smarter, waste less.
           </p>
         </div>
       </footer>
