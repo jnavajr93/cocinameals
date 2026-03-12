@@ -45,7 +45,7 @@ export function PantryTab() {
 
       if (pantryData) setItems(pantryData);
       if (household) {
-        setHouseholdName(household.name || "Pantry");
+        setHouseholdName(household.name || "Ingredients");
         setInviteCode(household.invite_code);
       }
       if (members) setMemberCount(members.length);
