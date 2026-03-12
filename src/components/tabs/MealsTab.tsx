@@ -697,7 +697,7 @@ export function MealsTab() {
     </div>
   );
 
-  function renderMealCard(card: MealCardWithCookTime, isBaby = false) {
+  function renderMealCard(card: MealCardWithCookTime, isBaby = false, sectionId?: string) {
     const cuisineTag = getCuisineTag(card);
     const isLiked = likedMeals.has(card.name);
     const isDisliked = dislikedMeals.has(card.name);
@@ -708,7 +708,7 @@ export function MealsTab() {
         key={card.name}
         className={`rounded-lg border bg-card p-3 transition-colors ${isLiked ? "border-gold/40" : "border-border"}`}
       >
-        <button onClick={() => openRecipe(card, isBaby)} className="text-left w-full">
+        <button onClick={() => openRecipe(card, isBaby, sectionId)} className="text-left w-full">
           <p className="font-body text-sm font-medium text-foreground leading-tight">{card.name}</p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="font-body text-xs text-muted-foreground">{card.cal} cal</span>
@@ -733,7 +733,7 @@ export function MealsTab() {
             <ThumbsDown size={16} />
           </button>
           <button
-            onClick={() => saveMeal(card)}
+            onClick={() => saveMeal(card, sectionId)}
             className={`transition-colors ${isSaved ? "text-gold" : "text-muted-foreground hover:text-gold"}`}
           >
             <Star size={16} fill={isSaved ? "currentColor" : "none"} />
