@@ -777,10 +777,7 @@ export function MealsTab() {
       {/* Sections */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 pb-24"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+        className="flex-1 overflow-y-auto px-4 pb-24 overscroll-none"
       >
         {activeSections.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center">
