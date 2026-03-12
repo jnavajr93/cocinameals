@@ -172,6 +172,7 @@ export function SavedTab() {
             </div>
           ) : (
             <RecipeDisplay text={generatingRecipe.text} loading={generatingRecipe.loading} />
+          )}
         </div>
         {!generatingRecipe.loading && generatingRecipe.text && (
           <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-4 py-3 flex justify-center pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
