@@ -367,11 +367,9 @@ export function PantryTab() {
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center">
             <p className="font-body text-sm text-muted-foreground">
-              {viewMode === "shopping"
-                ? "Everything's stocked up. Nothing to grab right now."
-                : search
-                  ? "No items match your search."
-                  : "Your pantry is empty. Check off items you have, or add items manually."}
+              {search
+                ? "No items match your search."
+                : "No ingredients yet. Tap + to add items."}
             </p>
           </div>
         ) : (
