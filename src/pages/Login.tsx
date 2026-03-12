@@ -344,10 +344,10 @@ export default function Login() {
       <section className="px-6 py-20">
         <div className="max-w-3xl mx-auto">
           <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground text-center mb-4">
-            What families are saying
+            Early users are loving it
           </h2>
           <p className="font-body text-muted-foreground text-center mb-12 max-w-md mx-auto">
-            Real households, real results.
+            Real households, real results — from our founding members.
           </p>
           <div className="grid md:grid-cols-2 gap-6">
             {TESTIMONIALS.map((t) => (
