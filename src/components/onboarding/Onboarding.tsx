@@ -60,7 +60,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     householdName: "",
     inviteCode: generateInviteCode(),
     memberName: user?.user_metadata?.full_name?.split(" ")[0] || "",
-    equipment: [],
+    equipment: [...DEFAULT_EQUIPMENT],
     cuisineSliders: Object.fromEntries(CUISINES.map((c) => [c, 2])),
     skillLevel: "intermediate",
     spiceTolerance: "medium",
