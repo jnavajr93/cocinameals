@@ -318,7 +318,9 @@ export type Database = {
       }
       user_preferences: {
         Row: {
+          allergies: Json | null
           diet_restrictions: Json | null
+          dislikes: Json | null
           health_conditions: Json | null
           household_id: string | null
           id: string
@@ -330,7 +332,9 @@ export type Database = {
           weeknight_time: string | null
         }
         Insert: {
+          allergies?: Json | null
           diet_restrictions?: Json | null
+          dislikes?: Json | null
           health_conditions?: Json | null
           household_id?: string | null
           id?: string
@@ -342,7 +346,9 @@ export type Database = {
           weeknight_time?: string | null
         }
         Update: {
+          allergies?: Json | null
           diet_restrictions?: Json | null
+          dislikes?: Json | null
           health_conditions?: Json | null
           household_id?: string | null
           id?: string
