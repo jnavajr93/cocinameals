@@ -133,9 +133,11 @@ export function StepMealRhythm({ profile, update, onFinish, saving }: Props) {
       <div className="fixed bottom-0 left-0 right-0 bg-background px-6 pt-2 pb-6">
         <button
           onClick={onFinish}
-          className="w-full rounded-lg bg-gold px-6 py-3.5 font-body font-semibold text-gold-foreground transition-colors hover:opacity-90"
+          disabled={saving}
+          className="w-full rounded-lg bg-gold px-6 py-3.5 font-body font-semibold text-gold-foreground transition-colors hover:opacity-90 disabled:opacity-40"
         >
-          Start cooking
+          {saving ? "Setting up..." : "Start cooking"}
+        </button>
         </button>
       </div>
     </div>
