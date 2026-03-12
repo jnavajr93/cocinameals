@@ -486,25 +486,41 @@ export function MealsTab() {
     return null;
   };
 
+  const shareRecipe = async () => {
+    if (!recipeView || !recipeView.recipeText) return;
+    const shareText = `🍽️ ${recipeView.mealName}\n\n${recipeView.recipeText}\n\n— — —\nMade with cocina · smart meal planning for real households\ncocinameals.lovable.app`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: recipeView.mealName, text: shareText });
+      } catch (e: any) {
+        if (e.name !== "AbortError") {
+          await navigator.clipboard.writeText(shareText);
+          toast.success("Recipe copied to clipboard");
+        }
+      }
+    } else {
+      await navigator.clipboard.writeText(shareText);
+      toast.success("Recipe copied to clipboard");
+    }
+  };
+
   // Recipe view
   if (recipeView) {
-    const recipeImgUrl = mealImages[recipeView.mealName];
-    // Trigger image fetch if not yet loaded
-    if (!recipeImgUrl) fetchMealImage(recipeView.mealName);
-
     return (
       <div className="flex flex-col h-full">
-        {recipeImgUrl && (
-          <div className="w-full h-44 overflow-hidden relative shrink-0">
-            <img src={recipeImgUrl} alt={recipeView.mealName} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
-          </div>
-        )}
         <div className="px-4 pt-4 pb-2 flex items-center gap-2">
           <button onClick={() => setRecipeView(null)} className="text-muted-foreground hover:text-foreground shrink-0">
             <ArrowLeft size={20} />
           </button>
           <h1 className="font-display text-lg font-bold text-foreground flex-1 truncate">{recipeView.mealName}</h1>
+          <button
+            onClick={shareRecipe}
+            className="shrink-0 text-muted-foreground hover:text-gold transition-colors"
+            title="Share recipe"
+          >
+            <Send size={16} />
+          </button>
           <button
             onClick={() => {
               handleFeedback({ name: recipeView.mealName, tags: [], cal: 0, protein: 0, carbs: 0, fat: 0 } as MealCardWithCookTime, "liked");
