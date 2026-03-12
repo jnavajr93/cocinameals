@@ -66,7 +66,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     cuisineSliders: Object.fromEntries(CUISINES.map((c) => [c, 2])),
     skillLevel: "intermediate",
     spiceTolerance: "medium",
-    weeknightTime: "30min",
+    weeknightTime: "20min",
     dietRestrictions: [],
     healthConditions: [],
     allergies: [],

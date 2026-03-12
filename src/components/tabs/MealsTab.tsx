@@ -41,7 +41,7 @@ export function MealsTab() {
   const [filterProtein, setFilterProtein] = useState<string | null>(null);
   const [filterCuisine, setFilterCuisine] = useState<string | null>(null);
   const [filterCalorie, setFilterCalorie] = useState<string | null>(null);
-  const [filterInStockOnly, setFilterInStockOnly] = useState(false);
+  const [filterInStockOnly, setFilterInStockOnly] = useState(true);
   const [filterMustInclude, setFilterMustInclude] = useState<string | null>(null);
   const [showFilterSheet, setShowFilterSheet] = useState<string | null>(null);
 
