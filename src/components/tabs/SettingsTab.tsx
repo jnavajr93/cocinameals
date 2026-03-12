@@ -290,6 +290,24 @@ export function SettingsTab() {
                 ))}
               </div>
 
+              {/* Household size */}
+              <div className="mt-2 border-t border-border pt-3">
+                <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Total people in household</p>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+                    <button
+                      key={n}
+                      onClick={() => updateHouseholdSize(n)}
+                      className={`w-9 h-9 rounded-lg border font-body text-sm font-medium transition-colors ${
+                        householdSize === n ? "border-gold bg-gold/15 text-foreground" : "border-border bg-card text-muted-foreground hover:bg-secondary"
+                      }`}
+                    >
+                      {n}{n === 8 ? "+" : ""}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Children — inside household */}
               <div className="mt-2 border-t border-border pt-3">
                 <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Children</p>
