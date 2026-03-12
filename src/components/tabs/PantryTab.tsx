@@ -37,6 +37,7 @@ export function PantryTab() {
   // Long-press state
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [longPressId, setLongPressId] = useState<string | null>(null);
+  const longPressFired = useRef(false);
 
   // Multi-select state
   const [selectMode, setSelectMode] = useState(false);
