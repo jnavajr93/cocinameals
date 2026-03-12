@@ -130,14 +130,12 @@ export function RecipeDisplay({ text, loading }: RecipeDisplayProps) {
           <div className="flex items-center gap-4 flex-wrap">
             {macros?.cal && (
               <div className="flex items-center gap-1.5">
-                <Flame size={14} className="text-gold" />
                 <span className="font-body text-sm font-semibold text-foreground">{macros.cal}</span>
                 <span className="font-body text-xs text-muted-foreground">cal</span>
               </div>
             )}
             {serves?.people && (
               <div className="flex items-center gap-1.5">
-                <Users size={14} className="text-primary" />
                 <span className="font-body text-sm font-semibold text-foreground">{serves.people}</span>
                 <span className="font-body text-xs text-muted-foreground">servings</span>
               </div>
