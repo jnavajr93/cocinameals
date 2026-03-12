@@ -52,7 +52,7 @@ export function SettingsTab() {
   const [healthConditions, setHealthConditions] = useState<string[]>([]);
 
   // Children
-  const [children, setChildren] = useState<{ id: string; name: string | null; date_of_birth: string }[]>([]);
+  const [children, setChildren] = useState<{ id: string; name: string | null; date_of_birth: string; health_conditions?: string[] }[]>([]);
   const [addingChild, setAddingChild] = useState(false);
   const [newChildName, setNewChildName] = useState("");
   const [newChildDob, setNewChildDob] = useState("");
@@ -103,7 +103,7 @@ export function SettingsTab() {
           setMealSections(uPrefs.section_order as any[]);
         }
       }
-      if (childrenData) setChildren(childrenData);
+      if (childrenData) setChildren(childrenData.map(c => ({ ...c, health_conditions: (c.health_conditions as string[]) || [] })));
       if (feedbackData) {
         setLikedFeedback(feedbackData.filter(f => f.feedback === "liked").map(f => ({ id: f.id, meal_name: f.meal_name, created_at: f.created_at || "" })));
         setDislikedFeedback(feedbackData.filter(f => f.feedback === "disliked").map(f => ({ id: f.id, meal_name: f.meal_name, created_at: f.created_at || "" })));
@@ -238,6 +238,19 @@ export function SettingsTab() {
     saveUserPreferences({ health_conditions: next });
   };
 
+  const toggleChildHealth = async (childId: string, condition: string) => {
+    const next = children.map(c => {
+      if (c.id !== childId) return c;
+      const current = c.health_conditions || [];
+      return { ...c, health_conditions: current.includes(condition) ? current.filter(h => h !== condition) : [...current, condition] };
+    });
+    setChildren(next);
+    const child = next.find(c => c.id === childId);
+    if (child) {
+      await supabase.from("children").update({ health_conditions: child.health_conditions } as any).eq("id", childId);
+    }
+  };
+
   const CHILD_SECTION_IDS = ["child_breakfast", "child_lunch", "child_snack", "child_dinner"];
 
   const setChildSectionsEnabled = (enabled: boolean) => {
@@ -255,7 +268,7 @@ export function SettingsTab() {
       date_of_birth: newChildDob,
     }).select().single();
     if (data) {
-      const newChildren = [...children, data];
+      const newChildren = [...children, { ...data, health_conditions: (data.health_conditions as string[]) || [] }];
       setChildren(newChildren);
       if (newChildren.length === 1) setChildSectionsEnabled(true);
     }
@@ -442,6 +455,18 @@ export function SettingsTab() {
                   ))}
                 </div>
               </div>
+
+              {/* Children */}
+              {children.map(child => (
+                <div key={child.id}>
+                  <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{child.name || "Child"}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {HEALTH_CONDITIONS.map(h => (
+                      <button key={h} onClick={() => toggleChildHealth(child.id, h)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${(child.health_conditions || []).includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
+                    ))}
+                  </div>
+                </div>
+              ))}
 
               {/* Non-app members */}
               {nonAppMembers.map((member, i) => (
