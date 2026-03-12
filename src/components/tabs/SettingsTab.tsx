@@ -539,7 +539,7 @@ export function SettingsTab() {
         <section className="pt-4 pb-8">
           {showLogoutConfirm ? (
             <div className="flex flex-col gap-2">
-              <p className="font-body text-sm text-foreground">Log out of cocina?</p>
+              <p className="font-body text-sm text-foreground">Log out of <CocinaText />?</p>
               <div className="flex gap-2">
                 <button onClick={handleLogout} className="flex-1 rounded-lg bg-destructive px-4 py-2 font-body text-sm font-medium text-destructive-foreground">Log out</button>
                 <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 rounded-lg border border-border px-4 py-2 font-body text-sm text-foreground">Cancel</button>
