@@ -28,7 +28,7 @@ export function StepCuisine({ profile, update, onNext }: Props) {
             <div key={cuisine}>
               <div className="flex items-center justify-between mb-1.5">
                 <span className="font-body text-sm font-medium text-foreground">{cuisine}</span>
-                <span className="font-body text-xs text-gold font-medium">{CUISINE_LABELS[val]}</span>
+                <span className="font-body text-xs text-emerald-600 font-semibold">{CUISINE_LABELS[val]}</span>
               </div>
               <input
                 type="range"
