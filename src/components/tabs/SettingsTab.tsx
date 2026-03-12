@@ -64,53 +64,68 @@ export function SettingsTab() {
   // Equipment search
   const [equipSearch, setEquipSearch] = useState("");
 
+  const loadSettings = async () => {
+    if (!householdId || !user) return;
+    const [{ data: household }, { data: memberData }, { data: hProfile }, { data: uPrefs }, { data: childrenData }, { data: feedbackData }] = await Promise.all([
+      supabase.from("households").select("name, invite_code, household_size, non_app_members").eq("id", householdId).single(),
+      supabase.from("household_members").select("id, user_name, last_seen, health_conditions").eq("household_id", householdId),
+      supabase.from("household_profile").select("*").eq("household_id", householdId).maybeSingle(),
+      supabase.from("user_preferences").select("*").eq("user_id", user.id).maybeSingle(),
+      supabase.from("children").select("*").eq("household_id", householdId),
+      supabase.from("meal_feedback").select("id, meal_name, feedback, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
+    ]);
+
+    if (household) {
+      setHouseholdName(household.name || "");
+      setInviteCode(household.invite_code);
+      setHouseholdSize((household as any).household_size ?? 2);
+      const raw = (household as any).non_app_members || [];
+      setNonAppMembers(raw.map((m: any) => typeof m === "string" ? { name: m, healthConditions: [] } : m));
+    }
+    if (memberData) setMembers(memberData.map(m => ({ ...m, health_conditions: ((m as any).health_conditions as string[]) || [] })));
+    if (hProfile) {
+      setEquipment((hProfile.equipment as string[]) || []);
+      setCuisineSliders((hProfile.cuisine_sliders as Record<string, number>) || {});
+      setMealSections((hProfile.meal_sections as any[]) || []);
+      setQuickFilters((hProfile.quick_filters as string[]) || []);
+      setMealPrepDays((hProfile.meal_prep_days as string[]) || []);
+    }
+    if (uPrefs) {
+      setSkillLevel(uPrefs.skill_level || "intermediate");
+      setSpiceTolerance(uPrefs.spice_tolerance || "medium");
+      setWeeknightTime(uPrefs.weeknight_time || "30min");
+      setDietRestrictions((uPrefs.diet_restrictions as string[]) || []);
+      setHealthConditions((uPrefs.health_conditions as string[]) || []);
+      if (uPrefs.section_order && (uPrefs.section_order as any[]).length > 0) {
+        setMealSections(uPrefs.section_order as any[]);
+      }
+    }
+    if (childrenData) setChildren(childrenData.map(c => ({ ...c, health_conditions: (c.health_conditions as string[]) || [] })));
+    if (feedbackData) {
+      setLikedFeedback(feedbackData.filter(f => f.feedback === "liked").map(f => ({ id: f.id, meal_name: f.meal_name, created_at: f.created_at || "" })));
+      setDislikedFeedback(feedbackData.filter(f => f.feedback === "disliked").map(f => ({ id: f.id, meal_name: f.meal_name, created_at: f.created_at || "" })));
+    }
+  };
+
   useEffect(() => {
     if (!householdId || !user) return;
-
-    const load = async () => {
-      const [{ data: household }, { data: memberData }, { data: hProfile }, { data: uPrefs }, { data: childrenData }, { data: feedbackData }] = await Promise.all([
-        supabase.from("households").select("name, invite_code, household_size, non_app_members").eq("id", householdId).single(),
-        supabase.from("household_members").select("id, user_name, last_seen, health_conditions").eq("household_id", householdId),
-        supabase.from("household_profile").select("*").eq("household_id", householdId).maybeSingle(),
-        supabase.from("user_preferences").select("*").eq("user_id", user.id).maybeSingle(),
-        supabase.from("children").select("*").eq("household_id", householdId),
-        supabase.from("meal_feedback").select("id, meal_name, feedback, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
-      ]);
-
-      if (household) {
-        setHouseholdName(household.name || "");
-        setInviteCode(household.invite_code);
-        setHouseholdSize((household as any).household_size ?? 2);
-        const raw = (household as any).non_app_members || [];
-        // Migrate old string[] format to object format
-        setNonAppMembers(raw.map((m: any) => typeof m === "string" ? { name: m, healthConditions: [] } : m));
-      }
-      if (memberData) setMembers(memberData.map(m => ({ ...m, health_conditions: ((m as any).health_conditions as string[]) || [] })));
-      if (hProfile) {
-        setEquipment((hProfile.equipment as string[]) || []);
-        setCuisineSliders((hProfile.cuisine_sliders as Record<string, number>) || {});
-        setMealSections((hProfile.meal_sections as any[]) || []);
-        setQuickFilters((hProfile.quick_filters as string[]) || []);
-        setMealPrepDays((hProfile.meal_prep_days as string[]) || []);
-      }
-      if (uPrefs) {
-        setSkillLevel(uPrefs.skill_level || "intermediate");
-        setSpiceTolerance(uPrefs.spice_tolerance || "medium");
-        setWeeknightTime(uPrefs.weeknight_time || "30min");
-        setDietRestrictions((uPrefs.diet_restrictions as string[]) || []);
-        setHealthConditions((uPrefs.health_conditions as string[]) || []);
-        if (uPrefs.section_order && (uPrefs.section_order as any[]).length > 0) {
-          setMealSections(uPrefs.section_order as any[]);
-        }
-      }
-      if (childrenData) setChildren(childrenData.map(c => ({ ...c, health_conditions: (c.health_conditions as string[]) || [] })));
-      if (feedbackData) {
-        setLikedFeedback(feedbackData.filter(f => f.feedback === "liked").map(f => ({ id: f.id, meal_name: f.meal_name, created_at: f.created_at || "" })));
-        setDislikedFeedback(feedbackData.filter(f => f.feedback === "disliked").map(f => ({ id: f.id, meal_name: f.meal_name, created_at: f.created_at || "" })));
-      }
-    };
-    load();
+    loadSettings();
   }, [householdId, user]);
+
+  // Realtime sync: re-fetch when any household member updates shared tables
+  useEffect(() => {
+    if (!householdId) return;
+
+    const channel = supabase
+      .channel(`settings-sync-${householdId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'household_profile', filter: `household_id=eq.${householdId}` }, () => loadSettings())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'households', filter: `id=eq.${householdId}` }, () => loadSettings())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'household_members', filter: `household_id=eq.${householdId}` }, () => loadSettings())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'children', filter: `household_id=eq.${householdId}` }, () => loadSettings())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [householdId]);
 
   // Save helpers
   const saveHouseholdProfile = async (patch: Record<string, any>) => {
