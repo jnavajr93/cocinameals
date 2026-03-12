@@ -236,6 +236,19 @@ export function PantryTab() {
     });
   };
 
+  const PERISHABLE_CATEGORIES = useMemo(() => new Set(["Produce", "Proteins", "Dairy", "Frozen"]), []);
+
+  const updateExpiryDate = async (id: string, date: Date | undefined) => {
+    const expiresAt = date ? format(date, "yyyy-MM-dd") : null;
+    setItems(prev => prev.map(i => i.id === id ? { ...i, expires_at: expiresAt } : i));
+    await supabase.from("pantry_items").update({ expires_at: expiresAt, updated_by: userName }).eq("id", id);
+    if (date) {
+      toast.success(`Expiration set to ${format(date, "MMM d")}`);
+    } else {
+      toast.success("Expiration date removed");
+    }
+  };
+
   const addItem = async (name: string, category?: string) => {
     if (!householdId) return;
     const hidden = items.find(i => i.is_hidden && i.name.toLowerCase() === name.toLowerCase());
