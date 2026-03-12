@@ -80,12 +80,14 @@ export default function Login() {
       <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
         <div className="flex flex-col items-center gap-6 animate-fade-in w-full max-w-sm">
           <Logo size="lg" />
-          <p className="text-center font-body text-base text-foreground max-w-xs leading-relaxed">
-            Your household meal planning companion.
-          </p>
-          <p className="text-center font-body text-sm text-muted-foreground max-w-xs leading-relaxed">
-            Cut back on eating out. Eliminate food waste. Cook restaurant-quality meals at home — with what you already have.
-          </p>
+          <div className="flex flex-col items-center gap-2 max-w-xs">
+            <p className="text-center font-display text-lg text-foreground leading-snug">
+              Cook what you have. Eat like a chef.
+            </p>
+            <p className="text-center font-body text-sm text-muted-foreground leading-relaxed mt-1">
+              Turn your pantry into restaurant-quality meals — waste less, order out less, eat better.
+            </p>
+          </div>
           <div className="flex flex-col gap-3 w-full mt-4">
             <button onClick={handleGoogle} disabled={loading} className={btnPrimary}>
               Continue with Google
