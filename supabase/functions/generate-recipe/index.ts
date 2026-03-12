@@ -36,6 +36,12 @@ Never reference equipment the user does not own.
 HEALTH CONDITIONS — silent adaptation, never mentioned:
 ${(profile?.healthConditions || []).map((h: string) => `  - ${h}`).join("\n") || "  None"}
 
+ALLERGIES — NEVER include these ingredients, no exceptions:
+${(profile?.allergies || []).map((a: string) => `  - ${a}`).join("\n") || "  None"}
+
+FOOD DISLIKES — avoid or suggest substitutes:
+${(profile?.dislikes || []).map((d: string) => `  - ${d}`).join("\n") || "  None"}
+
 RECIPE FORMAT — always exactly this structure:
 
 INGREDIENT LIST
