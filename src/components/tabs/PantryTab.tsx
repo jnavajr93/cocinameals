@@ -176,6 +176,7 @@ export function PantryTab() {
     let list = items.filter(i => !i.is_hidden);
     if (q) list = list.filter(i => i.name.toLowerCase().includes(q));
     if (activeCategory) list = list.filter(i => i.category === activeCategory);
+    list.sort((a, b) => a.name.localeCompare(b.name));
     return list;
   }, [items, q, activeCategory]);
 
