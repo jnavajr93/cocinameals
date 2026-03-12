@@ -349,9 +349,9 @@ export function SettingsTab() {
               <div className="mt-2 border-t border-border pt-3">
                 <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Other household members</p>
                 <p className="font-body text-xs text-muted-foreground mb-2">People who eat with you but don't use the app.</p>
-                {nonAppMembers.map((name, i) => (
+                {nonAppMembers.map((member, i) => (
                   <div key={i} className="flex items-center justify-between py-1.5">
-                    <span className="font-body text-sm text-foreground">{name}</span>
+                    <span className="font-body text-sm text-foreground">{member.name}</span>
                     <button onClick={() => removeNonAppMember(i)} className="text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
                   </div>
                 ))}
