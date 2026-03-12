@@ -63,9 +63,10 @@ export function StepChildren({ profile, update, onNext }: Props) {
             Yes
           </button>
           <button
-            onClick={() => {
+51            onClick={() => {
               setHasChildren(false);
               update({ children: [] });
+              setChildSections(false);
             }}
             className="flex-1 rounded-lg border border-border bg-card px-4 py-3 font-body font-medium hover:bg-secondary transition-colors"
           >
