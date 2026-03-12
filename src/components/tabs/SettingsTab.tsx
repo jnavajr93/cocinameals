@@ -276,6 +276,36 @@ export function SettingsTab() {
                   </div>
                 ))}
               </div>
+
+              {/* Children — inside household */}
+              <div className="mt-2 border-t border-border pt-3">
+                <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Children</p>
+                <p className="font-body text-xs text-muted-foreground mb-2">Child meal sections auto-appear when you add children.</p>
+                {children.map(c => (
+                  <div key={c.id} className="flex items-center justify-between py-2">
+                    <div>
+                      <span className="font-body text-sm text-foreground">{c.name || "Child"}</span>
+                      <span className="font-body text-xs text-muted-foreground ml-2">{getChildAge(c.date_of_birth)}</span>
+                    </div>
+                    <button onClick={() => removeChild(c.id)} className="text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
+                  </div>
+                ))}
+                {addingChild ? (
+                  <div className="flex flex-col gap-2 mt-2">
+                    <input type="text" value={newChildName} onChange={e => setNewChildName(e.target.value)} placeholder="Name (optional)" className="w-full rounded-lg border border-border bg-input px-4 py-2 font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold" />
+                    <input type="date" value={newChildDob} onChange={e => setNewChildDob(e.target.value)} className="w-full rounded-lg border border-border bg-input px-4 py-2 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-gold" />
+                    <div className="flex gap-2">
+                      <button onClick={addChild} className="flex-1 rounded-lg bg-primary py-2 font-body text-sm font-medium text-primary-foreground">Add</button>
+                      <button onClick={() => setAddingChild(false)} className="flex-1 rounded-lg border border-border py-2 font-body text-sm text-foreground">Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => setAddingChild(true)} className="flex items-center gap-1 mt-2 font-body text-sm text-gold hover:underline">
+                    <Plus size={14} />
+                    Add child
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </section>
