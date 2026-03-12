@@ -8,6 +8,7 @@ import { StepEquipment } from "./steps/StepEquipment";
 import { StepCuisine } from "./steps/StepCuisine";
 import { StepCookingStyle } from "./steps/StepCookingStyle";
 import { StepMealRhythm } from "./steps/StepMealRhythm";
+import { StepJoinProfile } from "./steps/StepJoinProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { DEFAULT_PANTRY } from "@/data/pantryDefaults";
