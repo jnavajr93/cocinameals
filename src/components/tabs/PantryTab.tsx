@@ -317,7 +317,7 @@ export function PantryTab() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder={viewMode === "pantry" ? "Search pantry..." : "Search shopping list..."}
+            placeholder="Search ingredients..."
             className="w-full rounded-lg border border-border bg-input pl-8 pr-4 py-2 font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold"
           />
         </div>
