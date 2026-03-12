@@ -339,14 +339,23 @@ export function MealsTab() {
 
   const saveRecipe = async () => {
     if (!recipeView || !householdId) return;
-    const { error } = await supabase.from("saved_recipes").insert({
-      household_id: householdId,
-      meal_name: recipeView.mealName,
-      recipe_text: recipeView.recipeText,
-      saved_by: userName,
-    });
-    if (error) toast.error("Could not save recipe");
-    else toast.success("Recipe saved");
+    if (savedMealNames.has(recipeView.mealName)) {
+      await supabase.from("saved_recipes").delete().eq("household_id", householdId).eq("meal_name", recipeView.mealName);
+      setSavedMealNames(prev => { const n = new Set(prev); n.delete(recipeView.mealName); return n; });
+      toast.success("Recipe unsaved");
+    } else {
+      const { error } = await supabase.from("saved_recipes").insert({
+        household_id: householdId,
+        meal_name: recipeView.mealName,
+        recipe_text: recipeView.recipeText,
+        saved_by: userName,
+      });
+      if (error) toast.error("Could not save recipe");
+      else {
+        setSavedMealNames(prev => new Set(prev).add(recipeView.mealName));
+        toast.success("Recipe saved");
+      }
+    }
   };
 
   const getCuisineTag = (card: MealCardWithCookTime) => {
