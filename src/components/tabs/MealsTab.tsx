@@ -368,8 +368,7 @@ export function MealsTab() {
           <h1 className="font-display text-lg font-bold text-foreground flex-1 truncate">{recipeView.mealName}</h1>
           <button
             onClick={() => {
-              const card = currentCards.find(c => c.name === recipeView.mealName);
-              if (card) handleFeedback(card, "liked");
+              handleFeedback({ name: recipeView.mealName, tags: [], cal: 0, protein: 0, carbs: 0, fat: 0 } as MealCardWithCookTime, "liked");
             }}
             className={`shrink-0 transition-colors ${likedMeals.has(recipeView.mealName) ? "text-gold" : "text-muted-foreground hover:text-gold"}`}
           >
@@ -377,8 +376,7 @@ export function MealsTab() {
           </button>
           <button
             onClick={() => {
-              const card = currentCards.find(c => c.name === recipeView.mealName);
-              if (card) handleFeedback(card, "disliked");
+              handleFeedback({ name: recipeView.mealName, tags: [], cal: 0, protein: 0, carbs: 0, fat: 0 } as MealCardWithCookTime, "disliked");
             }}
             className={`shrink-0 transition-colors ${dislikedMeals.has(recipeView.mealName) ? "text-destructive" : "text-muted-foreground hover:text-destructive"}`}
           >
