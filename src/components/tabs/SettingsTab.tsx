@@ -410,8 +410,32 @@ export function SettingsTab() {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-24">
-      <div className="px-4 pt-4 pb-2">
-        <h1 className="font-display text-xl font-bold text-foreground mb-4">Settings</h1>
+      <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+        <h1 className="font-display text-xl font-bold text-foreground">Settings</h1>
+        <div className="relative">
+          <button
+            onClick={() => toggle("language")}
+            className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
+            <span className="text-sm">🌐</span>
+            <span className="font-body text-[10px]">{LANGUAGES.find(l => l.code === language)?.label || "Language"}</span>
+          </button>
+          {expanded.has("language") && (
+            <div className="absolute right-0 top-full mt-1 z-50 rounded-lg border border-border bg-background shadow-lg p-2 min-w-[140px]">
+              {LANGUAGES.map(lang => (
+                <button
+                  key={lang.code}
+                  onClick={() => { setLanguage(lang.code); toggle("language"); }}
+                  className={`w-full text-left rounded-md px-3 py-1.5 font-body text-sm transition-colors ${
+                    language === lang.code ? "bg-gold/10 text-foreground font-medium" : "text-muted-foreground hover:bg-secondary"
+                  }`}
+                >
+                  {lang.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="px-4 flex flex-col">
