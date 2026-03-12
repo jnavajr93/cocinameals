@@ -25,22 +25,22 @@ const PAIN_POINTS: ContentItem[] = [
   {
     icon: ShoppingCart,
     title: "Groceries go bad before you use them",
-    description: <>You buy with good intentions, but by Thursday half the fridge is forgotten. <CocinaText /> builds meals around what you actually have.</>,
+    description: "You buy with good intentions, but by Thursday half the fridge is forgotten. cocina builds meals around what you actually have.",
   },
   {
     icon: Clock,
     title: '"What\'s for dinner?" — every single night',
-    description: <>Decision fatigue is real. <CocinaText /> generates personalized meal ideas based on your pantry, skill level, and family preferences.</>,
+    description: "Decision fatigue is real. cocina generates personalized meal ideas based on your pantry, skill level, and family preferences.",
   },
   {
     icon: DollarSign,
     title: "Eating out is draining your budget",
-    description: <>When cooking feels like a chore, takeout wins. <CocinaText /> makes home cooking effortless with meals matched to what you own.</>,
+    description: "When cooking feels like a chore, takeout wins. cocina makes home cooking effortless with meals matched to what you own.",
   },
   {
     icon: Users,
     title: "Picky eaters and dietary needs",
-    description: <>Kids, allergies, spice tolerance — everyone's different. <CocinaText /> factors in your whole household so every meal works for everyone.</>,
+    description: "Kids, allergies, spice tolerance — everyone's different. cocina factors in your whole household so every meal works for everyone.",
   },
 ];
 
