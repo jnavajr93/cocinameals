@@ -29,7 +29,7 @@ export interface OnboardingProfile {
   healthConditions: string[];
   allergies: string[];
   dislikes: string[];
-  mealSections: { id: string; name: string; enabled: boolean; order: number; scheduledDays?: string[] }[];
+  mealSections: { id: string; name: string; enabled: boolean; order: number; scheduledDays?: string[]; defaultTime?: number }[];
   quickFilters: string[];
   bulkCookDays: string[];
   children: { name: string; dob: string }[];
