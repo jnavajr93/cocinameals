@@ -69,6 +69,8 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     weeknightTime: "30min",
     dietRestrictions: [],
     healthConditions: [],
+    allergies: [],
+    dislikes: [],
     mealSections: MEAL_SECTIONS.map((s, i) => ({
       id: s.id,
       name: s.name,
