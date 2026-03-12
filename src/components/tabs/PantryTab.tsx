@@ -574,7 +574,7 @@ export function PantryTab() {
                           {item.name}
                         </span>
                         {/* Calendar icon for perishable items */}
-                        {item.in_stock && PERISHABLE_CATEGORIES.has(cat) && (
+                        {item.in_stock && (
                           <Popover>
                             <PopoverTrigger asChild>
                               <span
