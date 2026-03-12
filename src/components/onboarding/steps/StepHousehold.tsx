@@ -1,9 +1,9 @@
-import { HouseholdProfile } from "@/lib/store";
+import { OnboardingProfile } from "@/components/onboarding/Onboarding";
 import { toast } from "sonner";
 
 interface Props {
-  profile: HouseholdProfile;
-  update: (p: Partial<HouseholdProfile>) => void;
+  profile: OnboardingProfile;
+  update: (p: Partial<OnboardingProfile>) => void;
   onNext: () => void;
 }
 

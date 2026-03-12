@@ -1,4 +1,4 @@
-import { HouseholdProfile } from "@/lib/store";
+import { OnboardingProfile } from "@/components/onboarding/Onboarding";
 import { CUISINES, CUISINE_LABELS } from "@/data/cuisines";
 
 interface Props {

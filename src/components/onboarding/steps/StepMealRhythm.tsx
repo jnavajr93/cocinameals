@@ -1,4 +1,4 @@
-import { HouseholdProfile } from "@/lib/store";
+import { OnboardingProfile } from "@/components/onboarding/Onboarding";
 import { MEAL_SECTIONS, QUICK_FILTERS } from "@/data/mealSections";
 
 interface Props {

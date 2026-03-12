@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { HouseholdProfile } from "@/lib/store";
+import { OnboardingProfile } from "@/components/onboarding/Onboarding";
 import { EQUIPMENT_CATEGORIES } from "@/data/equipment";
 import { Check, Search } from "lucide-react";
 
