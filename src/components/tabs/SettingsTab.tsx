@@ -36,7 +36,7 @@ export function SettingsTab() {
   // Household profile (shared)
   const [equipment, setEquipment] = useState<string[]>([]);
   const [cuisineSliders, setCuisineSliders] = useState<Record<string, number>>({});
-  const [mealSections, setMealSections] = useState<{ id: string; name: string; enabled: boolean; order: number; scheduledDays?: string[] }[]>([]);
+  const [mealSections, setMealSections] = useState<{ id: string; name: string; enabled: boolean; order: number; scheduledDays?: string[]; defaultTime?: number }[]>([]);
   const [quickFilters, setQuickFilters] = useState<string[]>([]);
   const [mealPrepDays, setMealPrepDays] = useState<string[]>([]);
 
