@@ -9,13 +9,13 @@ export const EQUIPMENT_CATEGORIES: EquipmentCategory[] = [
     items: [
       "Gas Stove", "Electric Stove", "Induction Cooktop", "Portable Burner",
       "Propane Grill", "Charcoal Grill", "Pellet Smoker / Offset Smoker",
-      "Flat Top Griddle (outdoor)", "Comal / Tortilla Griddle",
+      "Flat Top Griddle (outdoor)",
     ],
   },
   {
     name: "Ovens & Broilers",
     items: [
-      "Electric Oven", "Gas Oven", "Convection Oven", "Toaster Oven",
+      "Electric Oven", "Gas Oven", "Convection Oven",
       "Broiler (built-in)", "Wood-Fired / Pizza Oven",
     ],
   },
@@ -23,7 +23,7 @@ export const EQUIPMENT_CATEGORIES: EquipmentCategory[] = [
     name: "Countertop Appliances",
     items: [
       "Air Fryer", "Microwave", "Instant Pot / Pressure Cooker",
-      "Slow Cooker / Crock Pot", "Rice Cooker", "Toaster",
+      "Slow Cooker / Crock Pot", "Rice Cooker", "Toaster", "Toaster Oven",
       "Waffle Maker", "Panini Press", "Electric Griddle",
       "Sous Vide Circulator", "Dehydrator", "Bread Maker",
       "Deep Fryer", "Sandwich Maker", "Egg Cooker",
@@ -41,10 +41,10 @@ export const EQUIPMENT_CATEGORIES: EquipmentCategory[] = [
     name: "Pots & Pans",
     items: [
       "Non-stick Frying Pan", "Stainless Frying Pan", "Cast Iron Skillet",
-      "Carbon Steel Pan", "Saut\u00e9 Pan", "Small Saucepan", "Large Saucepan",
+      "Carbon Steel Pan", "Sauté Pan", "Small Saucepan", "Large Saucepan",
       "Stock Pot / Soup Pot", "Dutch Oven", "Rondeau / Braiser",
       "Wok / Stir Fry Pan", "Stovetop Griddle Pan",
-      "Paella Pan", "Crepe Pan",
+      "Comal / Tortilla Griddle", "Paella Pan", "Crepe Pan",
     ],
   },
   {
@@ -66,4 +66,15 @@ export const EQUIPMENT_CATEGORIES: EquipmentCategory[] = [
       "Rolling Pin", "Tongs", "Whisk", "Salad Spinner",
     ],
   },
+];
+
+// Common items most kitchens have — pre-selected during onboarding
+export const DEFAULT_EQUIPMENT: string[] = [
+  "Electric Stove", "Gas Stove",
+  "Electric Oven", "Gas Oven",
+  "Microwave", "Toaster",
+  "Blender",
+  "Non-stick Frying Pan", "Small Saucepan", "Large Saucepan", "Stock Pot / Soup Pot",
+  "Sheet Pan / Baking Tray", "Glass Baking Dish",
+  "Chef's Knife", "Paring Knife", "Cutting Board", "Colander", "Mixing Bowls", "Tongs", "Whisk",
 ];
