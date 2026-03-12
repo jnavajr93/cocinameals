@@ -118,8 +118,9 @@ export function MealsTab() {
     const list: { key: string; label: string }[] = [];
     if (filterCookTime) list.push({ key: "cookTime", label: filterCookTime });
     if (filterProtein) list.push({ key: "protein", label: filterProtein });
-    if (filterCuisine) list.push({ key: "cuisine", label: filterCuisine });
+    if (filterPeople) list.push({ key: "people", label: filterPeople });
     if (filterMethod) list.push({ key: "method", label: filterMethod });
+    if (filterCuisine) list.push({ key: "cuisine", label: filterCuisine });
     if (filterInStockOnly) list.push({ key: "inStock", label: "In-Stock Only" });
     if (filterMustInclude) list.push({ key: "mustInclude", label: filterMustInclude });
     if (activeFilter) list.push({ key: "quick", label: activeFilter });
