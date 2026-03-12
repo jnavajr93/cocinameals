@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { RefreshCw, Star, Send, ThumbsUp, ThumbsDown, ChevronDown, X, Filter, Clock, Flame, Leaf, ArrowLeft } from "lucide-react";
+import { RecipeDisplay } from "@/components/RecipeDisplay";
 import { supabase } from "@/integrations/supabase/client";
 import { useHousehold } from "@/hooks/useHousehold";
 import { useAuth } from "@/hooks/useAuth";
@@ -374,10 +375,7 @@ export function MealsTab() {
               ))}
             </div>
           ) : (
-            <pre className="font-body text-sm text-foreground whitespace-pre-wrap leading-relaxed mt-2">
-              {recipeView.recipeText}
-              {recipeView.loading && <span className="animate-pulse text-gold">|</span>}
-            </pre>
+            <RecipeDisplay text={recipeView.recipeText} loading={recipeView.loading} />
           )}
         </div>
         <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-4 py-3 flex items-center justify-center gap-6 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
