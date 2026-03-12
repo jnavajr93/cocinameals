@@ -20,6 +20,14 @@ const SKILL_LEVELS = ["Beginner", "Intermediate", "Confident"];
 const SPICE_LEVELS = ["None", "Mild", "Medium", "Hot", "Extra Hot"];
 const WEEKNIGHT_TIMES = ["Under 20 min", "30 min", "45 min", "No rush"];
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const LANGUAGES = [
+  { code: "en", label: "English" },
+  { code: "es", label: "Español" },
+  { code: "fr", label: "Français" },
+  { code: "pt", label: "Português" },
+  { code: "de", label: "Deutsch" },
+  { code: "zh", label: "中文" },
+];
 
 export function SettingsTab() {
   const { user, signOut } = useAuth();
