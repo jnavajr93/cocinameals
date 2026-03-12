@@ -49,6 +49,7 @@ const FEATURES: ContentItem[] = [
     icon: Camera,
     title: "Snap A Receipt, Stock Your Pantry",
     description: "Take a photo of your grocery receipt and your pantry updates instantly with expiration dates included.",
+    badge: "Beta",
   },
   {
     icon: Utensils,
@@ -69,6 +70,16 @@ const FEATURES: ContentItem[] = [
     icon: Heart,
     title: "Save Favorites & Rate Meals",
     description: "Build your household cookbook over time. Rate meals so the AI learns what your family actually enjoys.",
+  },
+  {
+    icon: Users,
+    title: "Health-Aware Cooking",
+    description: "Set health conditions like diabetes, high blood pressure, or celiac for each household member — recipes silently adapt to keep everyone safe.",
+  },
+  {
+    icon: DollarSign,
+    title: "Multi-Language Support",
+    description: "Use cocina in English, Spanish, and more. Set your preferred language in settings and the entire experience adapts.",
   },
 ];
 
