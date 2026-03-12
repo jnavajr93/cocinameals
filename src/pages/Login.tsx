@@ -47,22 +47,22 @@ const PAIN_POINTS: ContentItem[] = [
 const FEATURES: ContentItem[] = [
   {
     icon: Utensils,
-    title: "Smart pantry tracking",
-    description: <>Mark what's in stock and <CocinaText /> only suggests meals you can actually make. No more buying ingredients for one recipe.</>,
+    title: "Smart Pantry Tracking",
+    description: "Mark what's in stock and only get suggestions for meals you can actually make. No more buying ingredients for one recipe.",
   },
   {
     icon: ChefHat,
-    title: "AI-powered meal suggestions",
+    title: "Meal Suggestions",
     description: "Get restaurant-quality meal ideas personalized to your equipment, cuisine preferences, and cooking skill level.",
   },
   {
     icon: Leaf,
-    title: "Reduce food waste to near zero",
-    description: <><CocinaText /> prioritizes ingredients that are about to expire and builds meals around what needs to be used first.</>,
+    title: "Reduce Food Waste To Near Zero",
+    description: "Prioritizes ingredients that are about to expire and builds meals around what needs to be used first.",
   },
   {
     icon: Heart,
-    title: "Save favorites & rate meals",
+    title: "Save Favorites & Rate Meals",
     description: "Build your household cookbook over time. Rate meals so the AI learns what your family actually enjoys.",
   },
 ];
