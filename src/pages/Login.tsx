@@ -19,6 +19,7 @@ interface ContentItem {
   icon: typeof ShoppingCart;
   title: string;
   description: string;
+  badge?: string;
 }
 
 const PAIN_POINTS: ContentItem[] = [
