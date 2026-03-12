@@ -105,11 +105,10 @@ export function PantryTab() {
   const q = search.toLowerCase();
   const filtered = useMemo(() => {
     let list = items.filter(i => !i.is_hidden);
-    if (viewMode === "shopping") list = list.filter(i => !i.in_stock);
     if (q) list = list.filter(i => i.name.toLowerCase().includes(q));
     if (activeCategory) list = list.filter(i => i.category === activeCategory);
     return list;
-  }, [items, q, activeCategory, viewMode]);
+  }, [items, q, activeCategory]);
 
   const inStockCount = items.filter(i => i.in_stock && !i.is_hidden).length;
   const outOfStockCount = items.filter(i => !i.in_stock && !i.is_hidden).length;
