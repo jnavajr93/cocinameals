@@ -138,9 +138,7 @@ export function SavedTab() {
           <h1 className="font-display text-lg font-bold text-foreground flex-1">{viewingRecipe.meal_name}</h1>
         </div>
         <div className="flex-1 overflow-y-auto px-4 pb-24">
-          <pre className="font-body text-sm text-foreground whitespace-pre-wrap leading-relaxed mt-2">
-            {viewingRecipe.recipe_text}
-          </pre>
+          <RecipeDisplay text={viewingRecipe.recipe_text} />
         </div>
         <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-4 py-3 flex justify-center pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           <button
