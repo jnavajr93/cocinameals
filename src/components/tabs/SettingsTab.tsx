@@ -28,7 +28,7 @@ export function SettingsTab() {
   const [inviteCode, setInviteCode] = useState("");
   const [householdSize, setHouseholdSize] = useState(2);
   const [members, setMembers] = useState<{ user_name: string; last_seen: string | null }[]>([]);
-  const [nonAppMembers, setNonAppMembers] = useState<string[]>([]);
+  const [nonAppMembers, setNonAppMembers] = useState<{ name: string; healthConditions?: string[] }[]>([]);
   const [addingNonAppMember, setAddingNonAppMember] = useState(false);
   const [newMemberName, setNewMemberName] = useState("");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -77,7 +77,14 @@ export function SettingsTab() {
         supabase.from("meal_feedback").select("id, meal_name, feedback, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
       ]);
 
-      if (household) { setHouseholdName(household.name || ""); setInviteCode(household.invite_code); setHouseholdSize((household as any).household_size ?? 2); setNonAppMembers(((household as any).non_app_members as string[]) || []); }
+      if (household) {
+        setHouseholdName(household.name || "");
+        setInviteCode(household.invite_code);
+        setHouseholdSize((household as any).household_size ?? 2);
+        const raw = (household as any).non_app_members || [];
+        // Migrate old string[] format to object format
+        setNonAppMembers(raw.map((m: any) => typeof m === "string" ? { name: m, healthConditions: [] } : m));
+      }
       if (memberData) setMembers(memberData);
       if (hProfile) {
         setEquipment((hProfile.equipment as string[]) || []);
@@ -130,22 +137,34 @@ export function SettingsTab() {
 
   const copyCode = () => { navigator.clipboard.writeText(inviteCode); toast.success("Copied to clipboard"); };
 
-  const addNonAppMember = async () => {
-    if (!householdId || !newMemberName.trim()) return;
-    const next = [...nonAppMembers, newMemberName.trim()];
+  const saveNonAppMembers = async (next: { name: string; healthConditions?: string[] }[]) => {
+    if (!householdId) return;
     setNonAppMembers(next);
     await supabase.from("households").update({ non_app_members: next } as any).eq("id", householdId);
+  };
+
+  const addNonAppMember = async () => {
+    if (!householdId || !newMemberName.trim()) return;
+    const next = [...nonAppMembers, { name: newMemberName.trim(), healthConditions: [] }];
+    await saveNonAppMembers(next);
     setNewMemberName("");
     setAddingNonAppMember(false);
     toast.success("Member added");
   };
 
   const removeNonAppMember = async (index: number) => {
-    if (!householdId) return;
     const next = nonAppMembers.filter((_, i) => i !== index);
-    setNonAppMembers(next);
-    await supabase.from("households").update({ non_app_members: next } as any).eq("id", householdId);
+    await saveNonAppMembers(next);
     toast.success("Member removed");
+  };
+
+  const toggleNonAppMemberHealth = async (index: number, condition: string) => {
+    const next = nonAppMembers.map((m, i) => {
+      if (i !== index) return m;
+      const current = m.healthConditions || [];
+      return { ...m, healthConditions: current.includes(condition) ? current.filter(c => c !== condition) : [...current, condition] };
+    });
+    await saveNonAppMembers(next);
   };
 
   const formatLastSeen = (lastSeen: string | null) => {
@@ -330,9 +349,9 @@ export function SettingsTab() {
               <div className="mt-2 border-t border-border pt-3">
                 <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Other household members</p>
                 <p className="font-body text-xs text-muted-foreground mb-2">People who eat with you but don't use the app.</p>
-                {nonAppMembers.map((name, i) => (
+                {nonAppMembers.map((member, i) => (
                   <div key={i} className="flex items-center justify-between py-1.5">
-                    <span className="font-body text-sm text-foreground">{name}</span>
+                    <span className="font-body text-sm text-foreground">{member.name}</span>
                     <button onClick={() => removeNonAppMember(i)} className="text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
                   </div>
                 ))}
@@ -411,13 +430,30 @@ export function SettingsTab() {
             {expanded.has("health") ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
           </button>
           {expanded.has("health") && (
-            <div className="pb-4">
-              <p className="font-body text-xs text-muted-foreground mb-3">Private — stays on your account only. Never shared with your household. Recipes quietly adapt to these.</p>
-              <div className="flex flex-wrap gap-2">
-                {HEALTH_CONDITIONS.map(h => (
-                  <button key={h} onClick={() => toggleHealth(h)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${healthConditions.includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
-                ))}
+            <div className="pb-4 space-y-4">
+              <p className="font-body text-xs text-muted-foreground">Recipes quietly adapt to these conditions. Your conditions are private and never shared.</p>
+
+              {/* Current user */}
+              <div>
+                <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{userName || "You"} (private)</p>
+                <div className="flex flex-wrap gap-2">
+                  {HEALTH_CONDITIONS.map(h => (
+                    <button key={h} onClick={() => toggleHealth(h)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${healthConditions.includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
+                  ))}
+                </div>
               </div>
+
+              {/* Non-app members */}
+              {nonAppMembers.map((member, i) => (
+                <div key={i}>
+                  <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{member.name}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {HEALTH_CONDITIONS.map(h => (
+                      <button key={h} onClick={() => toggleNonAppMemberHealth(i, h)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${(member.healthConditions || []).includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </section>
