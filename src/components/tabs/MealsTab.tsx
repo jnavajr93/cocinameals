@@ -165,23 +165,28 @@ export function MealsTab() {
   const saveMeal = async (card: MealCardWithCookTime) => {
     if (!householdId) return;
     if (savedMealNames.has(card.name)) {
-      // Unsave
-      await supabase.from("saved_meals").delete().eq("household_id", householdId).eq("meal_name", card.name);
+      await supabase.from("saved_recipes").delete().eq("household_id", householdId).eq("meal_name", card.name);
       setSavedMealNames(prev => { const n = new Set(prev); n.delete(card.name); return n; });
       toast.success("Removed from saved");
     } else {
-      const { error } = await supabase.from("saved_meals").insert({
+      // Save with recipe text if we have it in cache
+      const cacheKey = `recipe_${card.name.replace(/\s+/g, "_").toLowerCase()}`;
+      let recipeText = "";
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const { text } = JSON.parse(cached);
+          recipeText = text || "";
+        }
+      } catch {}
+
+      const { error } = await supabase.from("saved_recipes").insert({
         household_id: householdId,
         meal_name: card.name,
-        calories: card.cal,
-        protein: card.protein,
-        carbs: card.carbs,
-        fat: card.fat,
-        cook_time: card.cookTime || null,
-        tags: card.tags,
+        recipe_text: recipeText || `Recipe for ${card.name} — generate from Meals tab to see full instructions.`,
         saved_by: userName,
       });
-      if (error) toast.error("Could not save meal");
+      if (error) toast.error("Could not save");
       else {
         setSavedMealNames(prev => new Set(prev).add(card.name));
         toast.success(`${card.name} saved`);
