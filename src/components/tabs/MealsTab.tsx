@@ -295,7 +295,7 @@ export function MealsTab() {
     setCraving("");
   };
 
-  const openRecipe = async (card: MealCardWithCookTime, isBaby = false) => {
+  const openRecipe = async (card: MealCardWithCookTime, isBaby = false, sectionId?: string) => {
     // Check localStorage cache
     const cacheKey = `recipe_${card.name}`;
     const cached = localStorage.getItem(cacheKey);
@@ -303,7 +303,7 @@ export function MealsTab() {
       try {
         const { text, ts } = JSON.parse(cached);
         if (Date.now() - ts < 24 * 3600000) {
-          setRecipeView({ mealName: card.name, recipeText: text, loading: false, isBaby });
+          setRecipeView({ mealName: card.name, recipeText: text, loading: false, isBaby, sectionId, tags: card.tags });
           return;
         }
       } catch {}
