@@ -862,7 +862,8 @@ export function MealsTab() {
     </div>
   );
 
-  function fetchMealImage(mealName: string) {
+
+
     if (mealImages[mealName]) return;
     const cacheKey = `meal_img_${mealName.replace(/\s+/g, "_").toLowerCase()}`;
     const cached = localStorage.getItem(cacheKey);
