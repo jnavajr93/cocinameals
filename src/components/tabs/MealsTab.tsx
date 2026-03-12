@@ -108,18 +108,18 @@ export function MealsTab() {
     if (filterCookTime) list.push({ key: "cookTime", label: filterCookTime });
     if (filterProtein) list.push({ key: "protein", label: filterProtein });
     if (filterCuisine) list.push({ key: "cuisine", label: filterCuisine });
-    if (filterCalorie) list.push({ key: "calorie", label: filterCalorie });
+    if (filterMethod) list.push({ key: "method", label: filterMethod });
     if (filterInStockOnly) list.push({ key: "inStock", label: "In-Stock Only" });
     if (filterMustInclude) list.push({ key: "mustInclude", label: filterMustInclude });
     if (activeFilter) list.push({ key: "quick", label: activeFilter });
     return list;
-  }, [filterCookTime, filterProtein, filterCuisine, filterCalorie, filterInStockOnly, filterMustInclude, activeFilter]);
+  }, [filterCookTime, filterProtein, filterCuisine, filterMethod, filterInStockOnly, filterMustInclude, activeFilter]);
 
   const clearFilter = (key: string) => {
     if (key === "cookTime") setFilterCookTime(null);
     if (key === "protein") setFilterProtein(null);
     if (key === "cuisine") setFilterCuisine(null);
-    if (key === "calorie") setFilterCalorie(null);
+    if (key === "method") setFilterMethod(null);
     if (key === "inStock") setFilterInStockOnly(false);
     if (key === "mustInclude") setFilterMustInclude(null);
     if (key === "quick") setActiveFilter(null);
@@ -129,7 +129,7 @@ export function MealsTab() {
     setFilterCookTime(null);
     setFilterProtein(null);
     setFilterCuisine(null);
-    setFilterCalorie(null);
+    setFilterMethod(null);
     setFilterInStockOnly(false);
     setFilterMustInclude(null);
     setActiveFilter(null);
