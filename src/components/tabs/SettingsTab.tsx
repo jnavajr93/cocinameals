@@ -238,6 +238,19 @@ export function SettingsTab() {
     saveUserPreferences({ health_conditions: next });
   };
 
+  const toggleChildHealth = async (childId: string, condition: string) => {
+    const next = children.map(c => {
+      if (c.id !== childId) return c;
+      const current = c.health_conditions || [];
+      return { ...c, health_conditions: current.includes(condition) ? current.filter(h => h !== condition) : [...current, condition] };
+    });
+    setChildren(next);
+    const child = next.find(c => c.id === childId);
+    if (child) {
+      await supabase.from("children").update({ health_conditions: child.health_conditions } as any).eq("id", childId);
+    }
+  };
+
   const CHILD_SECTION_IDS = ["child_breakfast", "child_lunch", "child_snack", "child_dinner"];
 
   const setChildSectionsEnabled = (enabled: boolean) => {
