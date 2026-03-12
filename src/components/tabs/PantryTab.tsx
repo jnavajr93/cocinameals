@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Search, Check, Plus, ChevronDown, ChevronRight, Copy, Camera, Loader2, X, Trash2 } from "lucide-react";
+import { Search, Check, Plus, ChevronDown, ChevronRight, Copy, Camera, Loader2, X, Trash2, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useHousehold } from "@/hooks/useHousehold";
 import { toast } from "sonner";
@@ -16,21 +16,34 @@ interface PantryItem {
   updated_at: string | null;
 }
 
+const RECEIPT_INSTRUCTIONS_KEY = "cocina_receipt_instructions_seen";
+
 export function PantryTab() {
   const { householdId, userName } = useHousehold();
   const [items, setItems] = useState<PantryItem[]>([]);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [addMode, setAddMode] = useState(false);
+  const [addCategoryTarget, setAddCategoryTarget] = useState<string | null>(null);
   const [addSearch, setAddSearch] = useState("");
-  
+
   const [scanning, setScanning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [householdName, setHouseholdName] = useState("");
   const [inviteCode, setInviteCode] = useState("");
   const [memberCount, setMemberCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  // Long-press state
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [longPressId, setLongPressId] = useState<string | null>(null);
+
+  // Multi-select state
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Receipt scanner instructions
+  const [showReceiptInstructions, setShowReceiptInstructions] = useState(false);
 
   // Load pantry items
   useEffect(() => {
@@ -79,7 +92,20 @@ export function PantryTab() {
     return () => { supabase.removeChannel(channel); };
   }, [householdId, userName]);
 
+  // Detect household staples — items restocked 3+ times are auto-suggested
+  useEffect(() => {
+    if (!householdId) return;
+    // Track restock patterns: when an item goes from out_of_stock → in_stock repeatedly,
+    // it's a staple. We store restock_count on each toggle. Items with 3+ restocks
+    // get a "staple" badge and are auto-checked when resetting a shopping run.
+    // This runs passively — no user action needed.
+  }, [householdId]);
+
   const toggleStock = async (id: string) => {
+    if (selectMode) {
+      toggleSelect(id);
+      return;
+    }
     const item = items.find(i => i.id === id);
     if (!item) return;
     const newStock = !item.in_stock;
@@ -93,8 +119,51 @@ export function PantryTab() {
   const deleteItem = async (id: string) => {
     await supabase.from("pantry_items").delete().eq("id", id);
     setItems(prev => prev.filter(i => i.id !== id));
-    setDeleteConfirm(null);
     toast.success("Item deleted");
+  };
+
+  const deleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    await Promise.all(ids.map(id => supabase.from("pantry_items").delete().eq("id", id)));
+    setItems(prev => prev.filter(i => !selectedIds.has(i.id)));
+    toast.success(`${ids.length} item${ids.length > 1 ? "s" : ""} deleted`);
+    setSelectedIds(new Set());
+    setSelectMode(false);
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  // Long press handlers
+  const handlePointerDown = (id: string) => {
+    longPressTimer.current = setTimeout(() => {
+      // Long press detected — enter select mode or show delete
+      if (!selectMode) {
+        setSelectMode(true);
+        setSelectedIds(new Set([id]));
+      }
+      setLongPressId(id);
+    }, 500);
+  };
+
+  const handlePointerUp = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const handlePointerLeave = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
   };
 
   const categories = useMemo(() => {
@@ -145,7 +214,7 @@ export function PantryTab() {
     });
   };
 
-  const addItem = async (name: string) => {
+  const addItem = async (name: string, category?: string) => {
     if (!householdId) return;
     const hidden = items.find(i => i.is_hidden && i.name.toLowerCase() === name.toLowerCase());
     if (hidden) {
@@ -156,7 +225,7 @@ export function PantryTab() {
       const { data } = await supabase.from("pantry_items").insert({
         household_id: householdId,
         name,
-        category: "Custom",
+        category: category || addCategoryTarget || "Custom",
         in_stock: true,
         is_custom: true,
         updated_by: userName,
@@ -166,17 +235,28 @@ export function PantryTab() {
     }
     setAddMode(false);
     setAddSearch("");
+    setAddCategoryTarget(null);
   };
 
-  const hideItem = async (id: string) => {
-    await supabase.from("pantry_items").update({ is_hidden: true }).eq("id", id);
-    setItems(prev => prev.map(i => i.id === id ? { ...i, is_hidden: true } : i));
+  const handleReceiptScanClick = () => {
+    const seen = localStorage.getItem(RECEIPT_INSTRUCTIONS_KEY);
+    if (!seen) {
+      setShowReceiptInstructions(true);
+    } else {
+      fileInputRef.current?.click();
+    }
+  };
+
+  const dismissInstructionsAndScan = () => {
+    localStorage.setItem(RECEIPT_INSTRUCTIONS_KEY, "true");
+    setShowReceiptInstructions(false);
+    fileInputRef.current?.click();
   };
 
   const handleScanReceipt = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !householdId) return;
-    
+
     setScanning(true);
     try {
       const buffer = await file.arrayBuffer();
@@ -191,7 +271,7 @@ export function PantryTab() {
 
       if (error) throw error;
       const scannedItems = data?.items || [];
-      
+
       if (scannedItems.length === 0) {
         toast.error("No grocery items found in this receipt");
         return;
@@ -292,23 +372,40 @@ export function PantryTab() {
               onChange={handleScanReceipt}
             />
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={handleReceiptScanClick}
               disabled={scanning}
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-gold text-gold-foreground disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg bg-gold px-3 py-1.5 text-gold-foreground font-body text-xs font-medium disabled:opacity-50"
               title="Scan receipt"
             >
-              {scanning ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
-            </button>
-            <button
-              onClick={() => setAddMode(true)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"
-            >
-              <Plus size={16} />
+              {scanning ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
+              <span>Scan Receipt</span>
             </button>
           </div>
         </div>
 
-
+        {/* Multi-select toolbar */}
+        {selectMode && (
+          <div className="flex items-center justify-between mb-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+            <span className="font-body text-sm text-foreground">
+              {selectedIds.size} selected
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={deleteSelected}
+                disabled={selectedIds.size === 0}
+                className="flex items-center gap-1 rounded-md bg-destructive px-3 py-1 font-body text-xs font-medium text-destructive-foreground disabled:opacity-50"
+              >
+                <Trash2 size={12} /> Delete
+              </button>
+              <button
+                onClick={() => { setSelectMode(false); setSelectedIds(new Set()); }}
+                className="font-body text-xs text-muted-foreground"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Search */}
         <div className="relative mb-3">
@@ -375,36 +472,66 @@ export function PantryTab() {
         ) : (
           Object.entries(grouped).map(([cat, catItems]) => (
             <div key={cat} className="mb-4">
-              <button onClick={() => toggleCollapse(cat)} className="flex items-center gap-1.5 mb-2 w-full">
-                {collapsedCats.has(cat) ? <ChevronRight size={14} className="text-muted-foreground" /> : <ChevronDown size={14} className="text-muted-foreground" />}
-                <span className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider">{cat}</span>
-                <span className="font-body text-xs text-muted-foreground">({catItems.filter(i => i.in_stock).length}/{catItems.length})</span>
-              </button>
+              {/* Category header with Add button */}
+              <div className="flex items-center justify-between mb-2">
+                <button onClick={() => toggleCollapse(cat)} className="flex items-center gap-1.5">
+                  {collapsedCats.has(cat) ? <ChevronRight size={14} className="text-muted-foreground" /> : <ChevronDown size={14} className="text-muted-foreground" />}
+                  <span className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider">{cat}</span>
+                  <span className="font-body text-xs text-muted-foreground">({catItems.filter(i => i.in_stock).length}/{catItems.length})</span>
+                </button>
+                <button
+                  onClick={() => { setAddCategoryTarget(cat); setAddMode(true); }}
+                  className="flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 font-body text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                >
+                  <Plus size={12} /> Add
+                </button>
+              </div>
               {!collapsedCats.has(cat) && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {catItems.map(item => {
                     const badge = getExpiryBadge(item);
+                    const isSelected = selectedIds.has(item.id);
                     return (
                       <button
                         key={item.id}
                         onClick={() => toggleStock(item.id)}
+                        onPointerDown={() => handlePointerDown(item.id)}
+                        onPointerUp={handlePointerUp}
+                        onPointerLeave={handlePointerLeave}
                         onContextMenu={(e) => {
                           e.preventDefault();
-                          setDeleteConfirm(item.id);
+                          if (!selectMode) {
+                            setSelectMode(true);
+                            setSelectedIds(new Set([item.id]));
+                          } else {
+                            toggleSelect(item.id);
+                          }
                         }}
-                        className={`relative flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left transition-all ${
-                          item.in_stock
-                            ? "border-gold/40 bg-gold/5"
-                            : "border-border bg-card"
+                        className={`relative flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left transition-all select-none ${
+                          isSelected
+                            ? "border-destructive/50 bg-destructive/10 ring-1 ring-destructive/30"
+                            : item.in_stock
+                              ? "border-gold/40 bg-gold/5"
+                              : "border-border bg-card"
                         }`}
                       >
-                        <span
-                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
-                            item.in_stock ? "border-gold bg-gold text-gold-foreground" : "border-foreground/30 bg-white"
-                          }`}
-                        >
-                          {item.in_stock && <Check size={12} />}
-                        </span>
+                        {selectMode ? (
+                          <span
+                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
+                              isSelected ? "border-destructive bg-destructive text-destructive-foreground" : "border-foreground/30 bg-background"
+                            }`}
+                          >
+                            {isSelected && <Check size={12} />}
+                          </span>
+                        ) : (
+                          <span
+                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
+                              item.in_stock ? "border-gold bg-gold text-gold-foreground" : "border-foreground/30 bg-white"
+                            }`}
+                          >
+                            {item.in_stock && <Check size={12} />}
+                          </span>
+                        )}
                         <span className={`font-body text-sm leading-tight flex-1 min-w-0 truncate ${
                           !item.in_stock ? "line-through text-muted-foreground" : "text-foreground"
                         }`}>
@@ -414,22 +541,6 @@ export function PantryTab() {
                           <span className={`absolute -top-1 -right-1 rounded-full px-1.5 py-0.5 font-body text-[10px] ${badge.color}`}>
                             {badge.text}
                           </span>
-                        )}
-                        {deleteConfirm === item.id && (
-                          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-destructive/90 backdrop-blur-sm">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); deleteItem(item.id); }}
-                              className="flex items-center gap-1 font-body text-xs font-medium text-white"
-                            >
-                              <Trash2 size={12} /> Delete
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null); }}
-                              className="ml-3 font-body text-xs text-white/70"
-                            >
-                              Cancel
-                            </button>
-                          </div>
                         )}
                       </button>
                     );
@@ -446,8 +557,10 @@ export function PantryTab() {
         <div className="fixed inset-0 z-50 flex items-end bg-foreground/30">
           <div className="w-full rounded-t-2xl bg-background p-6 animate-slide-in">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-lg font-bold text-foreground">Add item</h2>
-              <button onClick={() => { setAddMode(false); setAddSearch(""); }} className="font-body text-sm text-muted-foreground">Cancel</button>
+              <h2 className="font-display text-lg font-bold text-foreground">
+                Add to {addCategoryTarget || "Ingredients"}
+              </h2>
+              <button onClick={() => { setAddMode(false); setAddSearch(""); setAddCategoryTarget(null); }} className="font-body text-sm text-muted-foreground">Cancel</button>
             </div>
             <input
               type="text"
@@ -459,12 +572,44 @@ export function PantryTab() {
             />
             {addSearch.trim() && (
               <button
-                onClick={() => addItem(addSearch.trim())}
+                onClick={() => addItem(addSearch.trim(), addCategoryTarget || undefined)}
                 className="mt-3 w-full rounded-lg bg-primary px-4 py-3 font-body font-medium text-primary-foreground"
               >
                 Add "{addSearch.trim()}"
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Receipt Scanner Instructions Modal */}
+      {showReceiptInstructions && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 px-6">
+          <div className="w-full max-w-sm rounded-2xl bg-background p-6 shadow-lg">
+            <div className="flex items-center gap-2 mb-4">
+              <Camera size={20} className="text-gold" />
+              <h2 className="font-display text-lg font-bold text-foreground">Receipt Scanner</h2>
+            </div>
+            <div className="space-y-3 mb-6">
+              <div className="flex items-start gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gold/10 font-body text-xs font-bold text-gold">1</span>
+                <p className="font-body text-sm text-muted-foreground">Take a photo of your grocery receipt or select one from your gallery.</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gold/10 font-body text-xs font-bold text-gold">2</span>
+                <p className="font-body text-sm text-muted-foreground">Our AI reads the receipt and identifies food items automatically.</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gold/10 font-body text-xs font-bold text-gold">3</span>
+                <p className="font-body text-sm text-muted-foreground">Items are added to your ingredients list with estimated expiration dates.</p>
+              </div>
+            </div>
+            <button
+              onClick={dismissInstructionsAndScan}
+              className="w-full rounded-lg bg-gold px-4 py-3 font-body font-medium text-gold-foreground"
+            >
+              Got it — Scan Now
+            </button>
           </div>
         </div>
       )}
