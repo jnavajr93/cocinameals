@@ -238,6 +238,19 @@ export function SettingsTab() {
     saveUserPreferences({ health_conditions: next });
   };
 
+  const toggleMemberHealth = async (memberId: string, condition: string) => {
+    const next = members.map(m => {
+      if (m.id !== memberId) return m;
+      const current = m.health_conditions || [];
+      return { ...m, health_conditions: current.includes(condition) ? current.filter(c => c !== condition) : [...current, condition] };
+    });
+    setMembers(next);
+    const member = next.find(m => m.id === memberId);
+    if (member) {
+      await supabase.from("household_members").update({ health_conditions: member.health_conditions } as any).eq("id", memberId);
+    }
+  };
+
   const toggleChildHealth = async (childId: string, condition: string) => {
     const next = children.map(c => {
       if (c.id !== childId) return c;
