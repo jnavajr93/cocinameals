@@ -717,6 +717,39 @@ export function SettingsTab() {
 
 
 
+        {/* Save Settings */}
+        <section className="pt-6 pb-4">
+          <button
+            onClick={async () => {
+              try {
+                await Promise.all([
+                  saveHouseholdProfile({
+                    equipment,
+                    cuisine_sliders: cuisineSliders,
+                    meal_sections: mealSections,
+                    quick_filters: quickFilters,
+                    meal_prep_days: mealPrepDays,
+                  }),
+                  saveUserPreferences({
+                    skill_level: skillLevel,
+                    spice_tolerance: spiceTolerance,
+                    weeknight_time: weeknightTime,
+                    diet_restrictions: dietRestrictions,
+                    health_conditions: healthConditions,
+                    section_order: mealSections,
+                  }),
+                ]);
+                toast.success("Settings saved!");
+              } catch {
+                toast.error("Failed to save. Please try again.");
+              }
+            }}
+            className="w-full rounded-lg bg-primary px-6 py-3.5 font-body font-semibold text-primary-foreground transition-colors hover:opacity-90"
+          >
+            Save Settings
+          </button>
+        </section>
+
         {/* About */}
         <section className="border-b border-border pt-4 pb-4">
           <div className="flex flex-col items-center gap-2">
