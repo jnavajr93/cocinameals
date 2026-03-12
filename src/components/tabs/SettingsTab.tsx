@@ -27,7 +27,7 @@ export function SettingsTab() {
   const [householdName, setHouseholdName] = useState("");
   const [inviteCode, setInviteCode] = useState("");
   const [householdSize, setHouseholdSize] = useState(2);
-  const [members, setMembers] = useState<{ user_name: string; last_seen: string | null }[]>([]);
+  const [members, setMembers] = useState<{ id: string; user_name: string; last_seen: string | null; health_conditions?: string[] }[]>([]);
   const [nonAppMembers, setNonAppMembers] = useState<{ name: string; healthConditions?: string[] }[]>([]);
   const [addingNonAppMember, setAddingNonAppMember] = useState(false);
   const [newMemberName, setNewMemberName] = useState("");
