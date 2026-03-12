@@ -147,8 +147,9 @@ export function PantryTab() {
 
   // Long press handlers
   const handlePointerDown = (id: string) => {
+    longPressFired.current = false;
     longPressTimer.current = setTimeout(() => {
-      // Long press detected — enter select mode or show delete
+      longPressFired.current = true;
       if (!selectMode) {
         setSelectMode(true);
         setSelectedIds(new Set([id]));
