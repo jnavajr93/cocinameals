@@ -457,17 +457,19 @@ export function SettingsTab() {
           </button>
           {expanded.has("health") && (
             <div className="pb-4 space-y-4">
-              <p className="font-body text-xs text-muted-foreground">Recipes quietly adapt to these conditions. Your conditions are private and never shared.</p>
+              <p className="font-body text-xs text-muted-foreground">Recipes quietly adapt to these conditions. Any household member can update these.</p>
 
-              {/* Current user */}
-              <div>
-                <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{userName || "You"} (private)</p>
-                <div className="flex flex-wrap gap-2">
-                  {HEALTH_CONDITIONS.map(h => (
-                    <button key={h} onClick={() => toggleHealth(h)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${healthConditions.includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
-                  ))}
+              {/* App members */}
+              {members.map(member => (
+                <div key={member.id}>
+                  <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{member.user_name}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {HEALTH_CONDITIONS.map(h => (
+                      <button key={h} onClick={() => toggleMemberHealth(member.id, h)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${(member.health_conditions || []).includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ))}
 
               {/* Children */}
               {children.map(child => (
@@ -483,7 +485,7 @@ export function SettingsTab() {
 
               {/* Non-app members */}
               {nonAppMembers.map((member, i) => (
-                <div key={i}>
+                <div key={`non-${i}`}>
                   <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{member.name}</p>
                   <div className="flex flex-wrap gap-2">
                     {HEALTH_CONDITIONS.map(h => (
