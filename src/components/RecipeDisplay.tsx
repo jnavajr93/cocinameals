@@ -174,7 +174,6 @@ export function RecipeDisplay({ text, loading }: RecipeDisplayProps) {
       {parsed.ingredients.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <ListChecks size={16} className="text-gold" />
             <h3 className="font-display text-base font-bold text-foreground">Ingredients</h3>
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
