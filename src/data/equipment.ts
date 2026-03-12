@@ -7,16 +7,14 @@ export const EQUIPMENT_CATEGORIES: EquipmentCategory[] = [
   {
     name: "Cooking Surfaces",
     items: [
-      "Gas Stove", "Electric Stove", "Induction Cooktop", "Portable Burner",
-      "Propane Grill", "Charcoal Grill", "Pellet Smoker / Offset Smoker",
-      "Flat Top Griddle (outdoor)",
+      "Gas Stove", "Traditional Electric Stove", "Electric Induction Stove", "Portable Burner",
     ],
   },
   {
     name: "Ovens & Broilers",
     items: [
       "Electric Oven", "Gas Oven", "Convection Oven",
-      "Broiler (built-in)", "Wood-Fired / Pizza Oven",
+      "Broiler (built-in)",
     ],
   },
   {
@@ -64,6 +62,14 @@ export const EQUIPMENT_CATEGORIES: EquipmentCategory[] = [
       "Meat Thermometer", "Box Grater", "Microplane / Zester",
       "Fine Mesh Strainer", "Colander", "Mixing Bowls",
       "Rolling Pin", "Tongs", "Whisk", "Salad Spinner",
+    ],
+  },
+  {
+    name: "Outdoor",
+    items: [
+      "Propane Grill", "Charcoal Grill", "Pellet Smoker / Offset Smoker",
+      "Flat Top Griddle (outdoor)", "Wood-Fired / Pizza Oven",
+      "Kamado Grill (Big Green Egg etc.)", "Outdoor Deep Fryer",
     ],
   },
 ];

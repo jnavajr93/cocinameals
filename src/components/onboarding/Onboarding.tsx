@@ -7,7 +7,6 @@ import { StepChildren } from "./steps/StepChildren";
 import { StepEquipment } from "./steps/StepEquipment";
 import { StepCuisine } from "./steps/StepCuisine";
 import { StepCookingStyle } from "./steps/StepCookingStyle";
-import { StepMealRhythm } from "./steps/StepMealRhythm";
 import { StepJoinProfile } from "./steps/StepJoinProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -47,7 +46,7 @@ function generateInviteCode(): string {
   return code;
 }
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 6;
 
 export function Onboarding({ onComplete }: OnboardingProps) {
   const { user } = useAuth();
@@ -111,7 +110,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       return;
     }
 
-    // Go directly to join profile screen (no full onboarding)
     setProfile(p => ({ ...p, householdName: household.name || "" }));
     setJoinHouseholdId(household.id);
     setJoinHouseholdName(household.name || "");
@@ -130,14 +128,12 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       if (joinHouseholdId) {
         householdId = joinHouseholdId;
 
-        // Create member first so RLS policies work
         await supabase.from("household_members").insert({
           household_id: householdId,
           user_id: user.id,
           user_name: profile.memberName,
         });
       } else {
-        // Create household
         const { data: household, error: hError } = await supabase
           .from("households")
           .insert({ invite_code: profile.inviteCode, name: profile.householdName || null })
@@ -147,14 +143,12 @@ export function Onboarding({ onComplete }: OnboardingProps) {
         if (hError) throw hError;
         householdId = household.id;
 
-        // Create member immediately so RLS policies work for subsequent inserts
         await supabase.from("household_members").insert({
           household_id: householdId,
           user_id: user.id,
           user_name: profile.memberName,
         });
 
-        // Create household profile
         await supabase.from("household_profile").insert({
           household_id: householdId,
           equipment: profile.equipment,
@@ -164,7 +158,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           meal_prep_days: profile.bulkCookDays,
         });
 
-        // Save children
         if (profile.children.length > 0) {
           await supabase.from("children").insert(
             profile.children.map(c => ({
@@ -175,7 +168,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           );
         }
 
-        // Seed pantry
         const pantryItems = DEFAULT_PANTRY.flatMap(cat =>
           cat.items.map(name => ({
             household_id: householdId,
@@ -187,13 +179,11 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           }))
         );
 
-        // Insert in batches of 500
         for (let i = 0; i < pantryItems.length; i += 500) {
           await supabase.from("pantry_items").insert(pantryItems.slice(i, i + 500));
         }
       }
 
-      // Save user preferences
       await supabase.from("user_preferences").insert({
         user_id: user.id,
         household_id: householdId,
@@ -243,7 +233,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     );
   }
 
-  // Join profile screen — only name + skill level
+  // Join profile screen
   if (joinReady) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
@@ -315,14 +305,14 @@ export function Onboarding({ onComplete }: OnboardingProps) {
         {step === 1 && <StepName profile={profile} update={update} onNext={next} />}
         {step === 2 && <StepHousehold profile={profile} update={update} onNext={next} />}
         {step === 3 && <StepChildren profile={profile} update={update} onNext={next} />}
-        {step === 4 && <StepEquipment profile={profile} update={update} onNext={next} />}
-        {step === 5 && <StepCuisine profile={profile} update={update} onNext={next} />}
-        {step === 6 && <StepCookingStyle profile={profile} update={update} onNext={next} />}
-        {step === 7 && (
-          <StepMealRhythm
+        {step === 4 && <StepCookingStyle profile={profile} update={update} onNext={next} />}
+        {step === 5 && <StepEquipment profile={profile} update={update} onNext={next} />}
+        {step === 6 && (
+          <StepCuisine
             profile={profile}
             update={update}
-            onFinish={finish}
+            onNext={finish}
+            isLast
             saving={saving}
           />
         )}

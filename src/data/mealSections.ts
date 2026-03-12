@@ -9,16 +9,19 @@ export interface MealSectionDef {
 export const MEAL_SECTIONS: MealSectionDef[] = [
   { id: "breakfast", name: "Breakfast", description: "Morning fuel, sweet or savory", defaultOn: true },
   { id: "brunch", name: "Brunch", description: "Lazy weekend mornings", defaultOn: false },
-  { id: "quick_lunch", name: "Quick Lunch", description: "Under 20 min, midday", defaultOn: true },
-  { id: "full_dinner", name: "Full Dinner", description: "Proper sit-down meals", defaultOn: true },
-  { id: "light_dinner", name: "Light Dinner", description: "Lower calorie, lighter meals", defaultOn: false },
+  { id: "lunch", name: "Lunch", description: "Midday meals", defaultOn: true },
+  { id: "dinner", name: "Dinner", description: "Evening meals", defaultOn: true },
+  { id: "snacks", name: "Snacks", description: "Between-meal bites", defaultOn: false },
   { id: "meal_prep", name: "Meal Prep", description: "Cook once, eat multiple days", defaultOn: false },
   { id: "kid_friendly", name: "Kid-Friendly", description: "Mild, fun, approachable", defaultOn: false },
-  { id: "high_protein", name: "High Protein", description: "Macro-focused meals", defaultOn: false },
+  { id: "baby_breakfast", name: "Baby Breakfast", description: "Morning meals for little ones", defaultOn: false, isAuto: true },
+  { id: "baby_snack", name: "Baby Snack", description: "Safe, soft snack ideas", defaultOn: false, isAuto: true },
+  { id: "baby_lunch", name: "Baby Lunch", description: "Midday meals for babies", defaultOn: false, isAuto: true },
+  { id: "baby_dinner", name: "Baby Dinner", description: "Evening meals for babies", defaultOn: false, isAuto: true },
 ];
 
 export const QUICK_FILTERS = [
-  "Under 20 Min", "High Protein", "Low Carb", "Dairy-Free", "Gluten-Free",
+  "High Protein", "Under 20 Min", "Low Carb", "Dairy-Free", "Gluten-Free",
   "Vegetarian", "Vegan", "Spicy", "Mild", "Seafood", "Chicken", "Beef", "No Meat",
   "Kid-Friendly", "Comfort Food", "Light & Fresh",
   "One Pan", "Air Fryer Only",

@@ -7,34 +7,15 @@ interface Props {
   onNext: () => void;
 }
 
-const SKILL_LEVELS = [
-  { value: "beginner", label: "Beginner", desc: "Explain everything" },
-  { value: "intermediate", label: "Intermediate", desc: "Know the basics" },
-  { value: "confident", label: "Confident", desc: "Just the essentials" },
-];
-
-const SPICE_LEVELS = ["None", "Mild", "Medium", "Hot", "Extra Hot"];
-const TIME_OPTIONS = [
-  { value: "20min", label: "Under 20 min" },
-  { value: "45min", label: "45 min" },
-  { value: "norush", label: "No rush" },
+const COMMON_ALLERGIES = [
+  "Peanuts", "Tree Nuts", "Shellfish", "Fish", "Eggs", "Milk / Dairy",
+  "Soy", "Wheat", "Sesame", "Corn",
 ];
 
 const HEALTH_CONDITIONS = [
   "Diabetes", "High Blood Pressure", "High Cholesterol", "Heart Disease",
   "Kidney Disease", "Celiac Disease", "IBS / IBD", "GERD / Acid Reflux",
   "PCOS", "Gout", "Pregnancy", "Postpartum",
-];
-
-const COMMON_ALLERGIES = [
-  "Peanuts", "Tree Nuts", "Shellfish", "Fish", "Eggs", "Milk / Dairy",
-  "Soy", "Wheat", "Sesame", "Corn",
-];
-
-const COMMON_DISLIKES = [
-  "Cilantro", "Mushrooms", "Olives", "Anchovies", "Blue Cheese",
-  "Liver / Organ Meats", "Brussels Sprouts", "Tofu", "Coconut",
-  "Eggplant", "Beets", "Raw Onion", "Fennel", "Lamb",
 ];
 
 export function StepCookingStyle({ profile, update, onNext }: Props) {
@@ -49,13 +30,6 @@ export function StepCookingStyle({ profile, update, onNext }: Props) {
     });
   };
 
-  const toggleHealth = (h: string) => {
-    const current = profile.healthConditions;
-    update({
-      healthConditions: current.includes(h) ? current.filter((x) => x !== h) : [...current, h],
-    });
-  };
-
   const toggleAllergy = (a: string) => {
     const current = profile.allergies || [];
     update({
@@ -63,76 +37,20 @@ export function StepCookingStyle({ profile, update, onNext }: Props) {
     });
   };
 
-  const toggleDislike = (d: string) => {
-    const current = profile.dislikes || [];
+  const toggleHealth = (h: string) => {
+    const current = profile.healthConditions;
     update({
-      dislikes: current.includes(d) ? current.filter((x) => x !== d) : [...current, d],
+      healthConditions: current.includes(h) ? current.filter((x) => x !== h) : [...current, h],
     });
   };
 
   return (
     <div className="flex flex-col gap-6 pb-24">
-      <h1 className="font-display text-2xl font-bold text-foreground">How do you cook?</h1>
-
-      {/* Skill Level */}
       <div>
-        <h3 className="font-body text-sm font-semibold text-foreground mb-2">Skill level</h3>
-        <div className="flex gap-2">
-          {SKILL_LEVELS.map((s) => (
-            <button
-              key={s.value}
-              onClick={() => update({ skillLevel: s.value })}
-              className={`flex-1 rounded-lg border px-3 py-2.5 text-center transition-colors ${
-                profile.skillLevel === s.value
-                  ? "border-gold bg-gold/10 text-foreground"
-                  : "border-border bg-card text-muted-foreground hover:bg-secondary"
-              }`}
-            >
-              <span className="block font-body text-sm font-medium">{s.label}</span>
-              <span className="block font-body text-xs text-muted-foreground">{s.desc}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Spice */}
-      <div>
-        <h3 className="font-body text-sm font-semibold text-foreground mb-2">Spice tolerance</h3>
-        <div className="flex gap-2 flex-wrap">
-          {SPICE_LEVELS.map((s) => (
-            <button
-              key={s}
-              onClick={() => update({ spiceTolerance: s.toLowerCase() })}
-              className={`rounded-full border px-4 py-2 font-body text-sm transition-colors ${
-                profile.spiceTolerance === s.toLowerCase()
-                  ? "border-gold bg-gold/10 text-foreground"
-                  : "border-border bg-card text-muted-foreground hover:bg-secondary"
-              }`}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Time */}
-      <div>
-        <h3 className="font-body text-sm font-semibold text-foreground mb-2">Weeknight time available</h3>
-        <div className="flex gap-2 flex-wrap">
-          {TIME_OPTIONS.map((t) => (
-            <button
-              key={t.value}
-              onClick={() => update({ weeknightTime: t.value })}
-              className={`rounded-full border px-4 py-2 font-body text-sm transition-colors ${
-                profile.weeknightTime === t.value
-                  ? "border-gold bg-gold/10 text-foreground"
-                  : "border-border bg-card text-muted-foreground hover:bg-secondary"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <h1 className="font-display text-2xl font-bold text-foreground">About you</h1>
+        <p className="mt-1 font-body text-muted-foreground text-sm">
+          We'll personalize recipes based on these. You can fine-tune more in Settings later.
+        </p>
       </div>
 
       {/* Diet */}
@@ -184,37 +102,11 @@ export function StepCookingStyle({ profile, update, onNext }: Props) {
         </div>
       </div>
 
-      {/* Food Dislikes */}
-      <div>
-        <h3 className="font-body text-sm font-semibold text-foreground mb-2">Foods you hate</h3>
-        <p className="font-body text-xs text-muted-foreground mb-3">
-          We'll avoid these or suggest substitutes.
-        </p>
-        <div className="flex gap-2 flex-wrap">
-          {COMMON_DISLIKES.map((d) => {
-            const active = (profile.dislikes || []).includes(d);
-            return (
-              <button
-                key={d}
-                onClick={() => toggleDislike(d)}
-                className={`rounded-full border px-4 py-2 font-body text-sm transition-colors ${
-                  active
-                    ? "border-gold bg-gold/10 text-foreground"
-                    : "border-border bg-card text-muted-foreground hover:bg-secondary"
-                }`}
-              >
-                {d}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Health Conditions */}
       <div>
         <h3 className="font-body text-sm font-semibold text-foreground mb-2">Health conditions</h3>
         <p className="font-body text-xs text-muted-foreground mb-3">
-          Recipes silently adapt — no labels, just smarter choices.
+          Private to you — never shared with your household. Recipes silently adapt.
         </p>
         <div className="flex gap-2 flex-wrap">
           {HEALTH_CONDITIONS.map((h) => {
