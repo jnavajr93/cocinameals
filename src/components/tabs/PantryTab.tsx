@@ -23,7 +23,7 @@ export function PantryTab() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [addMode, setAddMode] = useState(false);
   const [addSearch, setAddSearch] = useState("");
-  const [viewMode, setViewMode] = useState<"pantry" | "shopping">("pantry");
+  
   const [scanning, setScanning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [householdName, setHouseholdName] = useState("");
@@ -105,11 +105,10 @@ export function PantryTab() {
   const q = search.toLowerCase();
   const filtered = useMemo(() => {
     let list = items.filter(i => !i.is_hidden);
-    if (viewMode === "shopping") list = list.filter(i => !i.in_stock);
     if (q) list = list.filter(i => i.name.toLowerCase().includes(q));
     if (activeCategory) list = list.filter(i => i.category === activeCategory);
     return list;
-  }, [items, q, activeCategory, viewMode]);
+  }, [items, q, activeCategory]);
 
   const inStockCount = items.filter(i => i.in_stock && !i.is_hidden).length;
   const outOfStockCount = items.filter(i => !i.in_stock && !i.is_hidden).length;
@@ -266,7 +265,7 @@ export function PantryTab() {
           <div>
             <h1 className="font-display text-xl font-bold text-foreground">{householdName}</h1>
             <p className="font-body text-xs text-muted-foreground">
-              {viewMode === "pantry" ? `${inStockCount} items in stock` : `${outOfStockCount} items to grab`}
+              {inStockCount} in stock · {outOfStockCount} to shop
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -309,25 +308,7 @@ export function PantryTab() {
           </div>
         </div>
 
-        {/* View toggle */}
-        <div className="flex gap-1 mb-3 rounded-lg bg-muted p-0.5">
-          <button
-            onClick={() => setViewMode("pantry")}
-            className={`flex-1 rounded-md py-1.5 font-body text-xs font-medium transition-colors ${
-              viewMode === "pantry" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-            }`}
-          >
-            Pantry
-          </button>
-          <button
-            onClick={() => setViewMode("shopping")}
-            className={`flex-1 rounded-md py-1.5 font-body text-xs font-medium transition-colors ${
-              viewMode === "shopping" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-            }`}
-          >
-            Shopping List
-          </button>
-        </div>
+
 
         {/* Search */}
         <div className="relative mb-3">
@@ -336,7 +317,7 @@ export function PantryTab() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder={viewMode === "pantry" ? "Search pantry..." : "Search shopping list..."}
+            placeholder="Search ingredients..."
             className="w-full rounded-lg border border-border bg-input pl-8 pr-4 py-2 font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold"
           />
         </div>
@@ -366,7 +347,7 @@ export function PantryTab() {
       </div>
 
       {/* Use Soon */}
-      {viewMode === "pantry" && expiringSoon.length > 0 && !search && !activeCategory && (
+      {expiringSoon.length > 0 && !search && !activeCategory && (
         <div className="mx-4 mb-3 rounded-lg border border-destructive/20 bg-destructive/5 p-3">
           <h3 className="font-body text-xs font-semibold text-destructive mb-2">USE SOON</h3>
           {expiringSoon.slice(0, 5).map(item => {
@@ -386,11 +367,9 @@ export function PantryTab() {
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center">
             <p className="font-body text-sm text-muted-foreground">
-              {viewMode === "shopping"
-                ? "Everything's stocked up. Nothing to grab right now."
-                : search
-                  ? "No items match your search."
-                  : "Your pantry is empty. Check off items you have, or add items manually."}
+              {search
+                ? "No items match your search."
+                : "No ingredients yet. Tap + to add items."}
             </p>
           </div>
         ) : (
