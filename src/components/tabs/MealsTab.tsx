@@ -499,7 +499,7 @@ export function MealsTab() {
       <div className="fixed inset-0 z-50 flex items-end bg-foreground/30" onClick={() => setShowFilterSheet(null)}>
         <div className="w-full rounded-t-2xl bg-background p-6 animate-slide-in" onClick={e => e.stopPropagation()}>
           <h3 className="font-display text-lg font-bold text-foreground mb-4">
-            {showFilterSheet === "cookTime" ? "Cook Time" : showFilterSheet === "protein" ? "Main Protein" : showFilterSheet === "cuisine" ? "Cuisine" : "Cooking Method"}
+            {showFilterSheet === "cookTime" ? "Cook Time" : showFilterSheet === "protein" ? "Main Protein" : showFilterSheet === "people" ? "Number of People" : showFilterSheet === "cuisine" ? "Cuisine" : "Cooking Method"}
           </h3>
           <div className="flex flex-col gap-1">
             {items.map(opt => (
