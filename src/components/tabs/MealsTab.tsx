@@ -836,29 +836,65 @@ export function MealsTab() {
     </div>
   );
 
+  function fetchMealImage(mealName: string) {
+    if (mealImages[mealName]) return;
+    const cacheKey = `meal_img_${mealName.replace(/\s+/g, "_").toLowerCase()}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const { url, ts } = JSON.parse(cached);
+        if (Date.now() - ts < 7 * 24 * 3600000 && url) {
+          setMealImages(prev => ({ ...prev, [mealName]: url }));
+          return;
+        }
+      } catch {}
+    }
+    supabase.functions.invoke("fetch-food-image", { body: { query: mealName } })
+      .then(({ data }) => {
+        if (data?.imageUrl) {
+          setMealImages(prev => ({ ...prev, [mealName]: data.imageUrl }));
+          localStorage.setItem(cacheKey, JSON.stringify({ url: data.imageUrl, ts: Date.now() }));
+        }
+      })
+      .catch(() => {});
+  }
+
   function renderMealCard(card: MealCardWithCookTime, isBaby = false, sectionId?: string) {
     const cuisineTag = getCuisineTag(card);
     const isLiked = likedMeals.has(card.name);
     const isDisliked = dislikedMeals.has(card.name);
     const isSaved = savedMealNames.has(card.name);
+    const imgUrl = mealImages[card.name];
 
     return (
       <div
         key={card.name}
-        className={`rounded-lg border bg-card p-3 transition-colors ${isLiked ? "border-gold/40" : "border-border"}`}
+        className={`rounded-lg border bg-card overflow-hidden transition-colors ${isLiked ? "border-gold/40" : "border-border"}`}
       >
         <button onClick={() => openRecipe(card, isBaby, sectionId)} className="text-left w-full">
-          <p className="font-body text-sm font-medium text-foreground leading-tight">{card.name}</p>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="font-body text-xs text-muted-foreground">{card.cal} cal</span>
-            <span className="font-body text-xs text-muted-foreground">P:{card.protein}g C:{card.carbs}g F:{card.fat}g</span>
-            {card.cookTime && <span className="font-body text-xs text-muted-foreground">{card.cookTime} min</span>}
-          </div>
-          {cuisineTag && (
-            <span className="inline-block mt-1 rounded-full bg-secondary px-2 py-0.5 font-body text-xs text-muted-foreground">{cuisineTag}</span>
+          {imgUrl && (
+            <div className="w-full h-32 overflow-hidden">
+              <img
+                src={imgUrl}
+                alt={card.name}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            </div>
           )}
+          <div className="p-3">
+            <p className="font-body text-sm font-medium text-foreground leading-tight">{card.name}</p>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <span className="font-body text-xs text-muted-foreground">{card.cal} cal</span>
+              <span className="font-body text-xs text-muted-foreground">P:{card.protein}g C:{card.carbs}g F:{card.fat}g</span>
+              {card.cookTime && <span className="font-body text-xs text-muted-foreground">{card.cookTime} min</span>}
+            </div>
+            {cuisineTag && (
+              <span className="inline-block mt-1 rounded-full bg-secondary px-2 py-0.5 font-body text-xs text-muted-foreground">{cuisineTag}</span>
+            )}
+          </div>
         </button>
-        <div className="flex items-center justify-end gap-3 mt-2">
+        <div className="flex items-center justify-end gap-3 px-3 pb-2">
           <button
             onClick={() => handleFeedback(card, "liked")}
             className={`transition-colors ${isLiked ? "text-gold" : "text-muted-foreground hover:text-gold"}`}
