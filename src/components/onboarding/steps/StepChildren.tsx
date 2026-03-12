@@ -31,7 +31,9 @@ export function StepChildren({ profile, update, onNext }: Props) {
   };
 
   const removeChild = (i: number) => {
-    update({ children: profile.children.filter((_, idx) => idx !== i) });
+    const newChildren = profile.children.filter((_, idx) => idx !== i);
+    update({ children: newChildren });
+    if (newChildren.length === 0) setChildSections(false);
   };
 
   const updateChild = (i: number, field: "name" | "dob", value: string) => {
