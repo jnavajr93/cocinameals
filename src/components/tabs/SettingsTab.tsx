@@ -119,6 +119,12 @@ export function SettingsTab() {
     toast.success("Household name updated");
   };
 
+  const updateHouseholdSize = async (size: number) => {
+    if (!householdId) return;
+    setHouseholdSize(size);
+    await supabase.from("households").update({ household_size: size } as any).eq("id", householdId);
+  };
+
   const copyCode = () => { navigator.clipboard.writeText(inviteCode); toast.success("Copied to clipboard"); };
 
   const formatLastSeen = (lastSeen: string | null) => {
