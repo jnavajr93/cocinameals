@@ -324,7 +324,7 @@ export function SettingsTab() {
           <SectionHeader id="taste" title="My Taste Profile" />
           {expanded.has("taste") && (
             <div className="pb-4">
-              <p className="font-body text-xs text-muted-foreground mb-3">cocina learns what you love. Liked and disliked meals shape your suggestions.</p>
+              <p className="font-body text-xs text-muted-foreground mb-3"><CocinaText /> learns what you love. Liked and disliked meals shape your suggestions.</p>
               {likedFeedback.length > 0 && (
                 <div className="mb-3">
                   <p className="font-body text-xs font-semibold text-muted-foreground mb-1">LIKED</p>
