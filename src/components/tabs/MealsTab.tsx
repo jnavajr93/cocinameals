@@ -100,7 +100,17 @@ export function MealsTab() {
   }, [householdId, user]);
 
   const activeSections = useMemo(() => {
-    return mealSections.filter(s => s.enabled).sort((a, b) => a.order - b.order);
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const today = dayNames[new Date().getDay()];
+    return mealSections
+      .filter(s => s.enabled)
+      .filter(s => {
+        const days = (s as any).scheduledDays as string[] | undefined;
+        // If no days scheduled, show every day
+        if (!days || days.length === 0) return true;
+        return days.includes(today);
+      })
+      .sort((a, b) => a.order - b.order);
   }, [mealSections]);
 
   const activeFiltersList = useMemo(() => {
