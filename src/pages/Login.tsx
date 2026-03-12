@@ -77,11 +77,6 @@ const FEATURES: ContentItem[] = [
     title: "Health-Aware Cooking",
     description: "Set health conditions like diabetes, high blood pressure, or celiac for each household member — recipes silently adapt to keep everyone safe.",
   },
-  {
-    icon: DollarSign,
-    title: "Multi-Language Support",
-    description: "Use cocina in English, Spanish, and more. Set your preferred language in settings and the entire experience adapts.",
-  },
 ];
 
 const TESTIMONIALS = [
