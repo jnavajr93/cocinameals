@@ -3,7 +3,6 @@ import { OnboardingProfile } from "@/components/onboarding/Onboarding";
 import { Plus, X } from "lucide-react";
 
 const CHILD_SECTION_IDS = ["child_breakfast", "child_lunch", "child_snack", "child_dinner"];
-import { Plus, X } from "lucide-react";
 
 interface Props {
   profile: OnboardingProfile;
