@@ -16,8 +16,18 @@ export function StepChildren({ profile, update, onNext }: Props) {
     profile.children.length > 0 ? true : null
   );
 
+  const setChildSections = (enabled: boolean) => {
+    update({
+      mealSections: profile.mealSections.map(s =>
+        CHILD_SECTION_IDS.includes(s.id) ? { ...s, enabled } : s
+      ),
+    });
+  };
+
   const addChild = () => {
-    update({ children: [...profile.children, { name: "", dob: "" }] });
+    const newChildren = [...profile.children, { name: "", dob: "" }];
+    update({ children: newChildren });
+    if (newChildren.length === 1) setChildSections(true);
   };
 
   const removeChild = (i: number) => {
