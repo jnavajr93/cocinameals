@@ -67,3 +67,14 @@ export const EQUIPMENT_CATEGORIES: EquipmentCategory[] = [
     ],
   },
 ];
+
+// Common items most kitchens have — pre-selected during onboarding
+export const DEFAULT_EQUIPMENT: string[] = [
+  "Electric Stove", "Gas Stove",
+  "Electric Oven", "Gas Oven",
+  "Microwave", "Toaster",
+  "Blender",
+  "Non-stick Frying Pan", "Small Saucepan", "Large Saucepan", "Stock Pot / Soup Pot",
+  "Sheet Pan / Baking Tray", "Glass Baking Dish",
+  "Chef's Knife", "Paring Knife", "Cutting Board", "Colander", "Mixing Bowls", "Tongs", "Whisk",
+];
