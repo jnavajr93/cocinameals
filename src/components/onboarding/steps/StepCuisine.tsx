@@ -6,9 +6,11 @@ interface Props {
   profile: OnboardingProfile;
   update: (p: Partial<OnboardingProfile>) => void;
   onNext: () => void;
+  isLast?: boolean;
+  saving?: boolean;
 }
 
-export function StepCuisine({ profile, update, onNext }: Props) {
+export function StepCuisine({ profile, update, onNext, isLast, saving }: Props) {
   const setSlider = (cuisine: string, value: number) => {
     update({ cuisineSliders: { ...profile.cuisineSliders, [cuisine]: value } });
   };
