@@ -125,18 +125,21 @@ export type Database = {
       households: {
         Row: {
           created_at: string | null
+          household_size: number | null
           id: string
           invite_code: string
           name: string | null
         }
         Insert: {
           created_at?: string | null
+          household_size?: number | null
           id?: string
           invite_code: string
           name?: string | null
         }
         Update: {
           created_at?: string | null
+          household_size?: number | null
           id?: string
           invite_code?: string
           name?: string | null
