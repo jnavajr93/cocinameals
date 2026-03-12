@@ -299,24 +299,30 @@ export type Database = {
           household_id: string
           id: string
           meal_name: string
+          meal_section: string | null
           recipe_text: string
           saved_by: string | null
+          tags: Json | null
         }
         Insert: {
           created_at?: string | null
           household_id: string
           id?: string
           meal_name: string
+          meal_section?: string | null
           recipe_text: string
           saved_by?: string | null
+          tags?: Json | null
         }
         Update: {
           created_at?: string | null
           household_id?: string
           id?: string
           meal_name?: string
+          meal_section?: string | null
           recipe_text?: string
           saved_by?: string | null
+          tags?: Json | null
         }
         Relationships: [
           {
