@@ -456,6 +456,18 @@ export function SettingsTab() {
                 </div>
               </div>
 
+              {/* Children */}
+              {children.map(child => (
+                <div key={child.id}>
+                  <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{child.name || "Child"}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {HEALTH_CONDITIONS.map(h => (
+                      <button key={h} onClick={() => toggleChildHealth(child.id, h)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${(child.health_conditions || []).includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
               {/* Non-app members */}
               {nonAppMembers.map((member, i) => (
                 <div key={i}>
