@@ -227,14 +227,8 @@ export function MealsTab() {
     }
   }, [filtersSignature, activeSections.length, profile]);
 
-  // Fetch images for visible local/fallback cards
-  useEffect(() => {
-    if (activeSections.length === 0) return;
-    for (const section of activeSections) {
-      const cards = getCardsForSection(section.id);
-      cards.forEach(c => fetchMealImage(c.name));
-    }
-  }, [activeSections, shuffleKey]);
+
+
 
   const clearFilter = (key: string) => {
     if (key === "cookTime") setFilterCookTime(null);
