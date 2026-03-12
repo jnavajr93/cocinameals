@@ -70,7 +70,7 @@ export function SettingsTab() {
     const load = async () => {
       const [{ data: household }, { data: memberData }, { data: hProfile }, { data: uPrefs }, { data: childrenData }, { data: feedbackData }] = await Promise.all([
         supabase.from("households").select("name, invite_code, household_size, non_app_members").eq("id", householdId).single(),
-        supabase.from("household_members").select("user_name, last_seen").eq("household_id", householdId),
+        supabase.from("household_members").select("id, user_name, last_seen, health_conditions").eq("household_id", householdId),
         supabase.from("household_profile").select("*").eq("household_id", householdId).maybeSingle(),
         supabase.from("user_preferences").select("*").eq("user_id", user.id).maybeSingle(),
         supabase.from("children").select("*").eq("household_id", householdId),
