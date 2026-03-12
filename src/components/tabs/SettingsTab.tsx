@@ -198,6 +198,15 @@ export function SettingsTab() {
     saveUserPreferences({ health_conditions: next });
   };
 
+  const CHILD_SECTION_IDS = ["child_breakfast", "child_lunch", "child_snack", "child_dinner"];
+
+  const setChildSectionsEnabled = (enabled: boolean) => {
+    const next = mealSections.map(s => CHILD_SECTION_IDS.includes(s.id) ? { ...s, enabled } : s);
+    setMealSections(next);
+    saveHouseholdProfile({ meal_sections: next });
+    saveUserPreferences({ section_order: next });
+  };
+
   const addChild = async () => {
     if (!householdId || !newChildDob) return;
     const { data } = await supabase.from("children").insert({
@@ -205,7 +214,11 @@ export function SettingsTab() {
       name: newChildName || null,
       date_of_birth: newChildDob,
     }).select().single();
-    if (data) setChildren(prev => [...prev, data]);
+    if (data) {
+      const newChildren = [...children, data];
+      setChildren(newChildren);
+      if (newChildren.length === 1) setChildSectionsEnabled(true);
+    }
     setAddingChild(false);
     setNewChildName("");
     setNewChildDob("");
@@ -214,7 +227,9 @@ export function SettingsTab() {
 
   const removeChild = async (id: string) => {
     await supabase.from("children").delete().eq("id", id);
-    setChildren(prev => prev.filter(c => c.id !== id));
+    const newChildren = children.filter(c => c.id !== id);
+    setChildren(newChildren);
+    if (newChildren.length === 0) setChildSectionsEnabled(false);
     toast.success("Child removed");
   };
 

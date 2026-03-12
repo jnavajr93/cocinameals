@@ -2,6 +2,8 @@ import { useState } from "react";
 import { OnboardingProfile } from "@/components/onboarding/Onboarding";
 import { Plus, X } from "lucide-react";
 
+const CHILD_SECTION_IDS = ["child_breakfast", "child_lunch", "child_snack", "child_dinner"];
+
 interface Props {
   profile: OnboardingProfile;
   update: (p: Partial<OnboardingProfile>) => void;
@@ -13,12 +15,24 @@ export function StepChildren({ profile, update, onNext }: Props) {
     profile.children.length > 0 ? true : null
   );
 
+  const setChildSections = (enabled: boolean) => {
+    update({
+      mealSections: profile.mealSections.map(s =>
+        CHILD_SECTION_IDS.includes(s.id) ? { ...s, enabled } : s
+      ),
+    });
+  };
+
   const addChild = () => {
-    update({ children: [...profile.children, { name: "", dob: "" }] });
+    const newChildren = [...profile.children, { name: "", dob: "" }];
+    update({ children: newChildren });
+    if (newChildren.length === 1) setChildSections(true);
   };
 
   const removeChild = (i: number) => {
-    update({ children: profile.children.filter((_, idx) => idx !== i) });
+    const newChildren = profile.children.filter((_, idx) => idx !== i);
+    update({ children: newChildren });
+    if (newChildren.length === 0) setChildSections(false);
   };
 
   const updateChild = (i: number, field: "name" | "dob", value: string) => {
@@ -51,6 +65,7 @@ export function StepChildren({ profile, update, onNext }: Props) {
             onClick={() => {
               setHasChildren(false);
               update({ children: [] });
+              setChildSections(false);
             }}
             className="flex-1 rounded-lg border border-border bg-card px-4 py-3 font-body font-medium hover:bg-secondary transition-colors"
           >
