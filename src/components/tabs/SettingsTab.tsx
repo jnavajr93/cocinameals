@@ -891,28 +891,6 @@ export function SettingsTab() {
           </button>
         </section>
 
-        {/* Language */}
-        <section className="border-b border-border">
-          <SectionHeader id="language" title="Language / Idioma" />
-          {expanded.has("language") && (
-            <div className="flex flex-wrap gap-2 pb-4">
-              {LANGUAGES.map(lang => (
-                <button
-                  key={lang.code}
-                  onClick={() => setLanguage(lang.code)}
-                  className={`rounded-lg border px-4 py-2 font-body text-sm transition-colors ${
-                    language === lang.code ? "border-gold bg-gold/10 text-foreground font-medium" : "border-border text-muted-foreground hover:bg-secondary"
-                  }`}
-                >
-                  {lang.label}
-                </button>
-              ))}
-              <p className="w-full font-body text-xs text-muted-foreground mt-2">
-                Changes the language for recipes, meal suggestions, and the interface. Coming soon for all languages.
-              </p>
-            </div>
-          )}
-        </section>
 
         {/* About */}
         <section className="border-b border-border pt-4 pb-4">

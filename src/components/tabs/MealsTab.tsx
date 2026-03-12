@@ -187,6 +187,21 @@ export function MealsTab() {
     return list;
   }, [filterCookTime, filterProtein, filterCuisine, filterMethod, filterInStockOnly, filterMustInclude, activeFilter]);
 
+  // Auto-refresh all sections when any filter changes
+  const filtersSignature = JSON.stringify([filterCookTime, filterProtein, filterPeople, filterCuisine, filterMethod, filterInStockOnly, filterMustInclude, activeFilter]);
+  const prevFiltersRef = useRef(filtersSignature);
+
+  useEffect(() => {
+    if (prevFiltersRef.current !== filtersSignature && activeSections.length > 0 && profile) {
+      prevFiltersRef.current = filtersSignature;
+      // Clear local cards so AI re-generates with new filters
+      setAiCards({});
+      for (const section of activeSections) {
+        shuffleSection(section.id);
+      }
+    }
+  }, [filtersSignature, activeSections.length, profile]);
+
   const clearFilter = (key: string) => {
     if (key === "cookTime") setFilterCookTime(null);
     if (key === "protein") setFilterProtein(null);
