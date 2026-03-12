@@ -567,6 +567,7 @@ export function MealsTab() {
           {[
             { key: "cookTime", label: "Cook Time", icon: Clock, active: !!filterCookTime },
             { key: "protein", label: "Protein", icon: Flame, active: !!filterProtein },
+            { key: "people", label: "People", icon: Users, active: !!filterPeople },
             { key: "method", label: "Method", icon: UtensilsCrossed, active: !!filterMethod },
             { key: "cuisine", label: "Cuisine", icon: Filter, active: !!filterCuisine },
           ].map(f => (
