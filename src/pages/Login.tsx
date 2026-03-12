@@ -366,7 +366,7 @@ export default function Login() {
             Stop wasting food. Start cooking smarter.
           </h2>
           <p className="font-body text-sm text-primary-foreground/70 max-w-sm">
-            Join thousands of households saving money and eating better with <CocinaText />.
+            Join thousands of households saving money and eating better with cocina.
           </p>
           <div className="flex flex-col gap-3 w-full max-w-sm">
             <button
