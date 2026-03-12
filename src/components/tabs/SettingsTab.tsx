@@ -26,6 +26,7 @@ export function SettingsTab() {
   const { householdId, userName } = useHousehold();
   const [householdName, setHouseholdName] = useState("");
   const [inviteCode, setInviteCode] = useState("");
+  const [householdSize, setHouseholdSize] = useState(2);
   const [members, setMembers] = useState<{ user_name: string; last_seen: string | null }[]>([]);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
