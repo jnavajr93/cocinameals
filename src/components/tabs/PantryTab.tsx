@@ -37,6 +37,7 @@ export function PantryTab() {
   // Long-press state
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [longPressId, setLongPressId] = useState<string | null>(null);
+  const longPressFired = useRef(false);
 
   // Multi-select state
   const [selectMode, setSelectMode] = useState(false);
@@ -102,6 +103,10 @@ export function PantryTab() {
   }, [householdId]);
 
   const toggleStock = async (id: string) => {
+    if (longPressFired.current) {
+      longPressFired.current = false;
+      return;
+    }
     if (selectMode) {
       toggleSelect(id);
       return;
@@ -142,8 +147,9 @@ export function PantryTab() {
 
   // Long press handlers
   const handlePointerDown = (id: string) => {
+    longPressFired.current = false;
     longPressTimer.current = setTimeout(() => {
-      // Long press detected — enter select mode or show delete
+      longPressFired.current = true;
       if (!selectMode) {
         setSelectMode(true);
         setSelectedIds(new Set([id]));
@@ -527,7 +533,7 @@ export function PantryTab() {
                         ) : (
                           <span
                             className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
-                              item.in_stock ? "border-gold bg-gold text-gold-foreground" : "border-foreground/30 bg-white"
+                              item.in_stock ? "border-gold bg-gold text-gold-foreground" : "border-foreground/30 bg-background"
                             }`}
                           >
                             {item.in_stock && <Check size={12} />}

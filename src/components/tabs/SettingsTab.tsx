@@ -7,7 +7,7 @@ import { CocinaText } from "@/components/CocinaText";
 import { toast } from "sonner";
 import { CUISINES, CUISINE_LABELS } from "@/data/cuisines";
 import { EQUIPMENT_CATEGORIES } from "@/data/equipment";
-import { MEAL_SECTIONS, QUICK_FILTERS, DIET_RESTRICTIONS } from "@/data/mealSections";
+import { MEAL_SECTIONS, QUICK_FILTERS, DIET_RESTRICTIONS, DEFAULT_SECTION_TIMES } from "@/data/mealSections";
 import { Copy, LogOut, ChevronRight, ChevronDown, Lock, Search, Trash2, Plus } from "lucide-react";
 
 const HEALTH_CONDITIONS = [
@@ -36,7 +36,7 @@ export function SettingsTab() {
   // Household profile (shared)
   const [equipment, setEquipment] = useState<string[]>([]);
   const [cuisineSliders, setCuisineSliders] = useState<Record<string, number>>({});
-  const [mealSections, setMealSections] = useState<{ id: string; name: string; enabled: boolean; order: number; scheduledDays?: string[] }[]>([]);
+  const [mealSections, setMealSections] = useState<{ id: string; name: string; enabled: boolean; order: number; scheduledDays?: string[]; defaultTime?: number }[]>([]);
   const [quickFilters, setQuickFilters] = useState<string[]>([]);
   const [mealPrepDays, setMealPrepDays] = useState<string[]>([]);
 
@@ -241,8 +241,14 @@ export function SettingsTab() {
       {expanded.has(id) ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
     </button>
   );
+  const updateSectionTime = (sectionId: string, mins: number) => {
+    const next = mealSections.map(s => s.id === sectionId ? { ...s, defaultTime: mins } : s);
+    setMealSections(next);
+    saveHouseholdProfile({ meal_sections: next });
+    saveUserPreferences({ section_order: next });
+  };
 
-  
+
 
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-24">
@@ -276,6 +282,36 @@ export function SettingsTab() {
                   </div>
                 ))}
               </div>
+
+              {/* Children — inside household */}
+              <div className="mt-2 border-t border-border pt-3">
+                <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Children</p>
+                <p className="font-body text-xs text-muted-foreground mb-2">Child meal sections auto-appear when you add children.</p>
+                {children.map(c => (
+                  <div key={c.id} className="flex items-center justify-between py-2">
+                    <div>
+                      <span className="font-body text-sm text-foreground">{c.name || "Child"}</span>
+                      <span className="font-body text-xs text-muted-foreground ml-2">{getChildAge(c.date_of_birth)}</span>
+                    </div>
+                    <button onClick={() => removeChild(c.id)} className="text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
+                  </div>
+                ))}
+                {addingChild ? (
+                  <div className="flex flex-col gap-2 mt-2">
+                    <input type="text" value={newChildName} onChange={e => setNewChildName(e.target.value)} placeholder="Name (optional)" className="w-full rounded-lg border border-border bg-input px-4 py-2 font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold" />
+                    <input type="date" value={newChildDob} onChange={e => setNewChildDob(e.target.value)} className="w-full rounded-lg border border-border bg-input px-4 py-2 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-gold" />
+                    <div className="flex gap-2">
+                      <button onClick={addChild} className="flex-1 rounded-lg bg-primary py-2 font-body text-sm font-medium text-primary-foreground">Add</button>
+                      <button onClick={() => setAddingChild(false)} className="flex-1 rounded-lg border border-border py-2 font-body text-sm text-foreground">Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => setAddingChild(true)} className="flex items-center gap-1 mt-2 font-body text-sm text-gold hover:underline">
+                    <Plus size={14} />
+                    Add child
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </section>
@@ -298,23 +334,44 @@ export function SettingsTab() {
                     </div>
                   </button>
                   {section.enabled && (
-                    <div className="px-3 pb-2.5 pt-1 bg-secondary/30">
-                      <span className="font-body text-xs text-muted-foreground mb-1.5 block">Schedule days (optional)</span>
-                      <div className="flex gap-1.5">
-                        {DAYS.map(d => {
-                          const active = (section.scheduledDays || []).includes(d);
-                          return (
-                            <button
-                              key={d}
-                              onClick={() => toggleSectionDay(section.id, d)}
-                              className={`flex-1 rounded-md border py-1.5 font-body text-xs font-medium transition-colors ${
-                                active ? "border-gold bg-gold/15 text-foreground" : "border-border bg-card text-muted-foreground hover:bg-secondary"
-                              }`}
-                            >
-                              {d}
-                            </button>
-                          );
-                        })}
+                    <div className="px-3 pb-2.5 pt-1 bg-secondary/30 space-y-2">
+                      <div>
+                        <span className="font-body text-xs text-muted-foreground mb-1.5 block">Default cook time</span>
+                        <div className="flex gap-1.5">
+                          {[10, 15, 20, 25, 30, 45, 60].map(t => {
+                            const current = section.defaultTime ?? DEFAULT_SECTION_TIMES[section.id] ?? 30;
+                            return (
+                              <button
+                                key={t}
+                                onClick={() => updateSectionTime(section.id, t)}
+                                className={`rounded-md border px-2 py-1 font-body text-xs font-medium transition-colors ${
+                                  current === t ? "border-gold bg-gold/15 text-foreground" : "border-border bg-card text-muted-foreground hover:bg-secondary"
+                                }`}
+                              >
+                                {t}m
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="font-body text-xs text-muted-foreground mb-1.5 block">Schedule days (optional)</span>
+                        <div className="flex gap-1.5">
+                          {DAYS.map(d => {
+                            const active = (section.scheduledDays || []).includes(d);
+                            return (
+                              <button
+                                key={d}
+                                onClick={() => toggleSectionDay(section.id, d)}
+                                className={`flex-1 rounded-md border py-1.5 font-body text-xs font-medium transition-colors ${
+                                  active ? "border-gold bg-gold/15 text-foreground" : "border-border bg-card text-muted-foreground hover:bg-secondary"
+                                }`}
+                              >
+                                {d}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -506,39 +563,6 @@ export function SettingsTab() {
           )}
         </section>
 
-        {/* Children */}
-        <section className="border-b border-border">
-          <SectionHeader id="children" title="Children" />
-          {expanded.has("children") && (
-            <div className="pb-4">
-              <p className="font-body text-xs text-muted-foreground mb-2">Baby meal sections auto-appear for children under 36 months.</p>
-              {children.map(c => (
-                <div key={c.id} className="flex items-center justify-between py-2">
-                  <div>
-                    <span className="font-body text-sm text-foreground">{c.name || "Child"}</span>
-                    <span className="font-body text-xs text-muted-foreground ml-2">{getChildAge(c.date_of_birth)}</span>
-                  </div>
-                  <button onClick={() => removeChild(c.id)} className="text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
-                </div>
-              ))}
-              {addingChild ? (
-                <div className="flex flex-col gap-2 mt-2">
-                  <input type="text" value={newChildName} onChange={e => setNewChildName(e.target.value)} placeholder="Name (optional)" className="w-full rounded-lg border border-border bg-input px-4 py-2 font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold" />
-                  <input type="date" value={newChildDob} onChange={e => setNewChildDob(e.target.value)} className="w-full rounded-lg border border-border bg-input px-4 py-2 font-body text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-gold" />
-                  <div className="flex gap-2">
-                    <button onClick={addChild} className="flex-1 rounded-lg bg-primary py-2 font-body text-sm font-medium text-primary-foreground">Add</button>
-                    <button onClick={() => setAddingChild(false)} className="flex-1 rounded-lg border border-border py-2 font-body text-sm text-foreground">Cancel</button>
-                  </div>
-                </div>
-              ) : (
-                <button onClick={() => setAddingChild(true)} className="flex items-center gap-1 mt-2 font-body text-sm text-gold hover:underline">
-                  <Plus size={14} />
-                  Add child
-                </button>
-              )}
-            </div>
-          )}
-        </section>
 
 
         {/* About */}

@@ -3,22 +3,44 @@ export interface MealSectionDef {
   name: string;
   description: string;
   defaultOn: boolean;
-  isAuto?: boolean; // baby sections
 }
 
 export const MEAL_SECTIONS: MealSectionDef[] = [
   { id: "breakfast", name: "Breakfast", description: "Morning fuel, sweet or savory", defaultOn: true },
-  { id: "brunch", name: "Brunch", description: "Lazy weekend mornings", defaultOn: false },
+  { id: "child_breakfast", name: "Child Breakfast", description: "Kid-friendly morning meals", defaultOn: false },
   { id: "lunch", name: "Lunch", description: "Midday meals", defaultOn: true },
+  { id: "child_lunch", name: "Child Lunch", description: "Kid-friendly midday meals", defaultOn: false },
+  { id: "snack", name: "Snack", description: "Between-meal bites", defaultOn: false },
+  { id: "child_snack", name: "Child Snack", description: "Kid-friendly snack ideas", defaultOn: false },
   { id: "dinner", name: "Dinner", description: "Evening meals", defaultOn: true },
-  { id: "snacks", name: "Snacks", description: "Between-meal bites", defaultOn: false },
+  { id: "child_dinner", name: "Child Dinner", description: "Kid-friendly evening meals", defaultOn: false },
+  { id: "date_night", name: "Date Night", description: "Special meals for two", defaultOn: false },
   { id: "meal_prep", name: "Meal Prep", description: "Cook once, eat multiple days", defaultOn: false },
-  { id: "kid_friendly", name: "Kid-Friendly", description: "Mild, fun, approachable", defaultOn: false },
-  { id: "baby_breakfast", name: "Baby Breakfast", description: "Morning meals for little ones", defaultOn: false, isAuto: true },
-  { id: "baby_snack", name: "Baby Snack", description: "Safe, soft snack ideas", defaultOn: false, isAuto: true },
-  { id: "baby_lunch", name: "Baby Lunch", description: "Midday meals for babies", defaultOn: false, isAuto: true },
-  { id: "baby_dinner", name: "Baby Dinner", description: "Evening meals for babies", defaultOn: false, isAuto: true },
+  { id: "crowd_feed", name: "Crowd Feed", description: "Feeds a crowd, great for gatherings", defaultOn: false },
 ];
+
+// Default cook times per section (in minutes)
+export const DEFAULT_SECTION_TIMES: Record<string, number> = {
+  breakfast: 15,
+  child_breakfast: 10,
+  lunch: 25,
+  child_lunch: 15,
+  snack: 10,
+  child_snack: 5,
+  dinner: 35,
+  child_dinner: 20,
+  date_night: 45,
+  meal_prep: 60,
+  crowd_feed: 45,
+};
+
+// Map child sections to their adult counterpart for similar meal generation
+export const CHILD_ADULT_PAIRS: Record<string, string> = {
+  child_breakfast: "breakfast",
+  child_lunch: "lunch",
+  child_snack: "snack",
+  child_dinner: "dinner",
+};
 
 export const QUICK_FILTERS = [
   "High Protein", "Under 20 Min", "Low Carb", "Dairy-Free", "Gluten-Free",
