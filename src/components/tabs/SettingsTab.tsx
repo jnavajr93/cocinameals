@@ -52,7 +52,7 @@ export function SettingsTab() {
   const [healthConditions, setHealthConditions] = useState<string[]>([]);
 
   // Children
-  const [children, setChildren] = useState<{ id: string; name: string | null; date_of_birth: string }[]>([]);
+  const [children, setChildren] = useState<{ id: string; name: string | null; date_of_birth: string; health_conditions?: string[] }[]>([]);
   const [addingChild, setAddingChild] = useState(false);
   const [newChildName, setNewChildName] = useState("");
   const [newChildDob, setNewChildDob] = useState("");
