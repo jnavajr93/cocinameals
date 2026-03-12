@@ -148,6 +148,8 @@ export function MealsTab() {
     }
   }, []);
 
+  const activeSectionsRef = useRef<{ id: string; name: string; enabled: boolean; order: number }[]>([]);
+
   const handleTouchEnd = useCallback(async () => {
     if (!isPulling.current) return;
     isPulling.current = false;
@@ -158,13 +160,13 @@ export function MealsTab() {
       setAiCards({});
       setShuffleKey(k => k + 1);
       await loadMealsData();
-      for (const section of activeSections) {
+      for (const section of activeSectionsRef.current) {
         shuffleSection(section.id);
       }
       setPullRefreshing(false);
     }
     setPullDistance(0);
-  }, [pullDistance, activeSections]);
+  }, [pullDistance]);
 
   // Attach touch listeners with { passive: false } so preventDefault works
   useEffect(() => {
@@ -183,7 +185,7 @@ export function MealsTab() {
   const activeSections = useMemo(() => {
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const today = dayNames[new Date().getDay()];
-    return mealSections
+    const result = mealSections
       .filter(s => s.enabled)
       .filter(s => {
         const days = (s as any).scheduledDays as string[] | undefined;
@@ -191,6 +193,8 @@ export function MealsTab() {
         return days.includes(today);
       })
       .sort((a, b) => a.order - b.order);
+    activeSectionsRef.current = result;
+    return result;
   }, [mealSections]);
 
   const activeFiltersList = useMemo(() => {
