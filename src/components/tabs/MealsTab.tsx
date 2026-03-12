@@ -192,14 +192,13 @@ export function MealsTab() {
     return cards.slice(0, limit);
   };
 
-  const saveMeal = async (card: MealCardWithCookTime) => {
+  const saveMeal = async (card: MealCardWithCookTime, sectionId?: string) => {
     if (!householdId) return;
     if (savedMealNames.has(card.name)) {
       await supabase.from("saved_recipes").delete().eq("household_id", householdId).eq("meal_name", card.name);
       setSavedMealNames(prev => { const n = new Set(prev); n.delete(card.name); return n; });
       toast.success("Removed from saved");
     } else {
-      // Save with recipe text if we have it in cache
       const cacheKey = `recipe_${card.name.replace(/\s+/g, "_").toLowerCase()}`;
       let recipeText = "";
       try {
@@ -215,7 +214,9 @@ export function MealsTab() {
         meal_name: card.name,
         recipe_text: recipeText || `Recipe for ${card.name} — generate from Meals tab to see full instructions.`,
         saved_by: userName,
-      });
+        meal_section: sectionId || null,
+        tags: card.tags || [],
+      } as any);
       if (error) toast.error("Could not save");
       else {
         setSavedMealNames(prev => new Set(prev).add(card.name));
