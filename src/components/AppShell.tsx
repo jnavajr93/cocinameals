@@ -6,7 +6,7 @@ import { SettingsTab } from "@/components/tabs/SettingsTab";
 import { ShoppingCart, UtensilsCrossed, BookOpen, Settings } from "lucide-react";
 
 const TABS = [
-  { id: "pantry", label: "Pantry", icon: ShoppingCart },
+  { id: "pantry", label: "Ingredients", icon: ShoppingCart },
   { id: "meals", label: "Meals", icon: UtensilsCrossed },
   { id: "saved", label: "Saved", icon: BookOpen },
   { id: "settings", label: "Settings", icon: Settings },

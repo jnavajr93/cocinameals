@@ -45,7 +45,7 @@ export function PantryTab() {
 
       if (pantryData) setItems(pantryData);
       if (household) {
-        setHouseholdName(household.name || "Pantry");
+        setHouseholdName(household.name || "Ingredients");
         setInviteCode(household.invite_code);
       }
       if (members) setMemberCount(members.length);
@@ -253,7 +253,7 @@ export function PantryTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="animate-pulse font-body text-muted-foreground">Loading pantry...</div>
+        <div className="animate-pulse font-body text-muted-foreground">Loading ingredients...</div>
       </div>
     );
   }
