@@ -19,6 +19,7 @@ interface ContentItem {
   icon: typeof ShoppingCart;
   title: string;
   description: string;
+  badge?: string;
 }
 
 const PAIN_POINTS: ContentItem[] = [
@@ -49,6 +50,7 @@ const FEATURES: ContentItem[] = [
     icon: Camera,
     title: "Snap A Receipt, Stock Your Pantry",
     description: "Take a photo of your grocery receipt and your pantry updates instantly with expiration dates included.",
+    badge: "Beta",
   },
   {
     icon: Utensils,
@@ -69,6 +71,16 @@ const FEATURES: ContentItem[] = [
     icon: Heart,
     title: "Save Favorites & Rate Meals",
     description: "Build your household cookbook over time. Rate meals so the AI learns what your family actually enjoys.",
+  },
+  {
+    icon: Users,
+    title: "Health-Aware Cooking",
+    description: "Set health conditions like diabetes, high blood pressure, or celiac for each household member — recipes silently adapt to keep everyone safe.",
+  },
+  {
+    icon: DollarSign,
+    title: "Multi-Language Support",
+    description: "Use cocina in English, Spanish, and more. Set your preferred language in settings and the entire experience adapts.",
   },
 ];
 
@@ -334,10 +346,15 @@ export default function Login() {
           <div className="grid md:grid-cols-2 gap-8">
             {FEATURES.map((feature) => (
               <div key={feature.title} className="flex flex-col gap-3 rounded-2xl border border-border bg-background p-6">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <feature.icon size={20} className="text-primary" />
                 </div>
-                <h3 className="font-display text-base font-semibold text-foreground">{feature.title}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-display text-base font-semibold text-foreground">{feature.title}</h3>
+                  {feature.badge && (
+                    <span className="rounded-full bg-gold/15 border border-gold/30 px-2 py-0.5 font-body text-[10px] font-semibold text-gold uppercase tracking-wide">{feature.badge}</span>
+                  )}
+                </div>
                 <p className="font-body text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
               </div>
             ))}
