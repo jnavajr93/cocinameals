@@ -250,7 +250,7 @@ export default function Login() {
               Turn your pantry into restaurant-quality meals. Waste less, eat better, save more.
             </p>
             <p className="text-center font-body text-sm text-gold font-medium leading-relaxed">
-              Be one of our founding members — get in early and shape the future of home cooking.
+              Join our founding members and shape the future of home cooking.
             </p>
           </div>
           <div className="flex flex-col gap-3 w-full max-w-sm mt-4">
