@@ -28,6 +28,9 @@ export function SettingsTab() {
   const [inviteCode, setInviteCode] = useState("");
   const [householdSize, setHouseholdSize] = useState(2);
   const [members, setMembers] = useState<{ user_name: string; last_seen: string | null }[]>([]);
+  const [nonAppMembers, setNonAppMembers] = useState<string[]>([]);
+  const [addingNonAppMember, setAddingNonAppMember] = useState(false);
+  const [newMemberName, setNewMemberName] = useState("");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Expandable sections
