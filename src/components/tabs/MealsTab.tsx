@@ -361,13 +361,37 @@ export function MealsTab() {
   if (recipeView) {
     return (
       <div className="flex flex-col h-full">
-        <div className="px-4 pt-4 pb-2 flex items-center gap-3">
-          <button onClick={() => setRecipeView(null)} className="text-muted-foreground hover:text-foreground">
+        <div className="px-4 pt-4 pb-2 flex items-center gap-2">
+          <button onClick={() => setRecipeView(null)} className="text-muted-foreground hover:text-foreground shrink-0">
             <ArrowLeft size={20} />
           </button>
-          <h1 className="font-display text-lg font-bold text-foreground flex-1">{recipeView.mealName}</h1>
+          <h1 className="font-display text-lg font-bold text-foreground flex-1 truncate">{recipeView.mealName}</h1>
+          <button
+            onClick={() => {
+              const card = currentCards.find(c => c.name === recipeView.mealName);
+              if (card) handleFeedback(card, "liked");
+            }}
+            className={`shrink-0 transition-colors ${likedMeals.has(recipeView.mealName) ? "text-gold" : "text-muted-foreground hover:text-gold"}`}
+          >
+            <ThumbsUp size={16} />
+          </button>
+          <button
+            onClick={() => {
+              const card = currentCards.find(c => c.name === recipeView.mealName);
+              if (card) handleFeedback(card, "disliked");
+            }}
+            className={`shrink-0 transition-colors ${dislikedMeals.has(recipeView.mealName) ? "text-destructive" : "text-muted-foreground hover:text-destructive"}`}
+          >
+            <ThumbsDown size={16} />
+          </button>
+          <button
+            onClick={saveRecipe}
+            className="shrink-0 text-muted-foreground hover:text-gold transition-colors"
+          >
+            <Star size={16} />
+          </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-4 pb-24">
+        <div className="flex-1 overflow-y-auto px-4 pb-8">
           {recipeView.loading && !recipeView.recipeText ? (
             <div className="space-y-3 mt-4">
               {[...Array(8)].map((_, i) => (
@@ -377,12 +401,6 @@ export function MealsTab() {
           ) : (
             <RecipeDisplay text={recipeView.recipeText} loading={recipeView.loading} />
           )}
-        </div>
-        <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-4 py-3 flex items-center justify-center gap-6 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-          <button onClick={saveRecipe} className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 font-body text-sm font-medium text-primary-foreground">
-            <Star size={16} />
-            Save Recipe
-          </button>
         </div>
       </div>
     );
