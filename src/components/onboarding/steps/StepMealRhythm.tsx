@@ -138,7 +138,6 @@ export function StepMealRhythm({ profile, update, onFinish, saving }: Props) {
         >
           {saving ? "Setting up..." : "Start cooking"}
         </button>
-        </button>
       </div>
     </div>
   );
