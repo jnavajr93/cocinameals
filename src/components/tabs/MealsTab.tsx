@@ -309,7 +309,7 @@ export function MealsTab() {
       } catch {}
     }
 
-    setRecipeView({ mealName: card.name, recipeText: "", loading: true, isBaby });
+    setRecipeView({ mealName: card.name, recipeText: "", loading: true, isBaby, sectionId, tags: card.tags });
 
     try {
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-recipe`;
