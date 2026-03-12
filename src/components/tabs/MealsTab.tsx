@@ -127,44 +127,65 @@ export function MealsTab() {
   }, [householdId]);
 
   // Pull-to-refresh handlers
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleTouchStart = useCallback((e: TouchEvent) => {
     if (scrollRef.current && scrollRef.current.scrollTop <= 0) {
       touchStartY.current = e.touches[0].clientY;
       isPulling.current = true;
     }
-  };
+  }, []);
 
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const handleTouchMove = useCallback((e: TouchEvent) => {
     if (!isPulling.current) return;
+    if (!scrollRef.current || scrollRef.current.scrollTop > 0) {
+      isPulling.current = false;
+      setPullDistance(0);
+      return;
+    }
     const diff = e.touches[0].clientY - touchStartY.current;
-    if (diff > 0 && scrollRef.current && scrollRef.current.scrollTop <= 0) {
+    if (diff > 0) {
+      e.preventDefault(); // Prevent native scroll / overscroll navigation
       setPullDistance(Math.min(diff * 0.5, 80));
     }
-  };
+  }, []);
 
-  const handleTouchEnd = async () => {
+  const activeSectionsRef = useRef<{ id: string; name: string; enabled: boolean; order: number }[]>([]);
+
+  const handleTouchEnd = useCallback(async () => {
     if (!isPulling.current) return;
     isPulling.current = false;
-    if (pullDistance > 50) {
+    const dist = pullDistance;
+    if (dist > 50) {
       setPullRefreshing(true);
       setPullDistance(50);
-      // Refresh all sections with current filters
       setAiCards({});
       setShuffleKey(k => k + 1);
       await loadMealsData();
-      // Trigger AI refresh for all active sections
-      for (const section of activeSections) {
+      for (const section of activeSectionsRef.current) {
         shuffleSection(section.id);
       }
       setPullRefreshing(false);
     }
     setPullDistance(0);
-  };
+  }, [pullDistance]);
+
+  // Attach touch listeners with { passive: false } so preventDefault works
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener("touchstart", handleTouchStart, { passive: true });
+    el.addEventListener("touchmove", handleTouchMove, { passive: false });
+    el.addEventListener("touchend", handleTouchEnd, { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", handleTouchStart);
+      el.removeEventListener("touchmove", handleTouchMove);
+      el.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
 
   const activeSections = useMemo(() => {
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const today = dayNames[new Date().getDay()];
-    return mealSections
+    const result = mealSections
       .filter(s => s.enabled)
       .filter(s => {
         const days = (s as any).scheduledDays as string[] | undefined;
@@ -172,6 +193,8 @@ export function MealsTab() {
         return days.includes(today);
       })
       .sort((a, b) => a.order - b.order);
+    activeSectionsRef.current = result;
+    return result;
   }, [mealSections]);
 
   const activeFiltersList = useMemo(() => {
@@ -758,10 +781,7 @@ export function MealsTab() {
       {/* Sections */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 pb-24"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+        className="flex-1 overflow-y-auto px-4 pb-24 overscroll-none"
       >
         {activeSections.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center">
