@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { Search, Check, Plus, ChevronDown, ChevronRight, Copy } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { Search, Check, Plus, ChevronDown, ChevronRight, Copy, Camera, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useHousehold } from "@/hooks/useHousehold";
 import { toast } from "sonner";
@@ -24,6 +24,8 @@ export function PantryTab() {
   const [addMode, setAddMode] = useState(false);
   const [addSearch, setAddSearch] = useState("");
   const [viewMode, setViewMode] = useState<"pantry" | "shopping">("pantry");
+  const [scanning, setScanning] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [householdName, setHouseholdName] = useState("");
   const [inviteCode, setInviteCode] = useState("");
   const [memberCount, setMemberCount] = useState(0);
@@ -165,6 +167,74 @@ export function PantryTab() {
     setItems(prev => prev.map(i => i.id === id ? { ...i, is_hidden: true } : i));
   };
 
+  const handleScanReceipt = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !householdId) return;
+    
+    setScanning(true);
+    try {
+      // Convert to base64
+      const buffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      bytes.forEach(b => binary += String.fromCharCode(b));
+      const imageBase64 = btoa(binary);
+
+      const { data, error } = await supabase.functions.invoke("scan-receipt", {
+        body: { imageBase64 },
+      });
+
+      if (error) throw error;
+      const scannedItems = data?.items || [];
+      
+      if (scannedItems.length === 0) {
+        toast.error("No grocery items found in this receipt");
+        return;
+      }
+
+      // Add each scanned item to pantry
+      let addedCount = 0;
+      for (const item of scannedItems) {
+        const existing = items.find(i => i.name.toLowerCase() === item.name.toLowerCase());
+        if (existing) {
+          if (!existing.in_stock) {
+            await supabase.from("pantry_items").update({
+              in_stock: true,
+              updated_by: userName,
+              expires_at: new Date(Date.now() + item.shelfLifeDays * 86400000).toISOString(),
+            }).eq("id", existing.id);
+            setItems(prev => prev.map(i => i.id === existing.id ? {
+              ...i, in_stock: true, updated_by: userName,
+              expires_at: new Date(Date.now() + item.shelfLifeDays * 86400000).toISOString(),
+            } : i));
+            addedCount++;
+          }
+        } else {
+          const { data: newItem } = await supabase.from("pantry_items").insert({
+            household_id: householdId,
+            name: item.name,
+            category: item.category || "Custom",
+            in_stock: true,
+            is_custom: true,
+            updated_by: userName,
+            expires_at: new Date(Date.now() + item.shelfLifeDays * 86400000).toISOString(),
+          }).select().single();
+          if (newItem) {
+            setItems(prev => [...prev, newItem]);
+            addedCount++;
+          }
+        }
+      }
+      toast.success(`${addedCount} item${addedCount !== 1 ? "s" : ""} added from receipt`);
+    } catch (err: any) {
+      toast.error("Failed to scan receipt");
+      console.error(err);
+    } finally {
+      setScanning(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const getExpiryBadge = (item: PantryItem) => {
     if (!item.in_stock || !item.expires_at) return null;
     const daysLeft = Math.ceil((new Date(item.expires_at).getTime() - Date.now()) / 86400000);
@@ -209,6 +279,22 @@ export function PantryTab() {
                 {memberCount}
               </span>
             )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handleScanReceipt}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={scanning}
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-gold text-gold-foreground disabled:opacity-50"
+              title="Scan receipt"
+            >
+              {scanning ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+            </button>
             <button
               onClick={() => setAddMode(true)}
               className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"

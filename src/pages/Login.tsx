@@ -4,7 +4,7 @@ import { CocinaText } from "@/components/CocinaText";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
-import { Mail, ChefHat, Leaf, DollarSign, Clock, Users, TrendingDown, Utensils, ShoppingCart, Heart } from "lucide-react";
+import { Mail, ChefHat, Leaf, DollarSign, Clock, Users, TrendingDown, Utensils, ShoppingCart, Heart, Camera } from "lucide-react";
 
 type View = "landing" | "signin" | "signup" | "forgot";
 
@@ -45,6 +45,11 @@ const PAIN_POINTS: ContentItem[] = [
 ];
 
 const FEATURES: ContentItem[] = [
+  {
+    icon: Camera,
+    title: "Snap A Receipt, Stock Your Pantry",
+    description: "Take a photo of your grocery receipt and your pantry updates instantly with expiration dates included.",
+  },
   {
     icon: Utensils,
     title: "Smart Pantry Tracking",
