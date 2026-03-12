@@ -28,7 +28,7 @@ export function StepCuisine({ profile, update, onNext }: Props) {
             <div key={cuisine}>
               <div className="flex items-center justify-between mb-1.5">
                 <span className="font-body text-sm font-medium text-foreground">{cuisine}</span>
-                <span className="font-body text-xs text-gold font-medium">{CUISINE_LABELS[val]}</span>
+                <span className="font-body text-xs text-emerald-600 font-semibold">{CUISINE_LABELS[val]}</span>
               </div>
               <input
                 type="range"
@@ -37,10 +37,14 @@ export function StepCuisine({ profile, update, onNext }: Props) {
                 step={1}
                 value={val}
                 onChange={(e) => setSlider(cuisine, Number(e.target.value))}
-                className="w-full h-1.5 rounded-full bg-muted appearance-none cursor-pointer accent-gold
-                  [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5
-                  [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gold [&::-webkit-slider-thumb]:shadow-sm
-                  [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-card"
+                className="w-full h-2 rounded-full bg-muted appearance-none cursor-pointer
+                  [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-emerald-200
+                  [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6
+                  [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-500 [&::-webkit-slider-thumb]:shadow-md
+                  [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white
+                  [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-emerald-200
+                  [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:rounded-full
+                  [&::-moz-range-thumb]:bg-emerald-500 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white"
               />
             </div>
           );

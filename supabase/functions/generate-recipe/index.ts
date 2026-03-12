@@ -36,6 +36,12 @@ Never reference equipment the user does not own.
 HEALTH CONDITIONS — silent adaptation, never mentioned:
 ${(profile?.healthConditions || []).map((h: string) => `  - ${h}`).join("\n") || "  None"}
 
+ALLERGIES — NEVER include these ingredients, no exceptions:
+${(profile?.allergies || []).map((a: string) => `  - ${a}`).join("\n") || "  None"}
+
+FOOD DISLIKES — avoid or suggest substitutes:
+${(profile?.dislikes || []).map((d: string) => `  - ${d}`).join("\n") || "  None"}
+
 RECIPE FORMAT — always exactly this structure:
 
 INGREDIENT LIST
@@ -72,6 +78,8 @@ In-stock pantry items: ${(pantryItems || []).slice(0, 80).join(", ")}
 ${(expiringItems || []).length > 0 ? `Expiring soon (incorporate naturally): ${expiringItems.join(", ")}` : ""}
 Equipment available: ${(profile?.equipment || []).join(", ")}
 Diet restrictions: ${(profile?.dietRestrictions || []).join(", ") || "None"}
+Allergies (NEVER include these): ${(profile?.allergies || []).join(", ") || "None"}
+Foods to avoid: ${(profile?.dislikes || []).join(", ") || "None"}
 Spice tolerance: ${profile?.spiceTolerance || "medium"}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

@@ -27,7 +27,9 @@ export interface OnboardingProfile {
   weeknightTime: string;
   dietRestrictions: string[];
   healthConditions: string[];
-  mealSections: { id: string; name: string; enabled: boolean; order: number }[];
+  allergies: string[];
+  dislikes: string[];
+  mealSections: { id: string; name: string; enabled: boolean; order: number; scheduledDays?: string[] }[];
   quickFilters: string[];
   bulkCookDays: string[];
   children: { name: string; dob: string }[];
@@ -67,6 +69,8 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     weeknightTime: "30min",
     dietRestrictions: [],
     healthConditions: [],
+    allergies: [],
+    dislikes: [],
     mealSections: MEAL_SECTIONS.map((s, i) => ({
       id: s.id,
       name: s.name,
@@ -196,6 +200,8 @@ export function Onboarding({ onComplete }: OnboardingProps) {
         weeknight_time: profile.weeknightTime,
         diet_restrictions: profile.dietRestrictions,
         health_conditions: profile.healthConditions,
+        allergies: profile.allergies,
+        dislikes: profile.dislikes,
         section_order: profile.mealSections,
       });
 
