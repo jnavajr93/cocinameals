@@ -497,8 +497,18 @@ export function MealsTab() {
 
   // Recipe view
   if (recipeView) {
+    const recipeImgUrl = mealImages[recipeView.mealName];
+    // Trigger image fetch if not yet loaded
+    if (!recipeImgUrl) fetchMealImage(recipeView.mealName);
+
     return (
       <div className="flex flex-col h-full">
+        {recipeImgUrl && (
+          <div className="w-full h-44 overflow-hidden relative shrink-0">
+            <img src={recipeImgUrl} alt={recipeView.mealName} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+          </div>
+        )}
         <div className="px-4 pt-4 pb-2 flex items-center gap-2">
           <button onClick={() => setRecipeView(null)} className="text-muted-foreground hover:text-foreground shrink-0">
             <ArrowLeft size={20} />
