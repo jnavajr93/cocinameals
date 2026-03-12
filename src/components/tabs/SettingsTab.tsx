@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { CUISINES, CUISINE_LABELS } from "@/data/cuisines";
 import { EQUIPMENT_CATEGORIES } from "@/data/equipment";
 import { MEAL_SECTIONS, QUICK_FILTERS, DIET_RESTRICTIONS } from "@/data/mealSections";
-import { Copy, LogOut, ChevronRight, ChevronDown, Lock, Search, GripVertical, Trash2, Plus } from "lucide-react";
+import { Copy, LogOut, ChevronRight, ChevronDown, Lock, Search, Trash2, Plus } from "lucide-react";
 
 const HEALTH_CONDITIONS = [
   "High Blood Pressure", "Type 2 Diabetes", "Pre-Diabetic", "High Cholesterol",
@@ -36,7 +36,7 @@ export function SettingsTab() {
   // Household profile (shared)
   const [equipment, setEquipment] = useState<string[]>([]);
   const [cuisineSliders, setCuisineSliders] = useState<Record<string, number>>({});
-  const [mealSections, setMealSections] = useState<{ id: string; name: string; enabled: boolean; order: number }[]>([]);
+  const [mealSections, setMealSections] = useState<{ id: string; name: string; enabled: boolean; order: number; scheduledDays?: string[] }[]>([]);
   const [quickFilters, setQuickFilters] = useState<string[]>([]);
   const [mealPrepDays, setMealPrepDays] = useState<string[]>([]);
 
@@ -144,7 +144,18 @@ export function SettingsTab() {
   };
 
   const toggleMealSection = (id: string) => {
-    const next = mealSections.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s);
+    const next = mealSections.map(s => s.id === id ? { ...s, enabled: !s.enabled, scheduledDays: !s.enabled ? s.scheduledDays : undefined } : s);
+    setMealSections(next);
+    saveHouseholdProfile({ meal_sections: next });
+    saveUserPreferences({ section_order: next });
+  };
+
+  const toggleSectionDay = (sectionId: string, day: string) => {
+    const next = mealSections.map(s => {
+      if (s.id !== sectionId) return s;
+      const current = s.scheduledDays || [];
+      return { ...s, scheduledDays: current.includes(day) ? current.filter(d => d !== day) : [...current, day] };
+    });
     setMealSections(next);
     saveHouseholdProfile({ meal_sections: next });
     saveUserPreferences({ section_order: next });
@@ -162,12 +173,6 @@ export function SettingsTab() {
     }
     setQuickFilters(next);
     saveHouseholdProfile({ quick_filters: next });
-  };
-
-  const toggleMealPrepDay = (day: string) => {
-    const next = mealPrepDays.includes(day) ? mealPrepDays.filter(d => d !== day) : [...mealPrepDays, day];
-    setMealPrepDays(next);
-    saveHouseholdProfile({ meal_prep_days: next });
   };
 
   const updateSkillLevel = (v: string) => { setSkillLevel(v); saveUserPreferences({ skill_level: v }); };
@@ -237,7 +242,7 @@ export function SettingsTab() {
     </button>
   );
 
-  const mealPrepEnabled = mealSections.find(s => s.id === "meal_prep")?.enabled;
+  
 
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-24">
@@ -280,16 +285,39 @@ export function SettingsTab() {
           <SectionHeader id="sections" title="My Meal Sections" />
           {expanded.has("sections") && (
             <div className="flex flex-col gap-1 pb-4">
+              <p className="font-body text-xs text-muted-foreground mb-2">Toggle sections on/off and optionally schedule them to specific days.</p>
               {mealSections.sort((a, b) => a.order - b.order).map(section => (
-                <div key={section.id} className="flex items-center gap-2 py-2">
-                  <GripVertical size={14} className="text-muted-foreground shrink-0" />
-                  <span className="font-body text-sm text-foreground flex-1">{section.name}</span>
+                <div key={section.id} className="rounded-lg border border-border overflow-hidden mb-1">
                   <button
                     onClick={() => toggleMealSection(section.id)}
-                    className={`w-10 h-5 rounded-full transition-colors ${section.enabled ? "bg-gold" : "bg-muted"}`}
+                    className={`flex items-center justify-between w-full px-3 py-2.5 text-left transition-colors ${section.enabled ? "bg-primary/5" : "hover:bg-secondary"}`}
                   >
-                    <div className={`w-4 h-4 rounded-full bg-card shadow transition-transform ${section.enabled ? "translate-x-5" : "translate-x-0.5"}`} />
+                    <span className="font-body text-sm font-medium text-foreground">{section.name}</span>
+                    <div className={`h-5 w-9 rounded-full transition-colors relative shrink-0 ${section.enabled ? "bg-gold" : "bg-muted"}`}>
+                      <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-card shadow-sm transition-transform ${section.enabled ? "translate-x-4" : "translate-x-0.5"}`} />
+                    </div>
                   </button>
+                  {section.enabled && (
+                    <div className="px-3 pb-2.5 pt-1 bg-secondary/30">
+                      <span className="font-body text-xs text-muted-foreground mb-1.5 block">Schedule days (optional)</span>
+                      <div className="flex gap-1.5">
+                        {DAYS.map(d => {
+                          const active = (section.scheduledDays || []).includes(d);
+                          return (
+                            <button
+                              key={d}
+                              onClick={() => toggleSectionDay(section.id, d)}
+                              className={`flex-1 rounded-md border py-1.5 font-body text-xs font-medium transition-colors ${
+                                active ? "border-gold bg-gold/15 text-foreground" : "border-border bg-card text-muted-foreground hover:bg-secondary"
+                              }`}
+                            >
+                              {d}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -512,19 +540,6 @@ export function SettingsTab() {
           )}
         </section>
 
-        {/* Meal Prep Days */}
-        {mealPrepEnabled && (
-          <section className="border-b border-border">
-            <SectionHeader id="prepdays" title="Meal Prep Days" />
-            {expanded.has("prepdays") && (
-              <div className="flex gap-2 pb-4">
-                {DAYS.map(d => (
-                  <button key={d} onClick={() => toggleMealPrepDay(d)} className={`flex-1 rounded-lg border py-2 font-body text-xs transition-colors ${mealPrepDays.includes(d) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{d}</button>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
 
         {/* About */}
         <section className="border-b border-border pt-4 pb-4">
