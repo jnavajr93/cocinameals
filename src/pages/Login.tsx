@@ -346,10 +346,15 @@ export default function Login() {
           <div className="grid md:grid-cols-2 gap-8">
             {FEATURES.map((feature) => (
               <div key={feature.title} className="flex flex-col gap-3 rounded-2xl border border-border bg-background p-6">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <feature.icon size={20} className="text-primary" />
                 </div>
-                <h3 className="font-display text-base font-semibold text-foreground">{feature.title}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-display text-base font-semibold text-foreground">{feature.title}</h3>
+                  {feature.badge && (
+                    <span className="rounded-full bg-gold/15 border border-gold/30 px-2 py-0.5 font-body text-[10px] font-semibold text-gold uppercase tracking-wide">{feature.badge}</span>
+                  )}
+                </div>
                 <p className="font-body text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
               </div>
             ))}
