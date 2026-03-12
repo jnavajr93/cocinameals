@@ -85,7 +85,7 @@ export default function Login() {
               Cook what you have. Eat like a chef.
             </p>
             <p className="text-center font-body text-sm text-muted-foreground leading-relaxed mt-1">
-              Turn your pantry into restaurant-quality meals — waste less, order out less, eat better.
+              Turn your pantry into restaurant-quality meals. Waste less, eat better, save more.
             </p>
           </div>
           <div className="flex flex-col gap-3 w-full mt-4">
