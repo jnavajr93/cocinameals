@@ -430,13 +430,30 @@ export function SettingsTab() {
             {expanded.has("health") ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
           </button>
           {expanded.has("health") && (
-            <div className="pb-4">
-              <p className="font-body text-xs text-muted-foreground mb-3">Private — stays on your account only. Never shared with your household. Recipes quietly adapt to these.</p>
-              <div className="flex flex-wrap gap-2">
-                {HEALTH_CONDITIONS.map(h => (
-                  <button key={h} onClick={() => toggleHealth(h)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${healthConditions.includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
-                ))}
+            <div className="pb-4 space-y-4">
+              <p className="font-body text-xs text-muted-foreground">Recipes quietly adapt to these conditions. Your conditions are private and never shared.</p>
+
+              {/* Current user */}
+              <div>
+                <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{userName || "You"} (private)</p>
+                <div className="flex flex-wrap gap-2">
+                  {HEALTH_CONDITIONS.map(h => (
+                    <button key={h} onClick={() => toggleHealth(h)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${healthConditions.includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
+                  ))}
+                </div>
               </div>
+
+              {/* Non-app members */}
+              {nonAppMembers.map((member, i) => (
+                <div key={i}>
+                  <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{member.name}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {HEALTH_CONDITIONS.map(h => (
+                      <button key={h} onClick={() => toggleNonAppMemberHealth(i, h)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${(member.healthConditions || []).includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </section>
