@@ -77,7 +77,14 @@ export function SettingsTab() {
         supabase.from("meal_feedback").select("id, meal_name, feedback, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
       ]);
 
-      if (household) { setHouseholdName(household.name || ""); setInviteCode(household.invite_code); setHouseholdSize((household as any).household_size ?? 2); setNonAppMembers(((household as any).non_app_members as string[]) || []); }
+      if (household) {
+        setHouseholdName(household.name || "");
+        setInviteCode(household.invite_code);
+        setHouseholdSize((household as any).household_size ?? 2);
+        const raw = (household as any).non_app_members || [];
+        // Migrate old string[] format to object format
+        setNonAppMembers(raw.map((m: any) => typeof m === "string" ? { name: m, healthConditions: [] } : m));
+      }
       if (memberData) setMembers(memberData);
       if (hProfile) {
         setEquipment((hProfile.equipment as string[]) || []);
