@@ -53,6 +53,9 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const { user } = useAuth();
   const [started, setStarted] = useState(false);
   const [joinMode, setJoinMode] = useState(false);
+  const [joinReady, setJoinReady] = useState(false);
+  const [joinHouseholdId, setJoinHouseholdId] = useState<string | null>(null);
+  const [joinHouseholdName, setJoinHouseholdName] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [joinError, setJoinError] = useState("");
   const [joinLoading, setJoinLoading] = useState(false);
