@@ -334,23 +334,44 @@ export function SettingsTab() {
                     </div>
                   </button>
                   {section.enabled && (
-                    <div className="px-3 pb-2.5 pt-1 bg-secondary/30">
-                      <span className="font-body text-xs text-muted-foreground mb-1.5 block">Schedule days (optional)</span>
-                      <div className="flex gap-1.5">
-                        {DAYS.map(d => {
-                          const active = (section.scheduledDays || []).includes(d);
-                          return (
-                            <button
-                              key={d}
-                              onClick={() => toggleSectionDay(section.id, d)}
-                              className={`flex-1 rounded-md border py-1.5 font-body text-xs font-medium transition-colors ${
-                                active ? "border-gold bg-gold/15 text-foreground" : "border-border bg-card text-muted-foreground hover:bg-secondary"
-                              }`}
-                            >
-                              {d}
-                            </button>
-                          );
-                        })}
+                    <div className="px-3 pb-2.5 pt-1 bg-secondary/30 space-y-2">
+                      <div>
+                        <span className="font-body text-xs text-muted-foreground mb-1.5 block">Default cook time</span>
+                        <div className="flex gap-1.5">
+                          {[10, 15, 20, 25, 30, 45, 60].map(t => {
+                            const current = section.defaultTime ?? DEFAULT_SECTION_TIMES[section.id] ?? 30;
+                            return (
+                              <button
+                                key={t}
+                                onClick={() => updateSectionTime(section.id, t)}
+                                className={`rounded-md border px-2 py-1 font-body text-xs font-medium transition-colors ${
+                                  current === t ? "border-gold bg-gold/15 text-foreground" : "border-border bg-card text-muted-foreground hover:bg-secondary"
+                                }`}
+                              >
+                                {t}m
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="font-body text-xs text-muted-foreground mb-1.5 block">Schedule days (optional)</span>
+                        <div className="flex gap-1.5">
+                          {DAYS.map(d => {
+                            const active = (section.scheduledDays || []).includes(d);
+                            return (
+                              <button
+                                key={d}
+                                onClick={() => toggleSectionDay(section.id, d)}
+                                className={`flex-1 rounded-md border py-1.5 font-body text-xs font-medium transition-colors ${
+                                  active ? "border-gold bg-gold/15 text-foreground" : "border-border bg-card text-muted-foreground hover:bg-secondary"
+                                }`}
+                              >
+                                {d}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   )}
