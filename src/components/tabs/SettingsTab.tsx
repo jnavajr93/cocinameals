@@ -130,6 +130,24 @@ export function SettingsTab() {
 
   const copyCode = () => { navigator.clipboard.writeText(inviteCode); toast.success("Copied to clipboard"); };
 
+  const addNonAppMember = async () => {
+    if (!householdId || !newMemberName.trim()) return;
+    const next = [...nonAppMembers, newMemberName.trim()];
+    setNonAppMembers(next);
+    await supabase.from("households").update({ non_app_members: next } as any).eq("id", householdId);
+    setNewMemberName("");
+    setAddingNonAppMember(false);
+    toast.success("Member added");
+  };
+
+  const removeNonAppMember = async (index: number) => {
+    if (!householdId) return;
+    const next = nonAppMembers.filter((_, i) => i !== index);
+    setNonAppMembers(next);
+    await supabase.from("households").update({ non_app_members: next } as any).eq("id", householdId);
+    toast.success("Member removed");
+  };
+
   const formatLastSeen = (lastSeen: string | null) => {
     if (!lastSeen) return "";
     const diff = Date.now() - new Date(lastSeen).getTime();
