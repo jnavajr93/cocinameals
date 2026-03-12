@@ -150,7 +150,17 @@ export function PantryTab() {
     longPressFired.current = false;
     longPressTimer.current = setTimeout(() => {
       longPressFired.current = true;
-      if (navigator.vibrate) navigator.vibrate(50);
+      // Haptic feedback: vibrate on Android, visual shake on iOS
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      } else {
+        // Visual feedback for iOS — brief shake on the pressed element
+        const el = document.querySelector(`[data-item-id="${id}"]`);
+        if (el) {
+          el.classList.add("animate-haptic-shake");
+          setTimeout(() => el.classList.remove("animate-haptic-shake"), 300);
+        }
+      }
       if (!selectMode) {
         setSelectMode(true);
         setSelectedIds(new Set([id]));
@@ -501,6 +511,7 @@ export function PantryTab() {
                     const isSelected = selectedIds.has(item.id);
                     return (
                       <button
+                        data-item-id={item.id}
                         key={item.id}
                         onClick={() => toggleStock(item.id)}
                         onPointerDown={() => handlePointerDown(item.id)}
