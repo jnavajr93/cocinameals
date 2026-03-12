@@ -511,6 +511,7 @@ export function PantryTab() {
                     const isSelected = selectedIds.has(item.id);
                     return (
                       <button
+                        data-item-id={item.id}
                         key={item.id}
                         onClick={() => toggleStock(item.id)}
                         onPointerDown={() => handlePointerDown(item.id)}
