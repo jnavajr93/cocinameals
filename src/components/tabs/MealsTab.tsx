@@ -342,6 +342,8 @@ export function MealsTab() {
       if (error) throw error;
       if (Array.isArray(data)) {
         setAiCards(prev => ({ ...prev, [sectionId]: data }));
+        // Fetch images for each meal
+        data.forEach((meal: MealCardWithCookTime) => fetchMealImage(meal.name));
       }
     } catch (e) {
       setShuffleKey(k => k + 1);
