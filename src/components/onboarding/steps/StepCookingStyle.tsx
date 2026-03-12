@@ -16,7 +16,6 @@ const SKILL_LEVELS = [
 const SPICE_LEVELS = ["None", "Mild", "Medium", "Hot", "Extra Hot"];
 const TIME_OPTIONS = [
   { value: "20min", label: "Under 20 min" },
-  { value: "30min", label: "30 min" },
   { value: "45min", label: "45 min" },
   { value: "norush", label: "No rush" },
 ];

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Search, Check, Plus, ChevronDown, ChevronRight, Copy, Camera, Loader2 } from "lucide-react";
+import { Search, Check, Plus, ChevronDown, ChevronRight, Copy, Camera, Loader2, X, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useHousehold } from "@/hooks/useHousehold";
 import { toast } from "sonner";
@@ -30,6 +30,7 @@ export function PantryTab() {
   const [inviteCode, setInviteCode] = useState("");
   const [memberCount, setMemberCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   // Load pantry items
   useEffect(() => {
@@ -82,12 +83,18 @@ export function PantryTab() {
     const item = items.find(i => i.id === id);
     if (!item) return;
     const newStock = !item.in_stock;
-    // Optimistic update
     setItems(prev => prev.map(i => i.id === id ? { ...i, in_stock: newStock, updated_by: userName } : i));
     await supabase.from("pantry_items").update({
       in_stock: newStock,
       updated_by: userName,
     }).eq("id", id);
+  };
+
+  const deleteItem = async (id: string) => {
+    await supabase.from("pantry_items").delete().eq("id", id);
+    setItems(prev => prev.filter(i => i.id !== id));
+    setDeleteConfirm(null);
+    toast.success("Item deleted");
   };
 
   const categories = useMemo(() => {
@@ -173,7 +180,6 @@ export function PantryTab() {
     
     setScanning(true);
     try {
-      // Convert to base64
       const buffer = await file.arrayBuffer();
       const bytes = new Uint8Array(buffer);
       let binary = "";
@@ -192,7 +198,6 @@ export function PantryTab() {
         return;
       }
 
-      // Add each scanned item to pantry
       let addedCount = 0;
       for (const item of scannedItems) {
         const existing = items.find(i => i.name.toLowerCase() === item.name.toLowerCase());
@@ -376,7 +381,7 @@ export function PantryTab() {
         </div>
       )}
 
-      {/* Items */}
+      {/* Items — 2-column grid */}
       <div className="flex-1 overflow-y-auto px-4 pb-24">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center">
@@ -391,33 +396,67 @@ export function PantryTab() {
         ) : (
           Object.entries(grouped).map(([cat, catItems]) => (
             <div key={cat} className="mb-4">
-              <button onClick={() => toggleCollapse(cat)} className="flex items-center gap-1.5 mb-1.5 w-full">
+              <button onClick={() => toggleCollapse(cat)} className="flex items-center gap-1.5 mb-2 w-full">
                 {collapsedCats.has(cat) ? <ChevronRight size={14} className="text-muted-foreground" /> : <ChevronDown size={14} className="text-muted-foreground" />}
                 <span className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider">{cat}</span>
                 <span className="font-body text-xs text-muted-foreground">({catItems.filter(i => i.in_stock).length}/{catItems.length})</span>
               </button>
-              {!collapsedCats.has(cat) && catItems.map(item => {
-                const badge = getExpiryBadge(item);
-                return (
-                  <div key={item.id} className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0">
-                    <button
-                      onClick={() => toggleStock(item.id)}
-                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
-                        item.in_stock ? "border-gold bg-gold text-gold-foreground" : "border-border"
-                      }`}
-                    >
-                      {item.in_stock && <Check size={12} />}
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <span className={`font-body text-sm ${item.in_stock ? "text-foreground" : "text-muted-foreground"}`}>
-                        {item.name}
-                      </span>
-                      {item.is_custom && <span className="ml-1.5 font-body text-xs text-muted-foreground">custom</span>}
-                    </div>
-                    {badge && <span className={`shrink-0 rounded-full px-2 py-0.5 font-body text-xs ${badge.color}`}>{badge.text}</span>}
-                  </div>
-                );
-              })}
+              {!collapsedCats.has(cat) && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {catItems.map(item => {
+                    const badge = getExpiryBadge(item);
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => toggleStock(item.id)}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          setDeleteConfirm(item.id);
+                        }}
+                        className={`relative flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left transition-all ${
+                          item.in_stock
+                            ? "border-gold/40 bg-gold/5"
+                            : "border-border bg-card"
+                        }`}
+                      >
+                        <span
+                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
+                            item.in_stock ? "border-gold bg-gold text-gold-foreground" : "border-foreground/30 bg-white"
+                          }`}
+                        >
+                          {item.in_stock && <Check size={12} />}
+                        </span>
+                        <span className={`font-body text-sm leading-tight flex-1 min-w-0 truncate ${
+                          !item.in_stock ? "line-through text-muted-foreground" : "text-foreground"
+                        }`}>
+                          {item.name}
+                        </span>
+                        {badge && (
+                          <span className={`absolute -top-1 -right-1 rounded-full px-1.5 py-0.5 font-body text-[10px] ${badge.color}`}>
+                            {badge.text}
+                          </span>
+                        )}
+                        {deleteConfirm === item.id && (
+                          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-destructive/90 backdrop-blur-sm">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); deleteItem(item.id); }}
+                              className="flex items-center gap-1 font-body text-xs font-medium text-white"
+                            >
+                              <Trash2 size={12} /> Delete
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null); }}
+                              className="ml-3 font-body text-xs text-white/70"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ))
         )}

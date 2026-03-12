@@ -1,5 +1,6 @@
 import { OnboardingProfile } from "@/components/onboarding/Onboarding";
-import { CUISINES, CUISINE_LABELS } from "@/data/cuisines";
+import { CUISINES, CUISINE_LABELS, CUISINE_LABEL_COLORS } from "@/data/cuisines";
+import { Slider } from "@/components/ui/slider";
 
 interface Props {
   profile: OnboardingProfile;
@@ -17,7 +18,7 @@ export function StepCuisine({ profile, update, onNext }: Props) {
       <div>
         <h1 className="font-display text-2xl font-bold text-foreground">What flavors do you love?</h1>
         <p className="mt-1 font-body text-muted-foreground text-sm">
-          Slide each cuisine to match how much you want it. Your recipes will reflect this.
+          Slide each cuisine to match how much you want it.
         </p>
       </div>
 
@@ -28,23 +29,17 @@ export function StepCuisine({ profile, update, onNext }: Props) {
             <div key={cuisine}>
               <div className="flex items-center justify-between mb-1.5">
                 <span className="font-body text-sm font-medium text-foreground">{cuisine}</span>
-                <span className="font-body text-xs text-emerald-600 font-semibold">{CUISINE_LABELS[val]}</span>
+                <span className={`font-body text-xs font-semibold ${CUISINE_LABEL_COLORS[val]}`}>
+                  {CUISINE_LABELS[val]}
+                </span>
               </div>
-              <input
-                type="range"
+              <Slider
                 min={0}
                 max={4}
                 step={1}
-                value={val}
-                onChange={(e) => setSlider(cuisine, Number(e.target.value))}
-                className="w-full h-2 rounded-full bg-muted appearance-none cursor-pointer
-                  [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-emerald-200
-                  [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6
-                  [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-500 [&::-webkit-slider-thumb]:shadow-md
-                  [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white
-                  [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-emerald-200
-                  [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:rounded-full
-                  [&::-moz-range-thumb]:bg-emerald-500 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white"
+                value={[val]}
+                onValueChange={([v]) => setSlider(cuisine, v)}
+                className="[&_[role=slider]]:bg-emerald-500 [&_[role=slider]]:border-emerald-500 [&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[data-orientation=horizontal]>[data-orientation=horizontal]]:bg-emerald-500 [&_.relative>.absolute]:bg-emerald-500"
               />
             </div>
           );
