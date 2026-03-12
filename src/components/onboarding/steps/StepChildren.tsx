@@ -63,7 +63,7 @@ export function StepChildren({ profile, update, onNext }: Props) {
             Yes
           </button>
           <button
-51            onClick={() => {
+            onClick={() => {
               setHasChildren(false);
               update({ children: [] });
               setChildSections(false);
