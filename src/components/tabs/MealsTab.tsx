@@ -450,12 +450,14 @@ export function MealsTab() {
         { label: "French", value: "French" },
         { label: "Surprise Me", value: "Surprise Me" },
       ],
-      calorie: [
+      method: [
         { label: "Any", value: "" },
-        { label: "Under 400", value: "Under 400" },
-        { label: "400-600", value: "400-600" },
-        { label: "600-800", value: "600-800" },
-        { label: "800+", value: "800+" },
+        { label: "Air Fryer Only", value: "Air Fryer Only" },
+        { label: "One Pan", value: "One Pan" },
+        { label: "Oven Only", value: "Oven Only" },
+        { label: "Stovetop Only", value: "Stovetop Only" },
+        { label: "Grill", value: "Grill" },
+        { label: "No Cook", value: "No Cook" },
       ],
     };
 
@@ -463,17 +465,17 @@ export function MealsTab() {
     const setter = showFilterSheet === "cookTime" ? setFilterCookTime
       : showFilterSheet === "protein" ? setFilterProtein
       : showFilterSheet === "cuisine" ? setFilterCuisine
-      : setFilterCalorie;
+      : setFilterMethod;
     const current = showFilterSheet === "cookTime" ? filterCookTime
       : showFilterSheet === "protein" ? filterProtein
       : showFilterSheet === "cuisine" ? filterCuisine
-      : filterCalorie;
+      : filterMethod;
 
     return (
       <div className="fixed inset-0 z-50 flex items-end bg-foreground/30" onClick={() => setShowFilterSheet(null)}>
         <div className="w-full rounded-t-2xl bg-background p-6 animate-slide-in" onClick={e => e.stopPropagation()}>
           <h3 className="font-display text-lg font-bold text-foreground mb-4">
-            {showFilterSheet === "cookTime" ? "Cook Time" : showFilterSheet === "protein" ? "Main Protein" : showFilterSheet === "cuisine" ? "Cuisine" : "Calorie Range"}
+            {showFilterSheet === "cookTime" ? "Cook Time" : showFilterSheet === "protein" ? "Main Protein" : showFilterSheet === "cuisine" ? "Cuisine" : "Cooking Method"}
           </h3>
           <div className="flex flex-col gap-1">
             {items.map(opt => (
