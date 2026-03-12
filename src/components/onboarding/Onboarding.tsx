@@ -27,7 +27,9 @@ export interface OnboardingProfile {
   weeknightTime: string;
   dietRestrictions: string[];
   healthConditions: string[];
-  mealSections: { id: string; name: string; enabled: boolean; order: number }[];
+  allergies: string[];
+  dislikes: string[];
+  mealSections: { id: string; name: string; enabled: boolean; order: number; scheduledDays?: string[] }[];
   quickFilters: string[];
   bulkCookDays: string[];
   children: { name: string; dob: string }[];
