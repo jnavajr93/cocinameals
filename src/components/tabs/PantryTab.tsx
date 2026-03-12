@@ -533,7 +533,7 @@ export function PantryTab() {
                         ) : (
                           <span
                             className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
-                              item.in_stock ? "border-gold bg-gold text-gold-foreground" : "border-foreground/30 bg-white"
+                              item.in_stock ? "border-gold bg-gold text-gold-foreground" : "border-foreground/30 bg-background"
                             }`}
                           >
                             {item.in_stock && <Check size={12} />}
