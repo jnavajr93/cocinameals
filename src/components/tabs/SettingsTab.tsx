@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { CUISINES, CUISINE_LABELS } from "@/data/cuisines";
 import { EQUIPMENT_CATEGORIES } from "@/data/equipment";
 import { MEAL_SECTIONS, QUICK_FILTERS, DIET_RESTRICTIONS, DEFAULT_SECTION_TIMES } from "@/data/mealSections";
-import { Copy, LogOut, ChevronRight, ChevronDown, Lock, Search, Trash2, Plus } from "lucide-react";
+import { Copy, LogOut, ChevronRight, ChevronDown, Lock, Search, Trash2, Plus, GripVertical } from "lucide-react";
 
 const HEALTH_CONDITIONS = [
   "High Blood Pressure", "Type 2 Diabetes", "Pre-Diabetic", "High Cholesterol",
@@ -40,7 +40,7 @@ export function SettingsTab() {
   // Household profile (shared)
   const [equipment, setEquipment] = useState<string[]>([]);
   const [cuisineSliders, setCuisineSliders] = useState<Record<string, number>>({});
-  const [mealSections, setMealSections] = useState<{ id: string; name: string; enabled: boolean; order: number; scheduledDays?: string[]; defaultTime?: number }[]>([]);
+  const [mealSections, setMealSections] = useState<{ id: string; name: string; enabled: boolean; order: number; scheduledDays?: string[]; defaultTime?: number; isCustom?: boolean }[]>([]);
   const [quickFilters, setQuickFilters] = useState<string[]>([]);
   const [mealPrepDays, setMealPrepDays] = useState<string[]>([]);
 
@@ -63,6 +63,13 @@ export function SettingsTab() {
 
   // Equipment search
   const [equipSearch, setEquipSearch] = useState("");
+
+  // Add custom meal type
+  const [addingCustomMeal, setAddingCustomMeal] = useState(false);
+  const [newMealName, setNewMealName] = useState("");
+
+  // Drag reorder state
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
 
   const loadSettings = async () => {
     if (!householdId || !user) return;
@@ -112,7 +119,7 @@ export function SettingsTab() {
     loadSettings();
   }, [householdId, user]);
 
-  // Realtime sync: re-fetch when any household member updates shared tables
+  // Realtime sync
   useEffect(() => {
     if (!householdId) return;
 
@@ -338,6 +345,45 @@ export function SettingsTab() {
 
   const handleLogout = async () => { await signOut(); };
 
+  // Add custom meal type
+  const addCustomMealType = () => {
+    if (!newMealName.trim()) return;
+    const id = `custom_${newMealName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_")}`;
+    if (mealSections.some(s => s.id === id)) {
+      toast.error("A meal schedule with this name already exists");
+      return;
+    }
+    const next = [...mealSections, { id, name: newMealName.trim(), enabled: true, order: mealSections.length, isCustom: true }];
+    setMealSections(next);
+    saveHouseholdProfile({ meal_sections: next });
+    saveUserPreferences({ section_order: next });
+    setNewMealName("");
+    setAddingCustomMeal(false);
+    toast.success(`"${newMealName.trim()}" added — AI will auto-detect its context`);
+  };
+
+  const removeCustomMealType = (id: string) => {
+    const next = mealSections.filter(s => s.id !== id).map((s, i) => ({ ...s, order: i }));
+    setMealSections(next);
+    saveHouseholdProfile({ meal_sections: next });
+    saveUserPreferences({ section_order: next });
+    toast.success("Meal schedule removed");
+  };
+
+  // Drag reorder
+  const moveSection = (fromIndex: number, direction: "up" | "down") => {
+    const sorted = [...mealSections].sort((a, b) => a.order - b.order);
+    const toIndex = direction === "up" ? fromIndex - 1 : fromIndex + 1;
+    if (toIndex < 0 || toIndex >= sorted.length) return;
+    const item = sorted[fromIndex];
+    sorted.splice(fromIndex, 1);
+    sorted.splice(toIndex, 0, item);
+    const next = sorted.map((s, i) => ({ ...s, order: i }));
+    setMealSections(next);
+    saveHouseholdProfile({ meal_sections: next });
+    saveUserPreferences({ section_order: next });
+  };
+
   const SectionHeader = ({ id, title }: { id: string; title: string }) => (
     <button onClick={() => toggle(id)} className="flex items-center justify-between w-full py-3">
       <h2 className="font-display text-base font-bold text-foreground">{title}</h2>
@@ -351,7 +397,7 @@ export function SettingsTab() {
     saveUserPreferences({ section_order: next });
   };
 
-
+  const sortedSections = [...mealSections].sort((a, b) => a.order - b.order);
 
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-24">
@@ -428,10 +474,10 @@ export function SettingsTab() {
                 </div>
               </div>
 
-              {/* Children — inside household */}
+              {/* Children */}
               <div className="mt-2 border-t border-border pt-3">
                 <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Children</p>
-                <p className="font-body text-xs text-muted-foreground mb-2">Child meal sections auto-appear when you add children.</p>
+                <p className="font-body text-xs text-muted-foreground mb-2">Child meal schedules auto-appear when you add children.</p>
                 {children.map(c => (
                   <div key={c.id} className="flex items-center justify-between py-2">
                     <div>
@@ -474,7 +520,6 @@ export function SettingsTab() {
             <div className="pb-4 space-y-4">
               <p className="font-body text-xs text-muted-foreground">Recipes quietly adapt to these conditions. Any household member can update these.</p>
 
-              {/* App members */}
               {members.map(member => (
                 <div key={member.id}>
                   <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{member.user_name}</p>
@@ -486,7 +531,6 @@ export function SettingsTab() {
                 </div>
               ))}
 
-              {/* Children */}
               {children.map(child => (
                 <div key={child.id}>
                   <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{child.name || "Child"}</p>
@@ -498,7 +542,6 @@ export function SettingsTab() {
                 </div>
               ))}
 
-              {/* Non-app members */}
               {nonAppMembers.map((member, i) => (
                 <div key={`non-${i}`}>
                   <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{member.name}</p>
@@ -512,36 +555,64 @@ export function SettingsTab() {
             </div>
           )}
         </section>
+
+        {/* Meal Schedule (renamed from Meal Sections) */}
         <section className="border-b border-border">
-          <SectionHeader id="sections" title="My Meal Sections" />
+          <SectionHeader id="sections" title="Meal Schedule" />
           {expanded.has("sections") && (
             <div className="flex flex-col gap-1 pb-4">
               <div className="flex items-center justify-between mb-2">
-                <p className="font-body text-xs text-muted-foreground">Toggle sections on/off and optionally schedule them to specific days.</p>
+                <p className="font-body text-xs text-muted-foreground">Toggle schedules on/off, reorder, and optionally schedule to specific days.</p>
                 <button
                   onClick={() => {
                     const defaults = MEAL_SECTIONS.map((s, i) => ({ id: s.id, name: s.name, enabled: s.defaultOn, order: i }));
                     setMealSections(defaults);
                     saveHouseholdProfile({ meal_sections: defaults });
                     saveUserPreferences({ section_order: defaults });
-                    toast.success("Meal sections reset to defaults");
+                    toast.success("Meal schedule reset to defaults");
                   }}
                   className="shrink-0 font-body text-xs text-gold hover:underline"
                 >
                   Reset
                 </button>
               </div>
-              {mealSections.sort((a, b) => a.order - b.order).map(section => (
+              {sortedSections.map((section, idx) => (
                 <div key={section.id} className="rounded-lg border border-border overflow-hidden mb-1">
-                  <button
-                    onClick={() => toggleMealSection(section.id)}
-                    className={`flex items-center justify-between w-full px-3 py-2.5 text-left transition-colors ${section.enabled ? "bg-primary/5" : "hover:bg-secondary"}`}
-                  >
-                    <span className="font-body text-sm font-medium text-foreground">{section.name}</span>
-                    <div className={`h-5 w-9 rounded-full transition-colors relative shrink-0 ${section.enabled ? "bg-gold" : "bg-muted"}`}>
-                      <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-card shadow-sm transition-transform ${section.enabled ? "translate-x-4" : "translate-x-0.5"}`} />
+                  <div className={`flex items-center justify-between w-full px-3 py-2.5 text-left transition-colors ${section.enabled ? "bg-primary/5" : "hover:bg-secondary"}`}>
+                    {/* Reorder arrows */}
+                    <div className="flex flex-col mr-2 shrink-0">
+                      <button
+                        onClick={() => moveSection(idx, "up")}
+                        disabled={idx === 0}
+                        className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5"
+                      >
+                        <ChevronRight size={12} className="-rotate-90" />
+                      </button>
+                      <button
+                        onClick={() => moveSection(idx, "down")}
+                        disabled={idx === sortedSections.length - 1}
+                        className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5"
+                      >
+                        <ChevronRight size={12} className="rotate-90" />
+                      </button>
                     </div>
-                  </button>
+                    <button onClick={() => toggleMealSection(section.id)} className="flex items-center justify-between flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-body text-sm font-medium text-foreground">{section.name}</span>
+                        {(section as any).isCustom && (
+                          <span className="rounded-full bg-gold/10 border border-gold/30 px-1.5 py-0.5 font-body text-[10px] text-gold">Custom</span>
+                        )}
+                      </div>
+                      <div className={`h-5 w-9 rounded-full transition-colors relative shrink-0 ${section.enabled ? "bg-gold" : "bg-muted"}`}>
+                        <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-card shadow-sm transition-transform ${section.enabled ? "translate-x-4" : "translate-x-0.5"}`} />
+                      </div>
+                    </button>
+                    {(section as any).isCustom && (
+                      <button onClick={() => removeCustomMealType(section.id)} className="ml-2 text-muted-foreground hover:text-destructive shrink-0">
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
                   {section.enabled && (
                     <div className="px-3 pb-2.5 pt-1 bg-secondary/30 space-y-2">
                       <div>
@@ -586,6 +657,28 @@ export function SettingsTab() {
                   )}
                 </div>
               ))}
+
+              {/* Add custom meal type */}
+              {addingCustomMeal ? (
+                <div className="flex gap-2 mt-2">
+                  <input
+                    type="text"
+                    value={newMealName}
+                    onChange={e => setNewMealName(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && addCustomMealType()}
+                    placeholder='e.g. "Brunch", "Post-Workout", "Lunchbox"'
+                    className="flex-1 rounded-lg border border-border bg-input px-3 py-2 font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold"
+                    autoFocus
+                  />
+                  <button onClick={addCustomMealType} className="rounded-lg bg-primary px-3 py-2 font-body text-sm font-medium text-primary-foreground">Add</button>
+                  <button onClick={() => { setAddingCustomMeal(false); setNewMealName(""); }} className="rounded-lg border border-border px-3 py-2 font-body text-sm text-foreground">Cancel</button>
+                </div>
+              ) : (
+                <button onClick={() => setAddingCustomMeal(true)} className="flex items-center gap-1 mt-2 font-body text-sm text-gold hover:underline">
+                  <Plus size={14} />
+                  Add custom meal type
+                </button>
+              )}
             </div>
           )}
         </section>

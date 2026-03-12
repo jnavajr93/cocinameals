@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { RefreshCw, Star, Send, ThumbsUp, ThumbsDown, ChevronDown, X, Filter, Clock, Flame, UtensilsCrossed, ArrowLeft, Users } from "lucide-react";
 import { RecipeDisplay } from "@/components/RecipeDisplay";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +38,16 @@ export function MealsTab() {
   const [profile, setProfile] = useState<any>(null);
   const [pantryInStock, setPantryInStock] = useState<string[]>([]);
   const [expiringItems, setExpiringItems] = useState<string[]>([]);
+
+  // Craving popup state
+  const [cravingPopup, setCravingPopup] = useState<{ meals: MealCardWithCookTime[]; loading: boolean } | null>(null);
+
+  // Pull to refresh state
+  const [pullRefreshing, setPullRefreshing] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const touchStartY = useRef(0);
+  const isPulling = useRef(false);
 
   // Filters
   const [filterCookTime, setFilterCookTime] = useState<string | null>(null);
@@ -116,6 +126,41 @@ export function MealsTab() {
     return () => { supabase.removeChannel(channel); };
   }, [householdId]);
 
+  // Pull-to-refresh handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (scrollRef.current && scrollRef.current.scrollTop <= 0) {
+      touchStartY.current = e.touches[0].clientY;
+      isPulling.current = true;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isPulling.current) return;
+    const diff = e.touches[0].clientY - touchStartY.current;
+    if (diff > 0 && scrollRef.current && scrollRef.current.scrollTop <= 0) {
+      setPullDistance(Math.min(diff * 0.5, 80));
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    if (!isPulling.current) return;
+    isPulling.current = false;
+    if (pullDistance > 50) {
+      setPullRefreshing(true);
+      setPullDistance(50);
+      // Refresh all sections with current filters
+      setAiCards({});
+      setShuffleKey(k => k + 1);
+      await loadMealsData();
+      // Trigger AI refresh for all active sections
+      for (const section of activeSections) {
+        shuffleSection(section.id);
+      }
+      setPullRefreshing(false);
+    }
+    setPullDistance(0);
+  };
+
   const activeSections = useMemo(() => {
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const today = dayNames[new Date().getDay()];
@@ -123,7 +168,6 @@ export function MealsTab() {
       .filter(s => s.enabled)
       .filter(s => {
         const days = (s as any).scheduledDays as string[] | undefined;
-        // If no days scheduled, show every day
         if (!days || days.length === 0) return true;
         return days.includes(today);
       })
@@ -166,13 +210,11 @@ export function MealsTab() {
   };
 
   const getCardsForSection = (sectionId: string): MealCardWithCookTime[] => {
-    // Check AI cards first
     if (aiCards[sectionId]?.length) return aiCards[sectionId];
 
     const pool = MEAL_POOLS[sectionId] || [];
     let cards: MealCardWithCookTime[] = pool.map(c => ({ ...c }));
 
-    // Filter by active quick filter
     if (activeFilter) {
       const filterTag = activeFilter.toLowerCase().replace(/[^a-z0-9]/g, "_");
       cards = cards.filter(c =>
@@ -182,7 +224,6 @@ export function MealsTab() {
       );
     }
 
-    // Filter out disliked
     cards = cards.filter(c => !dislikedMeals.has(c.name));
 
     const seed = shuffleKey + sectionId.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
@@ -263,7 +304,6 @@ export function MealsTab() {
         setAiCards(prev => ({ ...prev, [sectionId]: data }));
       }
     } catch (e) {
-      // Fallback to local shuffle
       setShuffleKey(k => k + 1);
       toast.error("AI unavailable, shuffled locally");
     }
@@ -272,11 +312,12 @@ export function MealsTab() {
 
   const handleCraving = async () => {
     if (!craving.trim()) return;
-    setCravingLoading(true);
+    setCravingPopup({ meals: [], loading: true });
     try {
       const { data, error } = await supabase.functions.invoke("suggest-meals", {
         body: {
           craving: craving.trim(),
+          count: 3,
           pantryItems: pantryInStock,
           expiringItems,
           profile,
@@ -286,17 +327,16 @@ export function MealsTab() {
       });
       if (error) throw error;
       if (Array.isArray(data)) {
-        setAiCards(prev => ({ ...prev, craving: data }));
+        setCravingPopup({ meals: data.slice(0, 3), loading: false });
       }
     } catch {
       toast.error("Something went wrong. Try again.");
+      setCravingPopup(null);
     }
-    setCravingLoading(false);
     setCraving("");
   };
 
   const openRecipe = async (card: MealCardWithCookTime, isBaby = false, sectionId?: string) => {
-    // Check localStorage cache
     const cacheKey = `recipe_${card.name}`;
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
@@ -538,6 +578,67 @@ export function MealsTab() {
     );
   };
 
+  // Craving popup
+  const renderCravingPopup = () => {
+    if (!cravingPopup) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 px-4" onClick={() => setCravingPopup(null)}>
+        <div className="w-full max-w-sm rounded-2xl bg-background p-5 shadow-xl" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-display text-lg font-bold text-foreground">Craving Picks</h3>
+            <button onClick={() => setCravingPopup(null)} className="text-muted-foreground hover:text-foreground">
+              <X size={18} />
+            </button>
+          </div>
+          {cravingPopup.loading ? (
+            <div className="flex flex-col gap-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="rounded-lg border border-border bg-card p-3 animate-pulse">
+                  <div className="h-4 bg-muted rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-muted rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {cravingPopup.meals.map(card => {
+                const cuisineTag = getCuisineTag(card);
+                const isLiked = likedMeals.has(card.name);
+                const isDisliked = dislikedMeals.has(card.name);
+                const isSaved = savedMealNames.has(card.name);
+                return (
+                  <div key={card.name} className={`rounded-lg border bg-card p-3 transition-colors ${isLiked ? "border-gold/40" : "border-border"}`}>
+                    <button onClick={() => { setCravingPopup(null); openRecipe(card); }} className="text-left w-full">
+                      <p className="font-body text-sm font-medium text-foreground leading-tight">{card.name}</p>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className="font-body text-xs text-muted-foreground">{card.cal} cal</span>
+                        <span className="font-body text-xs text-muted-foreground">P:{card.protein}g C:{card.carbs}g F:{card.fat}g</span>
+                      </div>
+                      {cuisineTag && (
+                        <span className="inline-block mt-1 rounded-full bg-secondary px-2 py-0.5 font-body text-xs text-muted-foreground">{cuisineTag}</span>
+                      )}
+                    </button>
+                    <div className="flex items-center justify-end gap-3 mt-2">
+                      <button onClick={() => handleFeedback(card, "liked")} className={`transition-colors ${isLiked ? "text-gold" : "text-muted-foreground hover:text-gold"}`}>
+                        <ThumbsUp size={16} />
+                      </button>
+                      <button onClick={() => handleFeedback(card, "disliked")} className={`transition-colors ${isDisliked ? "text-destructive" : "text-muted-foreground hover:text-destructive"}`}>
+                        <ThumbsDown size={16} />
+                      </button>
+                      <button onClick={() => saveMeal(card)} className={`transition-colors ${isSaved ? "text-gold" : "text-muted-foreground hover:text-gold"}`}>
+                        <Star size={16} fill={isSaved ? "currentColor" : "none"} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="px-4 pt-4 pb-2">
@@ -555,10 +656,10 @@ export function MealsTab() {
           />
           <button
             onClick={handleCraving}
-            disabled={cravingLoading}
+            disabled={cravingPopup?.loading}
             className="absolute right-2 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground disabled:opacity-50"
           >
-            {cravingLoading ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" /> : <Send size={14} />}
+            {cravingPopup?.loading ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" /> : <Send size={14} />}
           </button>
         </div>
 
@@ -632,27 +733,25 @@ export function MealsTab() {
         )}
       </div>
 
-      {/* Sections */}
-      <div className="flex-1 overflow-y-auto px-4 pb-24">
-        {/* Craving results */}
-        {aiCards.craving?.length > 0 && (
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="font-display text-base font-bold text-foreground">For You</h2>
-              <button onClick={() => setAiCards(prev => { const n = { ...prev }; delete n.craving; return n; })} className="text-muted-foreground hover:text-foreground">
-                <X size={14} />
-              </button>
-            </div>
-            <div className="flex flex-col gap-2">
-              {aiCards.craving.map(card => renderMealCard(card))}
-            </div>
-          </div>
-        )}
+      {/* Pull to refresh indicator */}
+      {pullDistance > 0 && (
+        <div className="flex justify-center py-2" style={{ height: pullDistance }}>
+          <RefreshCw size={18} className={`text-gold transition-transform ${pullRefreshing ? "animate-spin" : ""}`} style={{ transform: `rotate(${pullDistance * 3}deg)` }} />
+        </div>
+      )}
 
+      {/* Sections */}
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-4 pb-24"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         {activeSections.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center">
             <p className="font-body text-sm text-muted-foreground">
-              Turn on some meal sections in Settings to see suggestions here.
+              Turn on some meal schedules in Settings to see suggestions here.
             </p>
           </div>
         ) : (
@@ -694,6 +793,7 @@ export function MealsTab() {
       </div>
 
       {renderFilterSheet()}
+      {renderCravingPopup()}
     </div>
   );
 
