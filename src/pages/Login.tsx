@@ -247,7 +247,7 @@ export default function Login() {
               Turn your pantry into restaurant-quality meals. Waste less, eat better, save more.
             </p>
             <div className="rounded-full bg-gold/15 px-4 py-1.5 font-body text-xs font-semibold text-gold tracking-wide uppercase">
-              ✨ Early Access — Limited Spots
+              ✨ Join the early wave
             </div>
             <p className="text-center font-body text-sm text-gold font-medium leading-relaxed">
               Join our founding members and shape the future of home cooking.
