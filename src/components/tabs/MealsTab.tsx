@@ -54,7 +54,7 @@ export function MealsTab() {
         supabase.from("household_profile").select("quick_filters, meal_sections, equipment, cuisine_sliders").eq("household_id", householdId).maybeSingle(),
         supabase.from("user_preferences").select("section_order, skill_level, spice_tolerance, diet_restrictions, health_conditions, weeknight_time").eq("user_id", user.id).maybeSingle(),
         supabase.from("meal_feedback").select("meal_name, feedback, tags").eq("user_id", user.id),
-        supabase.from("saved_meals").select("meal_name").eq("household_id", householdId),
+        supabase.from("saved_recipes").select("meal_name").eq("household_id", householdId),
         supabase.from("pantry_items").select("name, in_stock, expires_at").eq("household_id", householdId).eq("is_hidden", false),
       ]);
 
@@ -165,23 +165,28 @@ export function MealsTab() {
   const saveMeal = async (card: MealCardWithCookTime) => {
     if (!householdId) return;
     if (savedMealNames.has(card.name)) {
-      // Unsave
-      await supabase.from("saved_meals").delete().eq("household_id", householdId).eq("meal_name", card.name);
+      await supabase.from("saved_recipes").delete().eq("household_id", householdId).eq("meal_name", card.name);
       setSavedMealNames(prev => { const n = new Set(prev); n.delete(card.name); return n; });
       toast.success("Removed from saved");
     } else {
-      const { error } = await supabase.from("saved_meals").insert({
+      // Save with recipe text if we have it in cache
+      const cacheKey = `recipe_${card.name.replace(/\s+/g, "_").toLowerCase()}`;
+      let recipeText = "";
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const { text } = JSON.parse(cached);
+          recipeText = text || "";
+        }
+      } catch {}
+
+      const { error } = await supabase.from("saved_recipes").insert({
         household_id: householdId,
         meal_name: card.name,
-        calories: card.cal,
-        protein: card.protein,
-        carbs: card.carbs,
-        fat: card.fat,
-        cook_time: card.cookTime || null,
-        tags: card.tags,
+        recipe_text: recipeText || `Recipe for ${card.name} — generate from Meals tab to see full instructions.`,
         saved_by: userName,
       });
-      if (error) toast.error("Could not save meal");
+      if (error) toast.error("Could not save");
       else {
         setSavedMealNames(prev => new Set(prev).add(card.name));
         toast.success(`${card.name} saved`);
@@ -334,14 +339,23 @@ export function MealsTab() {
 
   const saveRecipe = async () => {
     if (!recipeView || !householdId) return;
-    const { error } = await supabase.from("saved_recipes").insert({
-      household_id: householdId,
-      meal_name: recipeView.mealName,
-      recipe_text: recipeView.recipeText,
-      saved_by: userName,
-    });
-    if (error) toast.error("Could not save recipe");
-    else toast.success("Recipe saved");
+    if (savedMealNames.has(recipeView.mealName)) {
+      await supabase.from("saved_recipes").delete().eq("household_id", householdId).eq("meal_name", recipeView.mealName);
+      setSavedMealNames(prev => { const n = new Set(prev); n.delete(recipeView.mealName); return n; });
+      toast.success("Recipe unsaved");
+    } else {
+      const { error } = await supabase.from("saved_recipes").insert({
+        household_id: householdId,
+        meal_name: recipeView.mealName,
+        recipe_text: recipeView.recipeText,
+        saved_by: userName,
+      });
+      if (error) toast.error("Could not save recipe");
+      else {
+        setSavedMealNames(prev => new Set(prev).add(recipeView.mealName));
+        toast.success("Recipe saved");
+      }
+    }
   };
 
   const getCuisineTag = (card: MealCardWithCookTime) => {
@@ -384,9 +398,9 @@ export function MealsTab() {
           </button>
           <button
             onClick={saveRecipe}
-            className="shrink-0 text-muted-foreground hover:text-gold transition-colors"
+            className={`shrink-0 transition-colors ${savedMealNames.has(recipeView.mealName) ? "text-gold" : "text-muted-foreground hover:text-gold"}`}
           >
-            <Star size={16} />
+            <Star size={16} fill={savedMealNames.has(recipeView.mealName) ? "currentColor" : "none"} />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-4 pb-8">
