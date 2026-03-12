@@ -103,6 +103,10 @@ export function PantryTab() {
   }, [householdId]);
 
   const toggleStock = async (id: string) => {
+    if (longPressFired.current) {
+      longPressFired.current = false;
+      return;
+    }
     if (selectMode) {
       toggleSelect(id);
       return;
