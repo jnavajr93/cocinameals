@@ -242,7 +242,7 @@ export function SettingsTab() {
     </button>
   );
 
-  const mealPrepEnabled = mealSections.find(s => s.id === "meal_prep")?.enabled;
+  
 
   return (
     <div className="flex flex-col h-full overflow-y-auto pb-24">
