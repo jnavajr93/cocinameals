@@ -18,7 +18,7 @@ const STATS = [
 interface ContentItem {
   icon: typeof ShoppingCart;
   title: string;
-  description: ReactNode;
+  description: string;
 }
 
 const PAIN_POINTS: ContentItem[] = [
