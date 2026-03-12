@@ -238,6 +238,9 @@ export default function Login() {
       {/* Hero */}
       <section className="flex flex-col items-center justify-center px-6 pt-16 pb-20">
         <div className="flex flex-col items-center gap-6 animate-fade-in w-full max-w-lg">
+          <div className="rounded-full bg-gold/15 px-4 py-1.5 font-body text-xs font-semibold text-gold tracking-wide uppercase">
+            🚀 Early Access — Limited Spots
+          </div>
           <Logo size="lg" />
           <div className="flex flex-col items-center gap-3 max-w-md">
             <h1 className="text-center font-display text-3xl md:text-4xl font-bold text-foreground leading-tight">
@@ -245,6 +248,9 @@ export default function Login() {
             </h1>
             <p className="text-center font-body text-base text-muted-foreground leading-relaxed">
               Turn your pantry into restaurant-quality meals. Waste less, eat better, save more.
+            </p>
+            <p className="text-center font-body text-sm text-gold font-medium leading-relaxed">
+              Be one of our founding members — get in early and shape the future of home cooking.
             </p>
           </div>
           <div className="flex flex-col gap-3 w-full max-w-sm mt-4">
