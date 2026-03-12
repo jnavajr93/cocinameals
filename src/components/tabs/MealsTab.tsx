@@ -464,6 +464,14 @@ export function MealsTab() {
         { label: "French", value: "French" },
         { label: "Surprise Me", value: "Surprise Me" },
       ],
+      people: [
+        { label: "Any", value: "" },
+        { label: "1 person", value: "1 person" },
+        { label: "2 people", value: "2 people" },
+        { label: "3-4 people", value: "3-4 people" },
+        { label: "5-6 people", value: "5-6 people" },
+        { label: "7+ people", value: "7+ people" },
+      ],
       method: [
         { label: "Any", value: "" },
         { label: "Air Fryer Only", value: "Air Fryer Only" },
@@ -478,10 +486,12 @@ export function MealsTab() {
     const items = options[showFilterSheet] || [];
     const setter = showFilterSheet === "cookTime" ? setFilterCookTime
       : showFilterSheet === "protein" ? setFilterProtein
+      : showFilterSheet === "people" ? setFilterPeople
       : showFilterSheet === "cuisine" ? setFilterCuisine
       : setFilterMethod;
     const current = showFilterSheet === "cookTime" ? filterCookTime
       : showFilterSheet === "protein" ? filterProtein
+      : showFilterSheet === "people" ? filterPeople
       : showFilterSheet === "cuisine" ? filterCuisine
       : filterMethod;
 
