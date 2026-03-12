@@ -1,5 +1,9 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Search, Check, Plus, ChevronDown, ChevronRight, Copy, Camera, Loader2, X, Trash2, Info } from "lucide-react";
+import { Search, Check, Plus, ChevronDown, ChevronRight, Copy, Camera, Loader2, X, Trash2, Info, CalendarDays } from "lucide-react";
+import { format } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useHousehold } from "@/hooks/useHousehold";
 import { toast } from "sonner";
@@ -230,6 +234,19 @@ export function PantryTab() {
       next.has(cat) ? next.delete(cat) : next.add(cat);
       return next;
     });
+  };
+
+  const PERISHABLE_CATEGORIES = useMemo(() => new Set(["Produce", "Proteins", "Dairy", "Frozen"]), []);
+
+  const updateExpiryDate = async (id: string, date: Date | undefined) => {
+    const expiresAt = date ? format(date, "yyyy-MM-dd") : null;
+    setItems(prev => prev.map(i => i.id === id ? { ...i, expires_at: expiresAt } : i));
+    await supabase.from("pantry_items").update({ expires_at: expiresAt, updated_by: userName }).eq("id", id);
+    if (date) {
+      toast.success(`Expiration set to ${format(date, "MMM d")}`);
+    } else {
+      toast.success("Expiration date removed");
+    }
   };
 
   const addItem = async (name: string, category?: string) => {
@@ -556,6 +573,50 @@ export function PantryTab() {
                         }`}>
                           {item.name}
                         </span>
+                        {/* Calendar icon for perishable items */}
+                        {item.in_stock && PERISHABLE_CATEGORIES.has(cat) && (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <span
+                                role="button"
+                                onClick={(e) => e.stopPropagation()}
+                                className={cn(
+                                  "flex shrink-0 items-center justify-center rounded p-0.5 transition-colors hover:bg-muted",
+                                  item.expires_at ? "text-gold" : "text-muted-foreground/50"
+                                )}
+                              >
+                                <CalendarDays size={14} />
+                              </span>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="end" onClick={(e) => e.stopPropagation()}>
+                              <div className="p-2 border-b border-border">
+                                <p className="font-body text-xs text-muted-foreground">
+                                  {item.expires_at
+                                    ? `Expires: ${format(new Date(item.expires_at), "MMM d, yyyy")}`
+                                    : "Set expiration (optional)"}
+                                </p>
+                              </div>
+                              <Calendar
+                                mode="single"
+                                selected={item.expires_at ? new Date(item.expires_at) : undefined}
+                                onSelect={(date) => updateExpiryDate(item.id, date)}
+                                disabled={(date) => date < new Date()}
+                                initialFocus
+                                className={cn("p-3 pointer-events-auto")}
+                              />
+                              {item.expires_at && (
+                                <div className="p-2 border-t border-border">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); updateExpiryDate(item.id, undefined); }}
+                                    className="font-body text-xs text-destructive hover:underline"
+                                  >
+                                    Remove date
+                                  </button>
+                                </div>
+                              )}
+                            </PopoverContent>
+                          </Popover>
+                        )}
                         {badge && (
                           <span className={`absolute -top-1 -right-1 rounded-full px-1.5 py-0.5 font-body text-[10px] ${badge.color}`}>
                             {badge.text}
