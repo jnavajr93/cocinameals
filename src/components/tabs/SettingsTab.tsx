@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { CUISINES, CUISINE_LABELS } from "@/data/cuisines";
 import { EQUIPMENT_CATEGORIES } from "@/data/equipment";
 import { MEAL_SECTIONS, QUICK_FILTERS, DIET_RESTRICTIONS } from "@/data/mealSections";
-import { Copy, LogOut, ChevronRight, ChevronDown, Lock, Search, GripVertical, Trash2, Plus } from "lucide-react";
+import { Copy, LogOut, ChevronRight, ChevronDown, Lock, Search, Trash2, Plus } from "lucide-react";
 
 const HEALTH_CONDITIONS = [
   "High Blood Pressure", "Type 2 Diabetes", "Pre-Diabetic", "High Cholesterol",
