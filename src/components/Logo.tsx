@@ -12,7 +12,8 @@ const sizes = {
 export function Logo({ size = "md", className = "" }: LogoProps) {
   return (
     <span className={`font-display font-bold leading-none ${sizes[size]} ${className}`}>
-      <span className="italic text-primary">co</span>
+      <span className="italic text-primary">c</span>
+      <span className="italic text-gold">o</span>
       <span className="text-foreground">cina</span>
     </span>
   );
