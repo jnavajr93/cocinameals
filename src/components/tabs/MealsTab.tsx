@@ -1,33 +1,98 @@
-import { useState, useEffect, useMemo } from "react";
-import { RefreshCw, Star, Send, ThumbsUp, ThumbsDown } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { RefreshCw, Star, Send, ThumbsUp, ThumbsDown, ChevronDown, X, Filter, Clock, Flame, Leaf, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useHousehold } from "@/hooks/useHousehold";
 import { useAuth } from "@/hooks/useAuth";
 import { MEAL_POOLS, MealCard } from "@/data/mealPools";
 import { toast } from "sonner";
 
+interface MealCardWithCookTime extends MealCard {
+  cookTime?: number;
+}
+
+interface RecipeViewState {
+  mealName: string;
+  recipeText: string;
+  loading: boolean;
+  isBaby?: boolean;
+}
+
 export function MealsTab() {
   const { householdId, userName } = useHousehold();
   const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [craving, setCraving] = useState("");
+  const [cravingLoading, setCravingLoading] = useState(false);
   const [shuffleKey, setShuffleKey] = useState(0);
   const [quickFilters, setQuickFilters] = useState<string[]>([]);
   const [mealSections, setMealSections] = useState<{ id: string; name: string; enabled: boolean; order: number }[]>([]);
+  const [aiCards, setAiCards] = useState<Record<string, MealCardWithCookTime[]>>({});
+  const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
+  const [savedMealNames, setSavedMealNames] = useState<Set<string>>(new Set());
+  const [likedMeals, setLikedMeals] = useState<Set<string>>(new Set());
+  const [dislikedMeals, setDislikedMeals] = useState<Set<string>>(new Set());
+  const [recipeView, setRecipeView] = useState<RecipeViewState | null>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [pantryInStock, setPantryInStock] = useState<string[]>([]);
+  const [expiringItems, setExpiringItems] = useState<string[]>([]);
+
+  // Filters
+  const [filterCookTime, setFilterCookTime] = useState<string | null>(null);
+  const [filterProtein, setFilterProtein] = useState<string | null>(null);
+  const [filterCuisine, setFilterCuisine] = useState<string | null>(null);
+  const [filterCalorie, setFilterCalorie] = useState<string | null>(null);
+  const [filterInStockOnly, setFilterInStockOnly] = useState(false);
+  const [filterMustInclude, setFilterMustInclude] = useState<string | null>(null);
+  const [showFilterSheet, setShowFilterSheet] = useState<string | null>(null);
 
   useEffect(() => {
     if (!householdId || !user) return;
 
     const load = async () => {
-      const [{ data: hProfile }, { data: uPrefs }] = await Promise.all([
-        supabase.from("household_profile").select("quick_filters, meal_sections").eq("household_id", householdId).maybeSingle(),
-        supabase.from("user_preferences").select("section_order").eq("user_id", user.id).maybeSingle(),
+      const [{ data: hProfile }, { data: uPrefs }, { data: feedbackData }, { data: savedData }, { data: pantryData }] = await Promise.all([
+        supabase.from("household_profile").select("quick_filters, meal_sections, equipment, cuisine_sliders").eq("household_id", householdId).maybeSingle(),
+        supabase.from("user_preferences").select("section_order, skill_level, spice_tolerance, diet_restrictions, health_conditions, weeknight_time").eq("user_id", user.id).maybeSingle(),
+        supabase.from("meal_feedback").select("meal_name, feedback, tags").eq("user_id", user.id),
+        supabase.from("saved_meals").select("meal_name").eq("household_id", householdId),
+        supabase.from("pantry_items").select("name, in_stock, expires_at").eq("household_id", householdId).eq("is_hidden", false),
       ]);
 
       if (hProfile) {
         setQuickFilters((hProfile.quick_filters as string[]) || []);
         const sections = (uPrefs?.section_order as any[]) || (hProfile.meal_sections as any[]) || [];
         setMealSections(sections);
+        setProfile({
+          equipment: (hProfile.equipment as string[]) || [],
+          cuisineSliders: hProfile.cuisine_sliders || {},
+          skillLevel: uPrefs?.skill_level || "intermediate",
+          spiceTolerance: uPrefs?.spice_tolerance || "medium",
+          dietRestrictions: (uPrefs?.diet_restrictions as string[]) || [],
+          healthConditions: (uPrefs?.health_conditions as string[]) || [],
+          weeknightTime: uPrefs?.weeknight_time || "30min",
+        });
+      }
+
+      if (feedbackData) {
+        const liked = new Set<string>();
+        const disliked = new Set<string>();
+        feedbackData.forEach(f => {
+          if (f.feedback === "liked") liked.add(f.meal_name);
+          else disliked.add(f.meal_name);
+        });
+        setLikedMeals(liked);
+        setDislikedMeals(disliked);
+      }
+
+      if (savedData) setSavedMealNames(new Set(savedData.map(s => s.meal_name)));
+
+      if (pantryData) {
+        const inStock = pantryData.filter(p => p.in_stock).map(p => p.name);
+        setPantryInStock(inStock);
+        const now = Date.now();
+        const expiring = pantryData
+          .filter(p => p.in_stock && p.expires_at && (new Date(p.expires_at).getTime() - now) / 86400000 <= 3)
+          .map(p => p.name);
+        setExpiringItems(expiring);
       }
     };
     load();
@@ -37,10 +102,46 @@ export function MealsTab() {
     return mealSections.filter(s => s.enabled).sort((a, b) => a.order - b.order);
   }, [mealSections]);
 
-  const getCardsForSection = (sectionId: string): MealCard[] => {
-    const pool = MEAL_POOLS[sectionId] || [];
-    let cards = [...pool];
+  const activeFiltersList = useMemo(() => {
+    const list: { key: string; label: string }[] = [];
+    if (filterCookTime) list.push({ key: "cookTime", label: filterCookTime });
+    if (filterProtein) list.push({ key: "protein", label: filterProtein });
+    if (filterCuisine) list.push({ key: "cuisine", label: filterCuisine });
+    if (filterCalorie) list.push({ key: "calorie", label: filterCalorie });
+    if (filterInStockOnly) list.push({ key: "inStock", label: "In-Stock Only" });
+    if (filterMustInclude) list.push({ key: "mustInclude", label: filterMustInclude });
+    if (activeFilter) list.push({ key: "quick", label: activeFilter });
+    return list;
+  }, [filterCookTime, filterProtein, filterCuisine, filterCalorie, filterInStockOnly, filterMustInclude, activeFilter]);
 
+  const clearFilter = (key: string) => {
+    if (key === "cookTime") setFilterCookTime(null);
+    if (key === "protein") setFilterProtein(null);
+    if (key === "cuisine") setFilterCuisine(null);
+    if (key === "calorie") setFilterCalorie(null);
+    if (key === "inStock") setFilterInStockOnly(false);
+    if (key === "mustInclude") setFilterMustInclude(null);
+    if (key === "quick") setActiveFilter(null);
+  };
+
+  const clearAllFilters = () => {
+    setFilterCookTime(null);
+    setFilterProtein(null);
+    setFilterCuisine(null);
+    setFilterCalorie(null);
+    setFilterInStockOnly(false);
+    setFilterMustInclude(null);
+    setActiveFilter(null);
+  };
+
+  const getCardsForSection = (sectionId: string): MealCardWithCookTime[] => {
+    // Check AI cards first
+    if (aiCards[sectionId]?.length) return aiCards[sectionId];
+
+    const pool = MEAL_POOLS[sectionId] || [];
+    let cards: MealCardWithCookTime[] = pool.map(c => ({ ...c }));
+
+    // Filter by active quick filter
     if (activeFilter) {
       const filterTag = activeFilter.toLowerCase().replace(/[^a-z0-9]/g, "_");
       cards = cards.filter(c =>
@@ -50,6 +151,9 @@ export function MealsTab() {
       );
     }
 
+    // Filter out disliked
+    cards = cards.filter(c => !dislikedMeals.has(c.name));
+
     const seed = shuffleKey + sectionId.length;
     cards.sort(() => Math.sin(seed + cards.indexOf(cards[0])) - 0.5);
 
@@ -57,26 +161,189 @@ export function MealsTab() {
     return cards.slice(0, limit);
   };
 
-  const saveMeal = async (card: MealCard) => {
+  const saveMeal = async (card: MealCardWithCookTime) => {
     if (!householdId) return;
-    const { error } = await supabase.from("saved_meals").insert({
-      household_id: householdId,
-      meal_name: card.name,
-      calories: card.cal,
-      protein: card.protein,
-      carbs: card.carbs,
-      fat: card.fat,
-      tags: card.tags,
-      saved_by: userName,
-    });
-    if (error) {
-      toast.error("Could not save meal");
+    if (savedMealNames.has(card.name)) {
+      // Unsave
+      await supabase.from("saved_meals").delete().eq("household_id", householdId).eq("meal_name", card.name);
+      setSavedMealNames(prev => { const n = new Set(prev); n.delete(card.name); return n; });
+      toast.success("Removed from saved");
     } else {
-      toast.success(`${card.name} saved`);
+      const { error } = await supabase.from("saved_meals").insert({
+        household_id: householdId,
+        meal_name: card.name,
+        calories: card.cal,
+        protein: card.protein,
+        carbs: card.carbs,
+        fat: card.fat,
+        cook_time: card.cookTime || null,
+        tags: card.tags,
+        saved_by: userName,
+      });
+      if (error) toast.error("Could not save meal");
+      else {
+        setSavedMealNames(prev => new Set(prev).add(card.name));
+        toast.success(`${card.name} saved`);
+      }
     }
   };
 
-  const getCuisineTag = (card: MealCard) => {
+  const handleFeedback = async (card: MealCardWithCookTime, type: "liked" | "disliked") => {
+    if (!householdId || !user) return;
+    const { error } = await supabase.from("meal_feedback").insert({
+      user_id: user.id,
+      household_id: householdId,
+      meal_name: card.name,
+      feedback: type,
+      tags: card.tags,
+    });
+    if (error) { toast.error("Could not save feedback"); return; }
+
+    if (type === "liked") {
+      setLikedMeals(prev => new Set(prev).add(card.name));
+      toast.success("Got it — more like this.");
+    } else {
+      setDislikedMeals(prev => new Set(prev).add(card.name));
+      toast("Got it — we'll show less of this.", { duration: 2000 });
+    }
+  };
+
+  const shuffleSection = async (sectionId: string) => {
+    setAiLoading(prev => ({ ...prev, [sectionId]: true }));
+    try {
+      const { data, error } = await supabase.functions.invoke("suggest-meals", {
+        body: {
+          section: sectionId,
+          pantryItems: pantryInStock,
+          expiringItems,
+          profile,
+          filters: { cookTime: filterCookTime, mainProtein: filterProtein, cuisineOverride: filterCuisine, calorieRange: filterCalorie, inStockOnly: filterInStockOnly, mustInclude: filterMustInclude, quickFilterChip: activeFilter },
+          feedback: { likedTags: [], dislikedMeals: Array.from(dislikedMeals) },
+        },
+      });
+      if (error) throw error;
+      if (Array.isArray(data)) {
+        setAiCards(prev => ({ ...prev, [sectionId]: data }));
+      }
+    } catch (e) {
+      // Fallback to local shuffle
+      setShuffleKey(k => k + 1);
+      toast.error("AI unavailable, shuffled locally");
+    }
+    setAiLoading(prev => ({ ...prev, [sectionId]: false }));
+  };
+
+  const handleCraving = async () => {
+    if (!craving.trim()) return;
+    setCravingLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("suggest-meals", {
+        body: {
+          craving: craving.trim(),
+          pantryItems: pantryInStock,
+          expiringItems,
+          profile,
+          filters: { cookTime: filterCookTime, mainProtein: filterProtein, cuisineOverride: filterCuisine, calorieRange: filterCalorie, inStockOnly: filterInStockOnly, quickFilterChip: activeFilter },
+          feedback: { likedTags: [], dislikedMeals: Array.from(dislikedMeals) },
+        },
+      });
+      if (error) throw error;
+      if (Array.isArray(data)) {
+        setAiCards(prev => ({ ...prev, craving: data }));
+      }
+    } catch {
+      toast.error("Something went wrong. Try again.");
+    }
+    setCravingLoading(false);
+    setCraving("");
+  };
+
+  const openRecipe = async (card: MealCardWithCookTime, isBaby = false) => {
+    // Check localStorage cache
+    const cacheKey = `recipe_${card.name}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const { text, ts } = JSON.parse(cached);
+        if (Date.now() - ts < 24 * 3600000) {
+          setRecipeView({ mealName: card.name, recipeText: text, loading: false, isBaby });
+          return;
+        }
+      } catch {}
+    }
+
+    setRecipeView({ mealName: card.name, recipeText: "", loading: true, isBaby });
+
+    try {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-recipe`;
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          mealName: card.name,
+          pantryItems: pantryInStock,
+          expiringItems,
+          profile,
+          isBaby,
+        }),
+      });
+
+      if (!resp.ok || !resp.body) throw new Error("Failed to stream");
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let fullText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              fullText += content;
+              setRecipeView(prev => prev ? { ...prev, recipeText: fullText } : null);
+            }
+          } catch {}
+        }
+      }
+
+      setRecipeView(prev => prev ? { ...prev, loading: false } : null);
+      localStorage.setItem(cacheKey, JSON.stringify({ text: fullText, ts: Date.now() }));
+    } catch {
+      toast.error("Something went wrong. Tap to retry.");
+      setRecipeView(prev => prev ? { ...prev, loading: false, recipeText: "Failed to generate recipe. Please go back and try again." } : null);
+    }
+  };
+
+  const saveRecipe = async () => {
+    if (!recipeView || !householdId) return;
+    const { error } = await supabase.from("saved_recipes").insert({
+      household_id: householdId,
+      meal_name: recipeView.mealName,
+      recipe_text: recipeView.recipeText,
+      saved_by: userName,
+    });
+    if (error) toast.error("Could not save recipe");
+    else toast.success("Recipe saved");
+  };
+
+  const getCuisineTag = (card: MealCardWithCookTime) => {
     const map: Record<string, string> = {
       mexican: "Mexican", asian: "Asian", southeast_asian: "SE Asian",
       south_asian: "Indian", mediterranean: "Med", italian: "Italian",
@@ -87,6 +354,115 @@ export function MealsTab() {
       if (map[tag]) return map[tag];
     }
     return null;
+  };
+
+  // Recipe view
+  if (recipeView) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="px-4 pt-4 pb-2 flex items-center gap-3">
+          <button onClick={() => setRecipeView(null)} className="text-muted-foreground hover:text-foreground">
+            <ArrowLeft size={20} />
+          </button>
+          <h1 className="font-display text-lg font-bold text-foreground flex-1">{recipeView.mealName}</h1>
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 pb-24">
+          {recipeView.loading && !recipeView.recipeText ? (
+            <div className="space-y-3 mt-4">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="h-4 rounded bg-muted animate-pulse" style={{ width: `${60 + Math.random() * 40}%` }} />
+              ))}
+            </div>
+          ) : (
+            <pre className="font-body text-sm text-foreground whitespace-pre-wrap leading-relaxed mt-2">
+              {recipeView.recipeText}
+              {recipeView.loading && <span className="animate-pulse text-gold">|</span>}
+            </pre>
+          )}
+        </div>
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-4 py-3 flex items-center justify-center gap-6 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+          <button onClick={saveRecipe} className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 font-body text-sm font-medium text-primary-foreground">
+            <Star size={16} />
+            Save Recipe
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Filter bottom sheet
+  const renderFilterSheet = () => {
+    if (!showFilterSheet) return null;
+    const options: Record<string, { label: string; value: string }[]> = {
+      cookTime: [
+        { label: "Any", value: "" },
+        { label: "Under 15 min", value: "Under 15 min" },
+        { label: "Under 30 min", value: "Under 30 min" },
+        { label: "Under 45 min", value: "Under 45 min" },
+        { label: "1 hr+", value: "1 hr+" },
+      ],
+      protein: [
+        { label: "Any", value: "" },
+        { label: "Chicken", value: "Chicken" },
+        { label: "Beef", value: "Beef" },
+        { label: "Pork", value: "Pork" },
+        { label: "Seafood", value: "Seafood" },
+        { label: "Eggs", value: "Eggs" },
+        { label: "Plant-Based", value: "Plant-Based" },
+        { label: "Use What's Expiring", value: "Use What's Expiring" },
+      ],
+      cuisine: [
+        { label: "My Profile", value: "" },
+        { label: "Mexican", value: "Mexican" },
+        { label: "Asian", value: "Asian" },
+        { label: "Mediterranean", value: "Mediterranean" },
+        { label: "Italian", value: "Italian" },
+        { label: "American", value: "American" },
+        { label: "Indian", value: "Indian" },
+        { label: "French", value: "French" },
+        { label: "Surprise Me", value: "Surprise Me" },
+      ],
+      calorie: [
+        { label: "Any", value: "" },
+        { label: "Under 400", value: "Under 400" },
+        { label: "400-600", value: "400-600" },
+        { label: "600-800", value: "600-800" },
+        { label: "800+", value: "800+" },
+      ],
+    };
+
+    const items = options[showFilterSheet] || [];
+    const setter = showFilterSheet === "cookTime" ? setFilterCookTime
+      : showFilterSheet === "protein" ? setFilterProtein
+      : showFilterSheet === "cuisine" ? setFilterCuisine
+      : setFilterCalorie;
+    const current = showFilterSheet === "cookTime" ? filterCookTime
+      : showFilterSheet === "protein" ? filterProtein
+      : showFilterSheet === "cuisine" ? filterCuisine
+      : filterCalorie;
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-end bg-foreground/30" onClick={() => setShowFilterSheet(null)}>
+        <div className="w-full rounded-t-2xl bg-background p-6 animate-slide-in" onClick={e => e.stopPropagation()}>
+          <h3 className="font-display text-lg font-bold text-foreground mb-4">
+            {showFilterSheet === "cookTime" ? "Cook Time" : showFilterSheet === "protein" ? "Main Protein" : showFilterSheet === "cuisine" ? "Cuisine" : "Calorie Range"}
+          </h3>
+          <div className="flex flex-col gap-1">
+            {items.map(opt => (
+              <button
+                key={opt.label}
+                onClick={() => { setter(opt.value || null); setShowFilterSheet(null); }}
+                className={`rounded-lg px-4 py-3 text-left font-body text-sm transition-colors ${
+                  current === opt.value || (!current && !opt.value) ? "bg-gold/10 text-foreground font-medium" : "text-muted-foreground hover:bg-secondary"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -100,11 +476,65 @@ export function MealsTab() {
             type="text"
             value={craving}
             onChange={e => setCraving(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleCraving()}
             placeholder="I'm craving..."
             className="w-full rounded-lg border border-border bg-input pl-4 pr-10 py-2.5 font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold"
           />
-          <button className="absolute right-2 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Send size={14} />
+          <button
+            onClick={handleCraving}
+            disabled={cravingLoading}
+            className="absolute right-2 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground disabled:opacity-50"
+          >
+            {cravingLoading ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" /> : <Send size={14} />}
+          </button>
+        </div>
+
+        {/* Active filter summary */}
+        {activeFiltersList.length > 0 && (
+          <div className="flex items-center gap-2 mb-2 overflow-x-auto scrollbar-hide">
+            {activeFiltersList.map(f => (
+              <button
+                key={f.key}
+                onClick={() => clearFilter(f.key)}
+                className="shrink-0 flex items-center gap-1 rounded-full bg-gold/10 border border-gold/30 px-2.5 py-1 font-body text-xs text-foreground"
+              >
+                {f.label}
+                <X size={10} />
+              </button>
+            ))}
+            <button onClick={clearAllFilters} className="shrink-0 font-body text-xs text-muted-foreground hover:text-foreground">
+              Clear All
+            </button>
+          </div>
+        )}
+
+        {/* Meal suggestion filters */}
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {[
+            { key: "cookTime", label: "Cook Time", icon: Clock, active: !!filterCookTime },
+            { key: "protein", label: "Protein", icon: Flame, active: !!filterProtein },
+            { key: "cuisine", label: "Cuisine", icon: Filter, active: !!filterCuisine },
+            { key: "calorie", label: "Calories", icon: Leaf, active: !!filterCalorie },
+          ].map(f => (
+            <button
+              key={f.key}
+              onClick={() => setShowFilterSheet(f.key)}
+              className={`shrink-0 flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-body text-xs transition-colors ${
+                f.active ? "border-gold bg-gold/10 text-foreground" : "border-border bg-card text-muted-foreground"
+              }`}
+            >
+              <f.icon size={12} />
+              {f.label}
+              <ChevronDown size={10} />
+            </button>
+          ))}
+          <button
+            onClick={() => setFilterInStockOnly(!filterInStockOnly)}
+            className={`shrink-0 flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-body text-xs transition-colors ${
+              filterInStockOnly ? "border-gold bg-gold/10 text-foreground" : "border-border bg-card text-muted-foreground"
+            }`}
+          >
+            In-Stock Only
           </button>
         </div>
 
@@ -130,6 +560,21 @@ export function MealsTab() {
 
       {/* Sections */}
       <div className="flex-1 overflow-y-auto px-4 pb-24">
+        {/* Craving results */}
+        {aiCards.craving?.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="font-display text-base font-bold text-foreground">For You</h2>
+              <button onClick={() => setAiCards(prev => { const n = { ...prev }; delete n.craving; return n; })} className="text-muted-foreground hover:text-foreground">
+                <X size={14} />
+              </button>
+            </div>
+            <div className="flex flex-col gap-2">
+              {aiCards.craving.map(card => renderMealCard(card))}
+            </div>
+          </div>
+        )}
+
         {activeSections.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center">
             <p className="font-body text-sm text-muted-foreground">
@@ -138,50 +583,89 @@ export function MealsTab() {
           </div>
         ) : (
           activeSections.map(section => {
+            const isLoading = aiLoading[section.id];
             const cards = getCardsForSection(section.id);
-            if (cards.length === 0) return null;
+            if (cards.length === 0 && !isLoading) return null;
             return (
               <div key={section.id} className="mb-6">
                 <div className="flex items-center justify-between mb-2">
                   <h2 className="font-display text-base font-bold text-foreground">{section.name}</h2>
                   <button
-                    onClick={() => setShuffleKey(k => k + 1)}
-                    className="flex items-center gap-1 text-muted-foreground hover:text-gold transition-colors"
+                    onClick={() => shuffleSection(section.id)}
+                    disabled={isLoading}
+                    className="flex items-center gap-1 text-muted-foreground hover:text-gold transition-colors disabled:opacity-50"
                   >
-                    <RefreshCw size={14} />
+                    <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
                     <span className="font-body text-xs">Shuffle</span>
                   </button>
                 </div>
-                <div className="flex flex-col gap-2">
-                  {cards.map(card => {
-                    const cuisineTag = getCuisineTag(card);
-                    return (
-                      <div key={card.name} className="rounded-lg border border-border bg-card p-3 flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-body text-sm font-medium text-foreground leading-tight">{card.name}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="font-body text-xs text-muted-foreground">{card.cal} cal</span>
-                            <span className="font-body text-xs text-muted-foreground">P:{card.protein}g C:{card.carbs}g F:{card.fat}g</span>
-                          </div>
-                          {cuisineTag && (
-                            <span className="inline-block mt-1 rounded-full bg-secondary px-2 py-0.5 font-body text-xs text-muted-foreground">{cuisineTag}</span>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => saveMeal(card)}
-                          className="ml-2 shrink-0 text-muted-foreground hover:text-gold transition-colors"
-                        >
-                          <Star size={18} />
-                        </button>
+                {isLoading && cards.length === 0 ? (
+                  <div className="flex flex-col gap-2">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="rounded-lg border border-border bg-card p-3 animate-pulse">
+                        <div className="h-4 bg-muted rounded w-3/4 mb-2" />
+                        <div className="h-3 bg-muted rounded w-1/2" />
                       </div>
-                    );
-                  })}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {cards.map(card => renderMealCard(card, section.id.startsWith("baby_")))}
+                  </div>
+                )}
               </div>
             );
           })
         )}
       </div>
+
+      {renderFilterSheet()}
     </div>
   );
+
+  function renderMealCard(card: MealCardWithCookTime, isBaby = false) {
+    const cuisineTag = getCuisineTag(card);
+    const isLiked = likedMeals.has(card.name);
+    const isDisliked = dislikedMeals.has(card.name);
+    const isSaved = savedMealNames.has(card.name);
+
+    return (
+      <div
+        key={card.name}
+        className={`rounded-lg border bg-card p-3 transition-colors ${isLiked ? "border-gold/40" : "border-border"}`}
+      >
+        <button onClick={() => openRecipe(card, isBaby)} className="text-left w-full">
+          <p className="font-body text-sm font-medium text-foreground leading-tight">{card.name}</p>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <span className="font-body text-xs text-muted-foreground">{card.cal} cal</span>
+            <span className="font-body text-xs text-muted-foreground">P:{card.protein}g C:{card.carbs}g F:{card.fat}g</span>
+            {card.cookTime && <span className="font-body text-xs text-muted-foreground">{card.cookTime} min</span>}
+          </div>
+          {cuisineTag && (
+            <span className="inline-block mt-1 rounded-full bg-secondary px-2 py-0.5 font-body text-xs text-muted-foreground">{cuisineTag}</span>
+          )}
+        </button>
+        <div className="flex items-center justify-end gap-3 mt-2">
+          <button
+            onClick={() => handleFeedback(card, "liked")}
+            className={`transition-colors ${isLiked ? "text-gold" : "text-muted-foreground hover:text-gold"}`}
+          >
+            <ThumbsUp size={16} />
+          </button>
+          <button
+            onClick={() => handleFeedback(card, "disliked")}
+            className={`transition-colors ${isDisliked ? "text-destructive" : "text-muted-foreground hover:text-destructive"}`}
+          >
+            <ThumbsDown size={16} />
+          </button>
+          <button
+            onClick={() => saveMeal(card)}
+            className={`transition-colors ${isSaved ? "text-gold" : "text-muted-foreground hover:text-gold"}`}
+          >
+            <Star size={16} fill={isSaved ? "currentColor" : "none"} />
+          </button>
+        </div>
+      </div>
+    );
+  }
 }
