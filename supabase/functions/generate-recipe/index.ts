@@ -72,6 +72,8 @@ In-stock pantry items: ${(pantryItems || []).slice(0, 80).join(", ")}
 ${(expiringItems || []).length > 0 ? `Expiring soon (incorporate naturally): ${expiringItems.join(", ")}` : ""}
 Equipment available: ${(profile?.equipment || []).join(", ")}
 Diet restrictions: ${(profile?.dietRestrictions || []).join(", ") || "None"}
+Allergies (NEVER include these): ${(profile?.allergies || []).join(", ") || "None"}
+Foods to avoid: ${(profile?.dislikes || []).join(", ") || "None"}
 Spice tolerance: ${profile?.spiceTolerance || "medium"}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
