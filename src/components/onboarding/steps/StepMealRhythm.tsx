@@ -2,9 +2,10 @@ import { OnboardingProfile } from "@/components/onboarding/Onboarding";
 import { MEAL_SECTIONS, QUICK_FILTERS } from "@/data/mealSections";
 
 interface Props {
-  profile: HouseholdProfile;
-  update: (p: Partial<HouseholdProfile>) => void;
+  profile: OnboardingProfile;
+  update: (p: Partial<OnboardingProfile>) => void;
   onFinish: () => void;
+  saving?: boolean;
 }
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];

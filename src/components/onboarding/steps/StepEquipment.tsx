@@ -4,8 +4,8 @@ import { EQUIPMENT_CATEGORIES } from "@/data/equipment";
 import { Check, Search } from "lucide-react";
 
 interface Props {
-  profile: HouseholdProfile;
-  update: (p: Partial<HouseholdProfile>) => void;
+  profile: OnboardingProfile;
+  update: (p: Partial<OnboardingProfile>) => void;
   onNext: () => void;
 }
 

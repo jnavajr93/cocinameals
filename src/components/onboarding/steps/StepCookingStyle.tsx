@@ -2,8 +2,8 @@ import { OnboardingProfile } from "@/components/onboarding/Onboarding";
 import { DIET_RESTRICTIONS } from "@/data/mealSections";
 
 interface Props {
-  profile: HouseholdProfile;
-  update: (p: Partial<HouseholdProfile>) => void;
+  profile: OnboardingProfile;
+  update: (p: Partial<OnboardingProfile>) => void;
   onNext: () => void;
 }
 
