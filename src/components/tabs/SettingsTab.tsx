@@ -255,7 +255,7 @@ export function SettingsTab() {
       date_of_birth: newChildDob,
     }).select().single();
     if (data) {
-      const newChildren = [...children, data];
+      const newChildren = [...children, { ...data, health_conditions: (data.health_conditions as string[]) || [] }];
       setChildren(newChildren);
       if (newChildren.length === 1) setChildSectionsEnabled(true);
     }
