@@ -141,6 +141,7 @@ export function MealsTab() {
   const clearAllFilters = () => {
     setFilterCookTime(null);
     setFilterProtein(null);
+    setFilterPeople(null);
     setFilterCuisine(null);
     setFilterMethod(null);
     setFilterInStockOnly(false);
