@@ -1,0 +1,153 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const { section, craving, pantryItems, expiringItems, profile, filters, feedback, childAgeMonths } = await req.json();
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    const systemPrompt = `You are a meal suggestion engine for cocina, a household meal planning app.
+Mission: help people cook restaurant-quality meals at home using what they already have — cutting food waste and the need to eat out.
+
+Suggest exactly 3 meals. Return ONLY a valid JSON array. No preamble. No markdown.
+
+Each meal object: { "name": string, "cal": number, "protein": number, "carbs": number, "fat": number, "cookTime": number, "tags": string[] }
+
+HARD RULES:
+- Only suggest meals the user's equipment can make.
+- Never suggest meals that violate diet restrictions.
+- If inStockOnly is true: every ingredient must be currently in-stock. Zero exceptions.
+- If mustInclude is set: that ingredient must be central to at least 2 of 3 meals.
+- If mainProtein is set: that protein must star in all 3 meals.
+- If cookTime filter is set: total time must be under that limit for all 3.
+- If calorieRange is set: calories must fall within range for all 3.
+- If cuisineOverride is set: all 3 meals must lean toward that cuisine.
+- If quickFilterChip is active: all 3 meals must match that tag.
+- Never suggest meals from dislikedMeals[].
+- Upweight styles matching likedTags[].
+- Prioritize expiringItems[] when culinarily appropriate. Never mention to the user that items are expiring.
+- For baby sections: soft, age-appropriate foods only. No honey, no added salt, no added sugar, no choking hazards.
+
+HEALTH CONDITION SILENT ADJUSTMENTS (never mention in output):
+  High Blood Pressure → reduce sodium-heavy dishes
+  Type 2 Diabetes / Pre-Diabetic → favor low glycemic, high fiber
+  High Cholesterol → favor lean proteins, omega-3 rich
+  Heart Disease → Mediterranean-lean, low saturated fat
+  IBS → avoid high-FODMAP dishes
+  Gout → avoid red meat, shellfish as primary protein
+  PCOS → anti-inflammatory lean, low sugar
+  Celiac Disease → strictly zero gluten
+  Kidney Disease → avoid potassium-heavy and phosphorus-heavy
+  Obesity / Weight Loss → favor high satiety, high protein, lower calorie density
+
+TAGS TO USE: mexican, asian, southeast_asian, south_asian, mediterranean, italian, american, latin_american, caribbean, african, french, seafood, high_protein, low_carb, quick, vegetarian, vegan, kid_friendly, comfort, light, spicy, mild, one_pan, grill, air_fryer, date_night, crowd`;
+
+    const userPrompt = JSON.stringify({
+      section: section || "full_dinner",
+      craving: craving || null,
+      pantryInStock: (pantryItems || []).slice(0, 100),
+      expiringItems: expiringItems || [],
+      equipment: profile?.equipment || [],
+      cuisineSliders: profile?.cuisineSliders || {},
+      skillLevel: profile?.skillLevel || "intermediate",
+      spiceTolerance: profile?.spiceTolerance || "medium",
+      dietRestrictions: profile?.dietRestrictions || [],
+      healthConditions: profile?.healthConditions || [],
+      weeknightTime: profile?.weeknightTime || "30min",
+      filters: filters || {},
+      likedTags: feedback?.likedTags || [],
+      dislikedMeals: feedback?.dislikedMeals || [],
+      childAgeMonths: childAgeMonths || null,
+    });
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "suggest_meals",
+              description: "Return exactly 3 meal suggestions",
+              parameters: {
+                type: "object",
+                properties: {
+                  meals: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        name: { type: "string" },
+                        cal: { type: "number" },
+                        protein: { type: "number" },
+                        carbs: { type: "number" },
+                        fat: { type: "number" },
+                        cookTime: { type: "number" },
+                        tags: { type: "array", items: { type: "string" } },
+                      },
+                      required: ["name", "cal", "protein", "carbs", "fat", "cookTime", "tags"],
+                    },
+                  },
+                },
+                required: ["meals"],
+              },
+            },
+          },
+        ],
+        tool_choice: { type: "function", function: { name: "suggest_meals" } },
+      }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later." }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Usage limit reached." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const t = await response.text();
+      console.error("AI gateway error:", response.status, t);
+      throw new Error("AI gateway error");
+    }
+
+    const data = await response.json();
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (toolCall) {
+      const parsed = JSON.parse(toolCall.function.arguments);
+      return new Response(JSON.stringify(parsed.meals), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Fallback: try to parse content directly
+    const content = data.choices?.[0]?.message?.content || "[]";
+    return new Response(content, {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    console.error("suggest-meals error:", e);
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
