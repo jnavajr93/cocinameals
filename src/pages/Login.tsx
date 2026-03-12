@@ -63,7 +63,7 @@ const FEATURES: ContentItem[] = [
     description: "Get restaurant-quality meal ideas personalized to your equipment, cuisine preferences, and cooking skill level.",
   },
   {
-    icon: Heart,
+    icon: Activity,
     title: "Health-Aware Cooking",
     description: "Set health conditions like diabetes, high blood pressure, or celiac for each household member — recipes silently adapt to keep everyone safe.",
   },
