@@ -380,7 +380,9 @@ export function MealsTab() {
         meal_name: recipeView.mealName,
         recipe_text: recipeView.recipeText,
         saved_by: userName,
-      });
+        meal_section: recipeView.sectionId || null,
+        tags: recipeView.tags || [],
+      } as any);
       if (error) toast.error("Could not save recipe");
       else {
         setSavedMealNames(prev => new Set(prev).add(recipeView.mealName));
