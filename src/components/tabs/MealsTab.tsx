@@ -24,7 +24,7 @@ export function MealsTab() {
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [craving, setCraving] = useState("");
   const [cravingLoading, setCravingLoading] = useState(false);
-  const [shuffleKey, setShuffleKey] = useState(0);
+  const [shuffleKey, setShuffleKey] = useState(() => Math.floor(Math.random() * 100000));
   const [quickFilters, setQuickFilters] = useState<string[]>([]);
   const [mealSections, setMealSections] = useState<{ id: string; name: string; enabled: boolean; order: number }[]>([]);
   const [aiCards, setAiCards] = useState<Record<string, MealCardWithCookTime[]>>({});
@@ -155,8 +155,8 @@ export function MealsTab() {
     // Filter out disliked
     cards = cards.filter(c => !dislikedMeals.has(c.name));
 
-    const seed = shuffleKey + sectionId.length;
-    cards.sort(() => Math.sin(seed + cards.indexOf(cards[0])) - 0.5);
+    const seed = shuffleKey + sectionId.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+    cards.sort((a, b) => Math.sin(seed * 9301 + cards.indexOf(a) * 49297) - Math.sin(seed * 9301 + cards.indexOf(b) * 49297));
 
     const limit = ["afternoon_snack", "baby_breakfast", "baby_dinner"].includes(sectionId) ? 2 : 3;
     return cards.slice(0, limit);
