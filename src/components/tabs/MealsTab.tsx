@@ -223,7 +223,7 @@ export function MealsTab() {
           pantryItems: pantryInStock,
           expiringItems,
           profile,
-          filters: { cookTime: filterCookTime, mainProtein: filterProtein, cuisineOverride: filterCuisine, calorieRange: filterCalorie, inStockOnly: filterInStockOnly, mustInclude: filterMustInclude, quickFilterChip: activeFilter },
+          filters: { cookTime: filterCookTime, mainProtein: filterProtein, cuisineOverride: filterCuisine, cookingMethod: filterMethod, inStockOnly: filterInStockOnly, mustInclude: filterMustInclude, quickFilterChip: activeFilter },
           feedback: { likedTags: [], dislikedMeals: Array.from(dislikedMeals) },
         },
       });
