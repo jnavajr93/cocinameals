@@ -137,22 +137,34 @@ export function SettingsTab() {
 
   const copyCode = () => { navigator.clipboard.writeText(inviteCode); toast.success("Copied to clipboard"); };
 
-  const addNonAppMember = async () => {
-    if (!householdId || !newMemberName.trim()) return;
-    const next = [...nonAppMembers, newMemberName.trim()];
+  const saveNonAppMembers = async (next: { name: string; healthConditions?: string[] }[]) => {
+    if (!householdId) return;
     setNonAppMembers(next);
     await supabase.from("households").update({ non_app_members: next } as any).eq("id", householdId);
+  };
+
+  const addNonAppMember = async () => {
+    if (!householdId || !newMemberName.trim()) return;
+    const next = [...nonAppMembers, { name: newMemberName.trim(), healthConditions: [] }];
+    await saveNonAppMembers(next);
     setNewMemberName("");
     setAddingNonAppMember(false);
     toast.success("Member added");
   };
 
   const removeNonAppMember = async (index: number) => {
-    if (!householdId) return;
     const next = nonAppMembers.filter((_, i) => i !== index);
-    setNonAppMembers(next);
-    await supabase.from("households").update({ non_app_members: next } as any).eq("id", householdId);
+    await saveNonAppMembers(next);
     toast.success("Member removed");
+  };
+
+  const toggleNonAppMemberHealth = async (index: number, condition: string) => {
+    const next = nonAppMembers.map((m, i) => {
+      if (i !== index) return m;
+      const current = m.healthConditions || [];
+      return { ...m, healthConditions: current.includes(condition) ? current.filter(c => c !== condition) : [...current, condition] };
+    });
+    await saveNonAppMembers(next);
   };
 
   const formatLastSeen = (lastSeen: string | null) => {
