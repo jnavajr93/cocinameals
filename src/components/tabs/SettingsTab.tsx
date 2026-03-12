@@ -27,7 +27,7 @@ export function SettingsTab() {
   const [householdName, setHouseholdName] = useState("");
   const [inviteCode, setInviteCode] = useState("");
   const [householdSize, setHouseholdSize] = useState(2);
-  const [members, setMembers] = useState<{ user_name: string; last_seen: string | null }[]>([]);
+  const [members, setMembers] = useState<{ id: string; user_name: string; last_seen: string | null; health_conditions?: string[] }[]>([]);
   const [nonAppMembers, setNonAppMembers] = useState<{ name: string; healthConditions?: string[] }[]>([]);
   const [addingNonAppMember, setAddingNonAppMember] = useState(false);
   const [newMemberName, setNewMemberName] = useState("");
@@ -70,7 +70,7 @@ export function SettingsTab() {
     const load = async () => {
       const [{ data: household }, { data: memberData }, { data: hProfile }, { data: uPrefs }, { data: childrenData }, { data: feedbackData }] = await Promise.all([
         supabase.from("households").select("name, invite_code, household_size, non_app_members").eq("id", householdId).single(),
-        supabase.from("household_members").select("user_name, last_seen").eq("household_id", householdId),
+        supabase.from("household_members").select("id, user_name, last_seen, health_conditions").eq("household_id", householdId),
         supabase.from("household_profile").select("*").eq("household_id", householdId).maybeSingle(),
         supabase.from("user_preferences").select("*").eq("user_id", user.id).maybeSingle(),
         supabase.from("children").select("*").eq("household_id", householdId),
@@ -85,7 +85,7 @@ export function SettingsTab() {
         // Migrate old string[] format to object format
         setNonAppMembers(raw.map((m: any) => typeof m === "string" ? { name: m, healthConditions: [] } : m));
       }
-      if (memberData) setMembers(memberData);
+      if (memberData) setMembers(memberData.map(m => ({ ...m, health_conditions: ((m as any).health_conditions as string[]) || [] })));
       if (hProfile) {
         setEquipment((hProfile.equipment as string[]) || []);
         setCuisineSliders((hProfile.cuisine_sliders as Record<string, number>) || {});
@@ -236,6 +236,19 @@ export function SettingsTab() {
     const next = healthConditions.includes(h) ? healthConditions.filter(c => c !== h) : [...healthConditions, h];
     setHealthConditions(next);
     saveUserPreferences({ health_conditions: next });
+  };
+
+  const toggleMemberHealth = async (memberId: string, condition: string) => {
+    const next = members.map(m => {
+      if (m.id !== memberId) return m;
+      const current = m.health_conditions || [];
+      return { ...m, health_conditions: current.includes(condition) ? current.filter(c => c !== condition) : [...current, condition] };
+    });
+    setMembers(next);
+    const member = next.find(m => m.id === memberId);
+    if (member) {
+      await supabase.from("household_members").update({ health_conditions: member.health_conditions } as any).eq("id", memberId);
+    }
   };
 
   const toggleChildHealth = async (childId: string, condition: string) => {
@@ -444,17 +457,19 @@ export function SettingsTab() {
           </button>
           {expanded.has("health") && (
             <div className="pb-4 space-y-4">
-              <p className="font-body text-xs text-muted-foreground">Recipes quietly adapt to these conditions. Your conditions are private and never shared.</p>
+              <p className="font-body text-xs text-muted-foreground">Recipes quietly adapt to these conditions. Any household member can update these.</p>
 
-              {/* Current user */}
-              <div>
-                <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{userName || "You"} (private)</p>
-                <div className="flex flex-wrap gap-2">
-                  {HEALTH_CONDITIONS.map(h => (
-                    <button key={h} onClick={() => toggleHealth(h)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${healthConditions.includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
-                  ))}
+              {/* App members */}
+              {members.map(member => (
+                <div key={member.id}>
+                  <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{member.user_name}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {HEALTH_CONDITIONS.map(h => (
+                      <button key={h} onClick={() => toggleMemberHealth(member.id, h)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${(member.health_conditions || []).includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ))}
 
               {/* Children */}
               {children.map(child => (
@@ -470,7 +485,7 @@ export function SettingsTab() {
 
               {/* Non-app members */}
               {nonAppMembers.map((member, i) => (
-                <div key={i}>
+                <div key={`non-${i}`}>
                   <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{member.name}</p>
                   <div className="flex flex-wrap gap-2">
                     {HEALTH_CONDITIONS.map(h => (

@@ -52,6 +52,7 @@ export type Database = {
       household_members: {
         Row: {
           created_at: string | null
+          health_conditions: Json | null
           household_id: string
           id: string
           last_seen: string | null
@@ -60,6 +61,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          health_conditions?: Json | null
           household_id: string
           id?: string
           last_seen?: string | null
@@ -68,6 +70,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          health_conditions?: Json | null
           household_id?: string
           id?: string
           last_seen?: string | null
