@@ -122,6 +122,13 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       if (joinHouseholdId) {
         householdId = joinHouseholdId;
         delete (window as any).__joinHouseholdId;
+
+        // Create member first so RLS policies work
+        await supabase.from("household_members").insert({
+          household_id: householdId,
+          user_id: user.id,
+          user_name: profile.memberName,
+        });
       } else {
         // Create household
         const { data: household, error: hError } = await supabase
@@ -132,6 +139,13 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 
         if (hError) throw hError;
         householdId = household.id;
+
+        // Create member immediately so RLS policies work for subsequent inserts
+        await supabase.from("household_members").insert({
+          household_id: householdId,
+          user_id: user.id,
+          user_name: profile.memberName,
+        });
 
         // Create household profile
         await supabase.from("household_profile").insert({
@@ -171,13 +185,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           await supabase.from("pantry_items").insert(pantryItems.slice(i, i + 500));
         }
       }
-
-      // Create member
-      await supabase.from("household_members").insert({
-        household_id: householdId,
-        user_id: user.id,
-        user_name: profile.memberName,
-      });
 
       // Save user preferences
       await supabase.from("user_preferences").insert({
