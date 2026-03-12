@@ -62,7 +62,7 @@ export function StepEquipment({ profile, update, onNext }: Props) {
                     >
                       <span
                         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
-                          checked ? "border-gold bg-gold text-gold-foreground" : "border-border"
+                          checked ? "border-gold bg-gold text-gold-foreground" : "border-foreground/30 bg-white"
                         }`}
                       >
                         {checked && <Check size={12} />}
