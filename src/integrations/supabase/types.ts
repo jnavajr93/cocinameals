@@ -14,13 +14,361 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      children: {
+        Row: {
+          created_at: string | null
+          date_of_birth: string
+          household_id: string
+          id: string
+          name: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date_of_birth: string
+          household_id: string
+          id?: string
+          name?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date_of_birth?: string
+          household_id?: string
+          id?: string
+          name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "children_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      household_members: {
+        Row: {
+          created_at: string | null
+          household_id: string
+          id: string
+          last_seen: string | null
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          household_id: string
+          id?: string
+          last_seen?: string | null
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          created_at?: string | null
+          household_id?: string
+          id?: string
+          last_seen?: string | null
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_members_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      household_profile: {
+        Row: {
+          cuisine_sliders: Json | null
+          equipment: Json | null
+          household_id: string
+          id: string
+          meal_prep_days: Json | null
+          meal_sections: Json | null
+          quick_filters: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          cuisine_sliders?: Json | null
+          equipment?: Json | null
+          household_id: string
+          id?: string
+          meal_prep_days?: Json | null
+          meal_sections?: Json | null
+          quick_filters?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          cuisine_sliders?: Json | null
+          equipment?: Json | null
+          household_id?: string
+          id?: string
+          meal_prep_days?: Json | null
+          meal_sections?: Json | null
+          quick_filters?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_profile_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: true
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      households: {
+        Row: {
+          created_at: string | null
+          id: string
+          invite_code: string
+          name: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          invite_code: string
+          name?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          invite_code?: string
+          name?: string | null
+        }
+        Relationships: []
+      }
+      meal_feedback: {
+        Row: {
+          created_at: string | null
+          feedback: string
+          household_id: string
+          id: string
+          meal_name: string
+          tags: Json | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          feedback: string
+          household_id: string
+          id?: string
+          meal_name: string
+          tags?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          feedback?: string
+          household_id?: string
+          id?: string
+          meal_name?: string
+          tags?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_feedback_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pantry_items: {
+        Row: {
+          category: string
+          created_at: string | null
+          expires_at: string | null
+          household_id: string
+          id: string
+          in_stock: boolean | null
+          is_custom: boolean | null
+          is_hidden: boolean | null
+          name: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          expires_at?: string | null
+          household_id: string
+          id?: string
+          in_stock?: boolean | null
+          is_custom?: boolean | null
+          is_hidden?: boolean | null
+          name: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          expires_at?: string | null
+          household_id?: string
+          id?: string
+          in_stock?: boolean | null
+          is_custom?: boolean | null
+          is_hidden?: boolean | null
+          name?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pantry_items_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_meals: {
+        Row: {
+          calories: number | null
+          carbs: number | null
+          cook_time: number | null
+          created_at: string | null
+          fat: number | null
+          household_id: string
+          id: string
+          meal_name: string
+          protein: number | null
+          saved_by: string | null
+          tags: Json | null
+        }
+        Insert: {
+          calories?: number | null
+          carbs?: number | null
+          cook_time?: number | null
+          created_at?: string | null
+          fat?: number | null
+          household_id: string
+          id?: string
+          meal_name: string
+          protein?: number | null
+          saved_by?: string | null
+          tags?: Json | null
+        }
+        Update: {
+          calories?: number | null
+          carbs?: number | null
+          cook_time?: number | null
+          created_at?: string | null
+          fat?: number | null
+          household_id?: string
+          id?: string
+          meal_name?: string
+          protein?: number | null
+          saved_by?: string | null
+          tags?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_meals_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_recipes: {
+        Row: {
+          created_at: string | null
+          household_id: string
+          id: string
+          meal_name: string
+          recipe_text: string
+          saved_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          household_id: string
+          id?: string
+          meal_name: string
+          recipe_text: string
+          saved_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          household_id?: string
+          id?: string
+          meal_name?: string
+          recipe_text?: string
+          saved_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_recipes_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_preferences: {
+        Row: {
+          diet_restrictions: Json | null
+          health_conditions: Json | null
+          household_id: string | null
+          id: string
+          section_order: Json | null
+          skill_level: string | null
+          spice_tolerance: string | null
+          updated_at: string | null
+          user_id: string
+          weeknight_time: string | null
+        }
+        Insert: {
+          diet_restrictions?: Json | null
+          health_conditions?: Json | null
+          household_id?: string | null
+          id?: string
+          section_order?: Json | null
+          skill_level?: string | null
+          spice_tolerance?: string | null
+          updated_at?: string | null
+          user_id: string
+          weeknight_time?: string | null
+        }
+        Update: {
+          diet_restrictions?: Json | null
+          health_conditions?: Json | null
+          household_id?: string | null
+          id?: string
+          section_order?: Json | null
+          skill_level?: string | null
+          spice_tolerance?: string | null
+          updated_at?: string | null
+          user_id?: string
+          weeknight_time?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_preferences_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_household_id: { Args: { p_user_id: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
