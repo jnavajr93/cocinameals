@@ -23,7 +23,7 @@ export function PantryTab() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [addMode, setAddMode] = useState(false);
   const [addSearch, setAddSearch] = useState("");
-  const [viewMode, setViewMode] = useState<"pantry" | "shopping">("pantry");
+  
   const [scanning, setScanning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [householdName, setHouseholdName] = useState("");
