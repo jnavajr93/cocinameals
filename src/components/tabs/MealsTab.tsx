@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { RefreshCw, Star, Send, ThumbsUp, ThumbsDown, ChevronDown, X, Filter, Clock, Flame, UtensilsCrossed, ArrowLeft, Users } from "lucide-react";
 import { RecipeDisplay } from "@/components/RecipeDisplay";
 import { supabase } from "@/integrations/supabase/client";
+import { generateRecipeCard } from "@/lib/generateRecipeCard";
 import { useHousehold } from "@/hooks/useHousehold";
 import { useAuth } from "@/hooks/useAuth";
 import { MEAL_POOLS, MealCard } from "@/data/mealPools";
@@ -488,20 +489,35 @@ export function MealsTab() {
 
   const shareRecipe = async () => {
     if (!recipeView || !recipeView.recipeText) return;
-    const shareText = `🍽️ ${recipeView.mealName}\n\n${recipeView.recipeText}\n\n— — —\nMade with cocina · smart meal planning for real households\ncocinameals.lovable.app`;
 
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: recipeView.mealName, text: shareText });
-      } catch (e: any) {
-        if (e.name !== "AbortError") {
-          await navigator.clipboard.writeText(shareText);
-          toast.success("Recipe copied to clipboard");
-        }
+    try {
+      toast.info("Creating recipe card…");
+      const blob = await generateRecipeCard(recipeView.mealName, recipeView.recipeText);
+      const file = new File([blob], `${recipeView.mealName.replace(/\s+/g, "-").toLowerCase()}-cocina.png`, { type: "image/png" });
+
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          title: recipeView.mealName,
+          text: `🍽️ ${recipeView.mealName} — via cocina`,
+          files: [file],
+        });
+      } else {
+        // Fallback: download the image
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = file.name;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success("Recipe card downloaded!");
       }
-    } else {
-      await navigator.clipboard.writeText(shareText);
-      toast.success("Recipe copied to clipboard");
+    } catch (e: any) {
+      if (e.name !== "AbortError") {
+        // Final fallback: copy text
+        const shareText = `🍽️ ${recipeView.mealName}\n\n${recipeView.recipeText}\n\n— — —\nMade with cocina · smart meal planning\ncocinameals.lovable.app`;
+        await navigator.clipboard.writeText(shareText);
+        toast.success("Recipe copied to clipboard");
+      }
     }
   };
 
