@@ -7,6 +7,7 @@ import { StepChildren } from "./steps/StepChildren";
 import { StepEquipment } from "./steps/StepEquipment";
 import { StepCuisine } from "./steps/StepCuisine";
 import { StepCookingStyle } from "./steps/StepCookingStyle";
+import { StepMealRhythm } from "./steps/StepMealRhythm";
 import { StepJoinProfile } from "./steps/StepJoinProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,7 +30,7 @@ export interface OnboardingProfile {
   healthConditions: string[];
   allergies: string[];
   dislikes: string[];
-  mealSections: { id: string; name: string; enabled: boolean; order: number; scheduledDays?: string[] }[];
+  mealSections: { id: string; name: string; enabled: boolean; order: number; scheduledDays?: string[]; defaultTime?: number }[];
   quickFilters: string[];
   bulkCookDays: string[];
   children: { name: string; dob: string }[];
@@ -46,7 +47,7 @@ function generateInviteCode(): string {
   return code;
 }
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 export function Onboarding({ onComplete }: OnboardingProps) {
   const { user } = useAuth();
@@ -307,7 +308,8 @@ export function Onboarding({ onComplete }: OnboardingProps) {
         {step === 3 && <StepChildren profile={profile} update={update} onNext={next} />}
         {step === 4 && <StepCookingStyle profile={profile} update={update} onNext={next} />}
         {step === 5 && <StepEquipment profile={profile} update={update} onNext={next} />}
-        {step === 6 && (
+        {step === 6 && <StepMealRhythm profile={profile} update={update} onNext={next} />}
+        {step === 7 && (
           <StepCuisine
             profile={profile}
             update={update}

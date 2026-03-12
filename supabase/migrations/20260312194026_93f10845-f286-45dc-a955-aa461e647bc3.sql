@@ -1,0 +1,1 @@
+ALTER TABLE public.households ADD COLUMN non_app_members jsonb DEFAULT '[]'::jsonb;

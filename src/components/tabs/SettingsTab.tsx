@@ -28,6 +28,9 @@ export function SettingsTab() {
   const [inviteCode, setInviteCode] = useState("");
   const [householdSize, setHouseholdSize] = useState(2);
   const [members, setMembers] = useState<{ user_name: string; last_seen: string | null }[]>([]);
+  const [nonAppMembers, setNonAppMembers] = useState<string[]>([]);
+  const [addingNonAppMember, setAddingNonAppMember] = useState(false);
+  const [newMemberName, setNewMemberName] = useState("");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Expandable sections
@@ -66,7 +69,7 @@ export function SettingsTab() {
 
     const load = async () => {
       const [{ data: household }, { data: memberData }, { data: hProfile }, { data: uPrefs }, { data: childrenData }, { data: feedbackData }] = await Promise.all([
-        supabase.from("households").select("name, invite_code, household_size").eq("id", householdId).single(),
+        supabase.from("households").select("name, invite_code, household_size, non_app_members").eq("id", householdId).single(),
         supabase.from("household_members").select("user_name, last_seen").eq("household_id", householdId),
         supabase.from("household_profile").select("*").eq("household_id", householdId).maybeSingle(),
         supabase.from("user_preferences").select("*").eq("user_id", user.id).maybeSingle(),
@@ -74,7 +77,7 @@ export function SettingsTab() {
         supabase.from("meal_feedback").select("id, meal_name, feedback, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
       ]);
 
-      if (household) { setHouseholdName(household.name || ""); setInviteCode(household.invite_code); setHouseholdSize((household as any).household_size ?? 2); }
+      if (household) { setHouseholdName(household.name || ""); setInviteCode(household.invite_code); setHouseholdSize((household as any).household_size ?? 2); setNonAppMembers(((household as any).non_app_members as string[]) || []); }
       if (memberData) setMembers(memberData);
       if (hProfile) {
         setEquipment((hProfile.equipment as string[]) || []);
@@ -126,6 +129,24 @@ export function SettingsTab() {
   };
 
   const copyCode = () => { navigator.clipboard.writeText(inviteCode); toast.success("Copied to clipboard"); };
+
+  const addNonAppMember = async () => {
+    if (!householdId || !newMemberName.trim()) return;
+    const next = [...nonAppMembers, newMemberName.trim()];
+    setNonAppMembers(next);
+    await supabase.from("households").update({ non_app_members: next } as any).eq("id", householdId);
+    setNewMemberName("");
+    setAddingNonAppMember(false);
+    toast.success("Member added");
+  };
+
+  const removeNonAppMember = async (index: number) => {
+    if (!householdId) return;
+    const next = nonAppMembers.filter((_, i) => i !== index);
+    setNonAppMembers(next);
+    await supabase.from("households").update({ non_app_members: next } as any).eq("id", householdId);
+    toast.success("Member removed");
+  };
 
   const formatLastSeen = (lastSeen: string | null) => {
     if (!lastSeen) return "";
@@ -296,13 +317,37 @@ export function SettingsTab() {
                 </button>
               </div>
               <div>
-                <p className="font-body text-xs text-muted-foreground mb-2">Members</p>
+                <p className="font-body text-xs text-muted-foreground mb-2">Members (app users)</p>
                 {members.map((m, i) => (
                   <div key={i} className="flex items-center justify-between py-1.5">
                     <span className="font-body text-sm text-foreground">{m.user_name}</span>
                     <span className="font-body text-xs text-muted-foreground">{formatLastSeen(m.last_seen)}</span>
                   </div>
                 ))}
+              </div>
+
+              {/* Non-app household members */}
+              <div className="mt-2 border-t border-border pt-3">
+                <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Other household members</p>
+                <p className="font-body text-xs text-muted-foreground mb-2">People who eat with you but don't use the app.</p>
+                {nonAppMembers.map((name, i) => (
+                  <div key={i} className="flex items-center justify-between py-1.5">
+                    <span className="font-body text-sm text-foreground">{name}</span>
+                    <button onClick={() => removeNonAppMember(i)} className="text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
+                  </div>
+                ))}
+                {addingNonAppMember ? (
+                  <div className="flex gap-2 mt-2">
+                    <input type="text" value={newMemberName} onChange={e => setNewMemberName(e.target.value)} placeholder="Name" className="flex-1 rounded-lg border border-border bg-input px-3 py-2 font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold" autoFocus />
+                    <button onClick={addNonAppMember} className="rounded-lg bg-primary px-3 py-2 font-body text-sm font-medium text-primary-foreground">Add</button>
+                    <button onClick={() => setAddingNonAppMember(false)} className="rounded-lg border border-border px-3 py-2 font-body text-sm text-foreground">Cancel</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setAddingNonAppMember(true)} className="flex items-center gap-1 mt-2 font-body text-sm text-gold hover:underline">
+                    <Plus size={14} />
+                    Add member
+                  </button>
+                )}
               </div>
 
               {/* Household size */}
@@ -356,7 +401,26 @@ export function SettingsTab() {
           )}
         </section>
 
-        {/* Meal Sections */}
+        {/* Health Conditions */}
+        <section className="border-b border-border">
+          <button onClick={() => toggle("health")} className="flex items-center justify-between w-full py-3">
+            <div className="flex items-center gap-2">
+              <Lock size={14} className="text-muted-foreground" />
+              <h2 className="font-display text-base font-bold text-foreground">Health Conditions</h2>
+            </div>
+            {expanded.has("health") ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
+          </button>
+          {expanded.has("health") && (
+            <div className="pb-4">
+              <p className="font-body text-xs text-muted-foreground mb-3">Private — stays on your account only. Never shared with your household. Recipes quietly adapt to these.</p>
+              <div className="flex flex-wrap gap-2">
+                {HEALTH_CONDITIONS.map(h => (
+                  <button key={h} onClick={() => toggleHealth(h)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${healthConditions.includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
         <section className="border-b border-border">
           <SectionHeader id="sections" title="My Meal Sections" />
           {expanded.has("sections") && (
@@ -435,28 +499,6 @@ export function SettingsTab() {
           )}
         </section>
 
-        {/* Quick Filters */}
-        <section className="border-b border-border">
-          <SectionHeader id="filters" title="Quick Filters" />
-          {expanded.has("filters") && (
-            <div className="pb-4">
-              <p className="font-body text-xs text-muted-foreground mb-2">{quickFilters.length} of 6 selected</p>
-              <div className="flex flex-wrap gap-2">
-                {(QUICK_FILTERS as readonly string[]).map(f => (
-                  <button
-                    key={f}
-                    onClick={() => toggleQuickFilter(f)}
-                    className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${
-                      quickFilters.includes(f) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"
-                    }`}
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
 
         {/* Taste Profile */}
         <section className="border-b border-border">
@@ -566,26 +608,6 @@ export function SettingsTab() {
           )}
         </section>
 
-        {/* Health Conditions */}
-        <section className="border-b border-border">
-          <button onClick={() => toggle("health")} className="flex items-center justify-between w-full py-3">
-            <div className="flex items-center gap-2">
-              <Lock size={14} className="text-muted-foreground" />
-              <h2 className="font-display text-base font-bold text-foreground">Health Conditions</h2>
-            </div>
-            {expanded.has("health") ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
-          </button>
-          {expanded.has("health") && (
-            <div className="pb-4">
-              <p className="font-body text-xs text-muted-foreground mb-3">Private — stays on your account only. Never shared with your household. Recipes quietly adapt to these.</p>
-              <div className="flex flex-wrap gap-2">
-                {HEALTH_CONDITIONS.map(h => (
-                  <button key={h} onClick={() => toggleHealth(h)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${healthConditions.includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
 
         {/* Kitchen Equipment */}
         <section className="border-b border-border">
