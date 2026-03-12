@@ -1,4 +1,4 @@
-import { Lightbulb, Flame, Users, Clock, UtensilsCrossed, ListChecks, ChefHat } from "lucide-react";
+import { Lightbulb, Clock } from "lucide-react";
 
 interface RecipeDisplayProps {
   text: string;
@@ -130,14 +130,12 @@ export function RecipeDisplay({ text, loading }: RecipeDisplayProps) {
           <div className="flex items-center gap-4 flex-wrap">
             {macros?.cal && (
               <div className="flex items-center gap-1.5">
-                <Flame size={14} className="text-gold" />
                 <span className="font-body text-sm font-semibold text-foreground">{macros.cal}</span>
                 <span className="font-body text-xs text-muted-foreground">cal</span>
               </div>
             )}
             {serves?.people && (
               <div className="flex items-center gap-1.5">
-                <Users size={14} className="text-primary" />
                 <span className="font-body text-sm font-semibold text-foreground">{serves.people}</span>
                 <span className="font-body text-xs text-muted-foreground">servings</span>
               </div>
@@ -176,7 +174,6 @@ export function RecipeDisplay({ text, loading }: RecipeDisplayProps) {
       {parsed.ingredients.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <ListChecks size={16} className="text-gold" />
             <h3 className="font-display text-base font-bold text-foreground">Ingredients</h3>
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
@@ -193,7 +190,6 @@ export function RecipeDisplay({ text, loading }: RecipeDisplayProps) {
       {parsed.prepSteps.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <UtensilsCrossed size={16} className="text-gold" />
             <h3 className="font-display text-base font-bold text-foreground">Prep First</h3>
           </div>
           <div className="flex flex-col gap-3">
@@ -211,7 +207,6 @@ export function RecipeDisplay({ text, loading }: RecipeDisplayProps) {
       {parsed.cookingSteps.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <ChefHat size={16} className="text-gold" />
             <h3 className="font-display text-base font-bold text-foreground">Cooking Steps</h3>
           </div>
           <div className="flex flex-col gap-2">
