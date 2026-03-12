@@ -47,7 +47,7 @@ function generateInviteCode(): string {
   return code;
 }
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 export function Onboarding({ onComplete }: OnboardingProps) {
   const { user } = useAuth();
