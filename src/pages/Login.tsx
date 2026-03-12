@@ -238,6 +238,9 @@ export default function Login() {
       {/* Hero */}
       <section className="flex flex-col items-center justify-center px-6 pt-16 pb-20">
         <div className="flex flex-col items-center gap-6 animate-fade-in w-full max-w-lg">
+          <div className="rounded-full bg-gold/15 px-4 py-1.5 font-body text-xs font-semibold text-gold tracking-wide uppercase">
+            🚀 Early Access — Limited Spots
+          </div>
           <Logo size="lg" />
           <div className="flex flex-col items-center gap-3 max-w-md">
             <h1 className="text-center font-display text-3xl md:text-4xl font-bold text-foreground leading-tight">
@@ -245,6 +248,9 @@ export default function Login() {
             </h1>
             <p className="text-center font-body text-base text-muted-foreground leading-relaxed">
               Turn your pantry into restaurant-quality meals. Waste less, eat better, save more.
+            </p>
+            <p className="text-center font-body text-sm text-gold font-medium leading-relaxed">
+              Be one of our founding members — get in early and shape the future of home cooking.
             </p>
           </div>
           <div className="flex flex-col gap-3 w-full max-w-sm mt-4">
@@ -338,10 +344,10 @@ export default function Login() {
       <section className="px-6 py-20">
         <div className="max-w-3xl mx-auto">
           <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground text-center mb-4">
-            What families are saying
+            Early users are loving it
           </h2>
           <p className="font-body text-muted-foreground text-center mb-12 max-w-md mx-auto">
-            Real households, real results.
+            Real households, real results — from our founding members.
           </p>
           <div className="grid md:grid-cols-2 gap-6">
             {TESTIMONIALS.map((t) => (
@@ -362,18 +368,21 @@ export default function Login() {
       {/* Final CTA */}
       <section className="px-6 py-20 bg-primary">
         <div className="max-w-lg mx-auto flex flex-col items-center gap-6 text-center">
+          <div className="rounded-full bg-gold/20 px-4 py-1.5 font-body text-xs font-semibold text-gold tracking-wide uppercase">
+            ✨ Join the early wave
+          </div>
           <h2 className="font-display text-2xl md:text-3xl font-bold text-primary-foreground">
             Stop wasting food. Start cooking smarter.
           </h2>
           <p className="font-body text-sm text-primary-foreground/70 max-w-sm">
-            Join thousands of households saving money and eating better with cocina.
+            We're opening up to a small group of early users. Get in now and help us build the smartest kitchen assistant ever made.
           </p>
           <div className="flex flex-col gap-3 w-full max-w-sm">
             <button
               onClick={() => setView("signup")}
               className="w-full rounded-lg bg-gold px-6 py-3.5 font-body font-semibold text-gold-foreground transition-colors hover:opacity-90"
             >
-              Get started — it's free
+              Claim your early access — it's free
             </button>
             <p className="font-body text-xs text-primary-foreground/50">
               Already a member?{" "}
@@ -390,7 +399,7 @@ export default function Login() {
         <div className="max-w-4xl mx-auto flex flex-col items-center gap-2">
           <Logo size="sm" />
           <p className="font-body text-xs text-muted-foreground">
-            Cook smarter, waste less.
+            © {new Date().getFullYear()} cocina. All rights reserved.
           </p>
         </div>
       </footer>
