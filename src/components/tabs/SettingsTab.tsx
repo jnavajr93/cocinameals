@@ -435,28 +435,6 @@ export function SettingsTab() {
           )}
         </section>
 
-        {/* Quick Filters */}
-        <section className="border-b border-border">
-          <SectionHeader id="filters" title="Quick Filters" />
-          {expanded.has("filters") && (
-            <div className="pb-4">
-              <p className="font-body text-xs text-muted-foreground mb-2">{quickFilters.length} of 6 selected</p>
-              <div className="flex flex-wrap gap-2">
-                {(QUICK_FILTERS as readonly string[]).map(f => (
-                  <button
-                    key={f}
-                    onClick={() => toggleQuickFilter(f)}
-                    className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${
-                      quickFilters.includes(f) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"
-                    }`}
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
 
         {/* Taste Profile */}
         <section className="border-b border-border">
