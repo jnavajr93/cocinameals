@@ -103,7 +103,7 @@ export function SettingsTab() {
           setMealSections(uPrefs.section_order as any[]);
         }
       }
-      if (childrenData) setChildren(childrenData);
+      if (childrenData) setChildren(childrenData.map(c => ({ ...c, health_conditions: (c.health_conditions as string[]) || [] })));
       if (feedbackData) {
         setLikedFeedback(feedbackData.filter(f => f.feedback === "liked").map(f => ({ id: f.id, meal_name: f.meal_name, created_at: f.created_at || "" })));
         setDislikedFeedback(feedbackData.filter(f => f.feedback === "disliked").map(f => ({ id: f.id, meal_name: f.meal_name, created_at: f.created_at || "" })));
