@@ -8,6 +8,7 @@ import { StepEquipment } from "./steps/StepEquipment";
 import { StepCuisine } from "./steps/StepCuisine";
 import { StepCookingStyle } from "./steps/StepCookingStyle";
 import { StepMealRhythm } from "./steps/StepMealRhythm";
+import { StepJoinProfile } from "./steps/StepJoinProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { DEFAULT_PANTRY } from "@/data/pantryDefaults";
@@ -52,6 +53,9 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const { user } = useAuth();
   const [started, setStarted] = useState(false);
   const [joinMode, setJoinMode] = useState(false);
+  const [joinReady, setJoinReady] = useState(false);
+  const [joinHouseholdId, setJoinHouseholdId] = useState<string | null>(null);
+  const [joinHouseholdName, setJoinHouseholdName] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [joinError, setJoinError] = useState("");
   const [joinLoading, setJoinLoading] = useState(false);
@@ -107,12 +111,12 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       return;
     }
 
-    // Go to name step, then save
+    // Go directly to join profile screen (no full onboarding)
     setProfile(p => ({ ...p, householdName: household.name || "" }));
+    setJoinHouseholdId(household.id);
+    setJoinHouseholdName(household.name || "");
     setJoinMode(false);
-    setStarted(true);
-    // Store household id for join flow
-    (window as any).__joinHouseholdId = household.id;
+    setJoinReady(true);
     setJoinLoading(false);
   };
 
@@ -121,12 +125,10 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     setSaving(true);
 
     try {
-      const joinHouseholdId = (window as any).__joinHouseholdId;
       let householdId: string;
 
       if (joinHouseholdId) {
         householdId = joinHouseholdId;
-        delete (window as any).__joinHouseholdId;
 
         // Create member first so RLS policies work
         await supabase.from("household_members").insert({
@@ -236,6 +238,23 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           <button onClick={() => setJoinMode(false)} className="font-body text-sm text-muted-foreground hover:text-foreground">
             Back
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Join profile screen — only name + skill level
+  if (joinReady) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
+        <div className="w-full max-w-sm animate-fade-in">
+          <StepJoinProfile
+            profile={profile}
+            update={update}
+            onFinish={finish}
+            saving={saving}
+            householdName={joinHouseholdName}
+          />
         </div>
       </div>
     );
