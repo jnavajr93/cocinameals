@@ -265,7 +265,7 @@ export function PantryTab() {
           <div>
             <h1 className="font-display text-xl font-bold text-foreground">{householdName}</h1>
             <p className="font-body text-xs text-muted-foreground">
-              {viewMode === "pantry" ? `${inStockCount} items in stock` : `${outOfStockCount} items to grab`}
+              {inStockCount} in stock · {outOfStockCount} to shop
             </p>
           </div>
           <div className="flex items-center gap-2">
