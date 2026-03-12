@@ -10,7 +10,7 @@ interface Props {
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-export function StepMealRhythm({ profile, update, onFinish }: Props) {
+export function StepMealRhythm({ profile, update, onFinish, saving }: Props) {
   const toggleSection = (id: string) => {
     update({
       mealSections: profile.mealSections.map((s) =>
