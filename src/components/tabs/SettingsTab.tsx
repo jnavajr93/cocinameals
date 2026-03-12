@@ -85,7 +85,7 @@ export function SettingsTab() {
         // Migrate old string[] format to object format
         setNonAppMembers(raw.map((m: any) => typeof m === "string" ? { name: m, healthConditions: [] } : m));
       }
-      if (memberData) setMembers(memberData);
+      if (memberData) setMembers(memberData.map(m => ({ ...m, health_conditions: ((m as any).health_conditions as string[]) || [] })));
       if (hProfile) {
         setEquipment((hProfile.equipment as string[]) || []);
         setCuisineSliders((hProfile.cuisine_sliders as Record<string, number>) || {});
