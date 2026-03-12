@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useHousehold } from "@/hooks/useHousehold";
 import { Onboarding } from "@/components/onboarding/Onboarding";
 import { AppShell } from "@/components/AppShell";
+import { Logo } from "@/components/Logo";
 import Login from "@/pages/Login";
 
 const Index = () => {
