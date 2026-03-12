@@ -150,6 +150,7 @@ export function PantryTab() {
     longPressFired.current = false;
     longPressTimer.current = setTimeout(() => {
       longPressFired.current = true;
+      if (navigator.vibrate) navigator.vibrate(50);
       if (!selectMode) {
         setSelectMode(true);
         setSelectedIds(new Set([id]));
