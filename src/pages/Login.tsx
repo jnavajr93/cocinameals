@@ -1,4 +1,4 @@
-import { useState, ReactNode } from "react";
+import { useState } from "react";
 import { Logo } from "@/components/Logo";
 import { CocinaText } from "@/components/CocinaText";
 import { supabase } from "@/integrations/supabase/client";
