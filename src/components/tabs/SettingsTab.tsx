@@ -75,6 +75,7 @@ export function SettingsTab() {
   // Add custom meal type
   const [addingCustomMeal, setAddingCustomMeal] = useState(false);
   const [newMealName, setNewMealName] = useState("");
+  const [language, setLanguage] = useState("en");
 
   // Drag reorder state
   const [dragIndex, setDragIndex] = useState<number | null>(null);
