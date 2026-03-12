@@ -125,12 +125,10 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     setSaving(true);
 
     try {
-      const joinHouseholdId = (window as any).__joinHouseholdId;
       let householdId: string;
 
       if (joinHouseholdId) {
         householdId = joinHouseholdId;
-        delete (window as any).__joinHouseholdId;
 
         // Create member first so RLS policies work
         await supabase.from("household_members").insert({
