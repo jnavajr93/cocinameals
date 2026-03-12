@@ -373,12 +373,7 @@ export function MealsTab() {
                 <div key={i} className="h-4 rounded bg-muted animate-pulse" style={{ width: `${60 + Math.random() * 40}%` }} />
               ))}
             </div>
-          ) : (
-            <pre className="font-body text-sm text-foreground whitespace-pre-wrap leading-relaxed mt-2">
-              {recipeView.recipeText}
-              {recipeView.loading && <span className="animate-pulse text-gold">|</span>}
-            </pre>
-          )}
+            <RecipeDisplay text={recipeView.recipeText} loading={recipeView.loading} />
         </div>
         <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-4 py-3 flex items-center justify-center gap-6 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           <button onClick={saveRecipe} className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 font-body text-sm font-medium text-primary-foreground">
