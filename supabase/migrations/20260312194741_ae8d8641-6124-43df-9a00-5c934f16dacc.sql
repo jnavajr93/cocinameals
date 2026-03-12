@@ -1,0 +1,1 @@
+ALTER TABLE public.children ADD COLUMN health_conditions jsonb DEFAULT '[]'::jsonb;

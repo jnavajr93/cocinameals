@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           created_at: string | null
           date_of_birth: string
+          health_conditions: Json | null
           household_id: string
           id: string
           name: string | null
@@ -25,6 +26,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           date_of_birth: string
+          health_conditions?: Json | null
           household_id: string
           id?: string
           name?: string | null
@@ -32,6 +34,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           date_of_birth?: string
+          health_conditions?: Json | null
           household_id?: string
           id?: string
           name?: string | null
