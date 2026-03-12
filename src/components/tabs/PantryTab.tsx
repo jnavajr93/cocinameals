@@ -347,7 +347,7 @@ export function PantryTab() {
       </div>
 
       {/* Use Soon */}
-      {viewMode === "pantry" && expiringSoon.length > 0 && !search && !activeCategory && (
+      {expiringSoon.length > 0 && !search && !activeCategory && (
         <div className="mx-4 mb-3 rounded-lg border border-destructive/20 bg-destructive/5 p-3">
           <h3 className="font-body text-xs font-semibold text-destructive mb-2">USE SOON</h3>
           {expiringSoon.slice(0, 5).map(item => {
