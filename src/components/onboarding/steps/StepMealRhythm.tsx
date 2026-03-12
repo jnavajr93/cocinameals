@@ -1,16 +1,15 @@
 import { OnboardingProfile } from "@/components/onboarding/Onboarding";
-import { MEAL_SECTIONS, QUICK_FILTERS } from "@/data/mealSections";
+import { MEAL_SECTIONS, DEFAULT_SECTION_TIMES } from "@/data/mealSections";
 
 interface Props {
   profile: OnboardingProfile;
   update: (p: Partial<OnboardingProfile>) => void;
-  onFinish: () => void;
-  saving?: boolean;
+  onNext: () => void;
 }
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-export function StepMealRhythm({ profile, update, onFinish, saving }: Props) {
+export function StepMealRhythm({ profile, update, onNext }: Props) {
   const toggleSection = (id: string) => {
     update({
       mealSections: profile.mealSections.map((s) =>
@@ -32,13 +31,12 @@ export function StepMealRhythm({ profile, update, onFinish, saving }: Props) {
     });
   };
 
-  const toggleFilter = (f: string) => {
-    const current = profile.quickFilters;
-    if (current.includes(f)) {
-      update({ quickFilters: current.filter((x) => x !== f) });
-    } else if (current.length < 6) {
-      update({ quickFilters: [...current, f] });
-    }
+  const updateSectionTime = (sectionId: string, mins: number) => {
+    update({
+      mealSections: profile.mealSections.map((s) =>
+        s.id === sectionId ? { ...s, defaultTime: mins } : s
+      ),
+    });
   };
 
   return (
@@ -46,16 +44,16 @@ export function StepMealRhythm({ profile, update, onFinish, saving }: Props) {
       <div>
         <h1 className="font-display text-2xl font-bold text-foreground">What meals matter to you?</h1>
         <p className="mt-1 font-body text-muted-foreground text-sm">
-          Toggle the ones you want, then optionally pick which days.
+          Toggle meals on, set cook times, and optionally pick which days.
         </p>
       </div>
 
-      {/* Sections with optional day scheduling */}
       <div className="flex flex-col gap-3">
         {MEAL_SECTIONS.map((section) => {
           const ms = profile.mealSections.find((s) => s.id === section.id);
           const enabled = ms?.enabled ?? section.defaultOn;
           const scheduledDays = ms?.scheduledDays || [];
+          const currentTime = ms?.defaultTime ?? DEFAULT_SECTION_TIMES[section.id] ?? 30;
           return (
             <div key={section.id} className="rounded-lg border border-border overflow-hidden">
               <button
@@ -81,25 +79,45 @@ export function StepMealRhythm({ profile, update, onFinish, saving }: Props) {
                 </div>
               </button>
               {enabled && (
-                <div className="px-4 pb-3 pt-1 bg-secondary/30">
-                  <span className="font-body text-xs text-muted-foreground mb-1.5 block">Schedule days (optional)</span>
-                  <div className="flex gap-1.5">
-                    {DAYS.map((d) => {
-                      const active = scheduledDays.includes(d);
-                      return (
+                <div className="px-4 pb-3 pt-1 bg-secondary/30 space-y-2">
+                  <div>
+                    <span className="font-body text-xs text-muted-foreground mb-1.5 block">Default cook time</span>
+                    <div className="flex gap-1.5">
+                      {[10, 15, 20, 25, 30, 45, 60].map((t) => (
                         <button
-                          key={d}
-                          onClick={() => toggleSectionDay(section.id, d)}
-                          className={`flex-1 rounded-md border py-1.5 font-body text-xs font-medium transition-colors ${
-                            active
+                          key={t}
+                          onClick={() => updateSectionTime(section.id, t)}
+                          className={`rounded-md border px-2 py-1 font-body text-xs font-medium transition-colors ${
+                            currentTime === t
                               ? "border-gold bg-gold/15 text-foreground"
                               : "border-border bg-card text-muted-foreground hover:bg-secondary"
                           }`}
                         >
-                          {d}
+                          {t}m
                         </button>
-                      );
-                    })}
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="font-body text-xs text-muted-foreground mb-1.5 block">Schedule days (optional)</span>
+                    <div className="flex gap-1.5">
+                      {DAYS.map((d) => {
+                        const active = scheduledDays.includes(d);
+                        return (
+                          <button
+                            key={d}
+                            onClick={() => toggleSectionDay(section.id, d)}
+                            className={`flex-1 rounded-md border py-1.5 font-body text-xs font-medium transition-colors ${
+                              active
+                                ? "border-gold bg-gold/15 text-foreground"
+                                : "border-border bg-card text-muted-foreground hover:bg-secondary"
+                            }`}
+                          >
+                            {d}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
@@ -108,41 +126,12 @@ export function StepMealRhythm({ profile, update, onFinish, saving }: Props) {
         })}
       </div>
 
-      {/* Quick Filters */}
-      <div>
-        <h3 className="font-body text-sm font-semibold text-foreground mb-1">Quick filter shortcuts</h3>
-        <p className="font-body text-xs text-muted-foreground mb-3">
-          Pick up to 6. These appear at the top of your Meals tab.
-        </p>
-        <div className="flex gap-2 flex-wrap">
-          {QUICK_FILTERS.map((f) => {
-            const active = profile.quickFilters.includes(f);
-            return (
-              <button
-                key={f}
-                onClick={() => toggleFilter(f)}
-                className={`rounded-full border px-3 py-1.5 font-body text-xs transition-colors ${
-                  active
-                    ? "border-gold bg-gold/10 text-foreground"
-                    : "border-border bg-card text-muted-foreground hover:bg-secondary"
-                }`}
-              >
-                {f}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="fixed bottom-0 left-0 right-0 bg-background px-6 pt-2 pb-6">
-        <button
-          onClick={onFinish}
-          disabled={saving}
-          className="w-full rounded-lg bg-gold px-6 py-3.5 font-body font-semibold text-gold-foreground transition-colors hover:opacity-90 disabled:opacity-40"
-        >
-          {saving ? "Setting up..." : "Start cooking"}
-        </button>
-      </div>
+      <button
+        onClick={onNext}
+        className="w-full rounded-lg bg-primary px-6 py-3.5 font-body font-semibold text-primary-foreground transition-colors hover:opacity-90"
+      >
+        Continue
+      </button>
     </div>
   );
 }
