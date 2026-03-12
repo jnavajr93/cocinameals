@@ -540,19 +540,6 @@ export function SettingsTab() {
           )}
         </section>
 
-        {/* Meal Prep Days */}
-        {mealPrepEnabled && (
-          <section className="border-b border-border">
-            <SectionHeader id="prepdays" title="Meal Prep Days" />
-            {expanded.has("prepdays") && (
-              <div className="flex gap-2 pb-4">
-                {DAYS.map(d => (
-                  <button key={d} onClick={() => toggleMealPrepDay(d)} className={`flex-1 rounded-lg border py-2 font-body text-xs transition-colors ${mealPrepDays.includes(d) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{d}</button>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
 
         {/* About */}
         <section className="border-b border-border pt-4 pb-4">
