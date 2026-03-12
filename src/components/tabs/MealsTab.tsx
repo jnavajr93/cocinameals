@@ -130,6 +130,7 @@ export function MealsTab() {
   const clearFilter = (key: string) => {
     if (key === "cookTime") setFilterCookTime(null);
     if (key === "protein") setFilterProtein(null);
+    if (key === "people") setFilterPeople(null);
     if (key === "cuisine") setFilterCuisine(null);
     if (key === "method") setFilterMethod(null);
     if (key === "inStock") setFilterInStockOnly(false);
