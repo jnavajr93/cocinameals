@@ -46,6 +46,11 @@ const PAIN_POINTS: ContentItem[] = [
 
 const FEATURES: ContentItem[] = [
   {
+    icon: Camera,
+    title: "Snap A Receipt, Stock Your Pantry",
+    description: "Take a photo of your grocery receipt and your pantry updates instantly with expiration dates included.",
+  },
+  {
     icon: Utensils,
     title: "Smart Pantry Tracking",
     description: "Mark what's in stock and only get suggestions for meals you can actually make. No more buying ingredients for one recipe.",

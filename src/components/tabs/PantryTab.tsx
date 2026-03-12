@@ -279,6 +279,22 @@ export function PantryTab() {
                 {memberCount}
               </span>
             )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handleScanReceipt}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={scanning}
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-gold text-gold-foreground disabled:opacity-50"
+              title="Scan receipt"
+            >
+              {scanning ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+            </button>
             <button
               onClick={() => setAddMode(true)}
               className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"
