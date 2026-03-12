@@ -227,14 +227,8 @@ export function MealsTab() {
     }
   }, [filtersSignature, activeSections.length, profile]);
 
-  // Fetch images for visible local/fallback cards
-  useEffect(() => {
-    if (activeSections.length === 0) return;
-    for (const section of activeSections) {
-      const cards = getCardsForSection(section.id);
-      cards.forEach(c => fetchMealImage(c.name));
-    }
-  }, [activeSections, shuffleKey]);
+
+
 
   const clearFilter = (key: string) => {
     if (key === "cookTime") setFilterCookTime(null);
@@ -351,8 +345,6 @@ export function MealsTab() {
       if (error) throw error;
       if (Array.isArray(data)) {
         setAiCards(prev => ({ ...prev, [sectionId]: data }));
-        // Fetch images for each meal
-        data.forEach((meal: MealCardWithCookTime) => fetchMealImage(meal.name));
       }
     } catch (e) {
       setShuffleKey(k => k + 1);
@@ -883,7 +875,6 @@ export function MealsTab() {
     const isLiked = likedMeals.has(card.name);
     const isDisliked = dislikedMeals.has(card.name);
     const isSaved = savedMealNames.has(card.name);
-    const imgUrl = mealImages[card.name];
 
     return (
       <div
@@ -891,16 +882,6 @@ export function MealsTab() {
         className={`rounded-lg border bg-card overflow-hidden transition-colors ${isLiked ? "border-gold/40" : "border-border"}`}
       >
         <button onClick={() => openRecipe(card, isBaby, sectionId)} className="text-left w-full">
-          {imgUrl && (
-            <div className="w-full h-32 overflow-hidden">
-              <img
-                src={imgUrl}
-                alt={card.name}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </div>
-          )}
           <div className="p-3">
             <p className="font-body text-sm font-medium text-foreground leading-tight">{card.name}</p>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
