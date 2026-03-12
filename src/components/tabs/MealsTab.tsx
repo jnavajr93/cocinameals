@@ -16,6 +16,8 @@ interface RecipeViewState {
   recipeText: string;
   loading: boolean;
   isBaby?: boolean;
+  sectionId?: string;
+  tags?: string[];
 }
 
 export function MealsTab() {
