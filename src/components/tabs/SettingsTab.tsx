@@ -317,13 +317,37 @@ export function SettingsTab() {
                 </button>
               </div>
               <div>
-                <p className="font-body text-xs text-muted-foreground mb-2">Members</p>
+                <p className="font-body text-xs text-muted-foreground mb-2">Members (app users)</p>
                 {members.map((m, i) => (
                   <div key={i} className="flex items-center justify-between py-1.5">
                     <span className="font-body text-sm text-foreground">{m.user_name}</span>
                     <span className="font-body text-xs text-muted-foreground">{formatLastSeen(m.last_seen)}</span>
                   </div>
                 ))}
+              </div>
+
+              {/* Non-app household members */}
+              <div className="mt-2 border-t border-border pt-3">
+                <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Other household members</p>
+                <p className="font-body text-xs text-muted-foreground mb-2">People who eat with you but don't use the app.</p>
+                {nonAppMembers.map((name, i) => (
+                  <div key={i} className="flex items-center justify-between py-1.5">
+                    <span className="font-body text-sm text-foreground">{name}</span>
+                    <button onClick={() => removeNonAppMember(i)} className="text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
+                  </div>
+                ))}
+                {addingNonAppMember ? (
+                  <div className="flex gap-2 mt-2">
+                    <input type="text" value={newMemberName} onChange={e => setNewMemberName(e.target.value)} placeholder="Name" className="flex-1 rounded-lg border border-border bg-input px-3 py-2 font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold" autoFocus />
+                    <button onClick={addNonAppMember} className="rounded-lg bg-primary px-3 py-2 font-body text-sm font-medium text-primary-foreground">Add</button>
+                    <button onClick={() => setAddingNonAppMember(false)} className="rounded-lg border border-border px-3 py-2 font-body text-sm text-foreground">Cancel</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setAddingNonAppMember(true)} className="flex items-center gap-1 mt-2 font-body text-sm text-gold hover:underline">
+                    <Plus size={14} />
+                    Add member
+                  </button>
+                )}
               </div>
 
               {/* Household size */}
