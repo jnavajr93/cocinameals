@@ -207,7 +207,6 @@ export function RecipeDisplay({ text, loading }: RecipeDisplayProps) {
       {parsed.cookingSteps.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <ChefHat size={16} className="text-gold" />
             <h3 className="font-display text-base font-bold text-foreground">Cooking Steps</h3>
           </div>
           <div className="flex flex-col gap-2">

@@ -481,7 +481,7 @@ export function PantryTab() {
                 </button>
                 <button
                   onClick={() => { setAddCategoryTarget(cat); setAddMode(true); }}
-                  className="flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 font-body text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                  className="flex items-center gap-1 px-2 py-0.5 font-body text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"
                 >
                   <Plus size={12} /> Add
                 </button>
