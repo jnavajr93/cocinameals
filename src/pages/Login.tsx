@@ -390,7 +390,7 @@ export default function Login() {
         <div className="max-w-4xl mx-auto flex flex-col items-center gap-2">
           <Logo size="sm" />
           <p className="font-body text-xs text-muted-foreground">
-            © {new Date().getFullYear()} <CocinaText />. Cook smarter, waste less.
+            Cook smarter, waste less.
           </p>
         </div>
       </footer>
