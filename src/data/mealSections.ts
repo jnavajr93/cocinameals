@@ -24,7 +24,6 @@ export const QUICK_FILTERS = [
   "High Protein", "Under 20 Min", "Low Carb", "Dairy-Free", "Gluten-Free",
   "Vegetarian", "Vegan", "Spicy", "Mild", "Seafood", "Chicken", "Beef", "No Meat",
   "Kid-Friendly", "Comfort Food", "Light & Fresh",
-  "One Pan", "Air Fryer Only",
 ] as const;
 
 export const DIET_RESTRICTIONS = [

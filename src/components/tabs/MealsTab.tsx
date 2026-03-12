@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { RefreshCw, Star, Send, ThumbsUp, ThumbsDown, ChevronDown, X, Filter, Clock, Flame, Leaf, ArrowLeft } from "lucide-react";
+import { RefreshCw, Star, Send, ThumbsUp, ThumbsDown, ChevronDown, X, Filter, Clock, Flame, UtensilsCrossed, ArrowLeft } from "lucide-react";
 import { RecipeDisplay } from "@/components/RecipeDisplay";
 import { supabase } from "@/integrations/supabase/client";
 import { useHousehold } from "@/hooks/useHousehold";
@@ -41,7 +41,7 @@ export function MealsTab() {
   const [filterCookTime, setFilterCookTime] = useState<string | null>(null);
   const [filterProtein, setFilterProtein] = useState<string | null>(null);
   const [filterCuisine, setFilterCuisine] = useState<string | null>(null);
-  const [filterCalorie, setFilterCalorie] = useState<string | null>(null);
+  const [filterMethod, setFilterMethod] = useState<string | null>(null);
   const [filterInStockOnly, setFilterInStockOnly] = useState(true);
   const [filterMustInclude, setFilterMustInclude] = useState<string | null>(null);
   const [showFilterSheet, setShowFilterSheet] = useState<string | null>(null);
@@ -108,18 +108,18 @@ export function MealsTab() {
     if (filterCookTime) list.push({ key: "cookTime", label: filterCookTime });
     if (filterProtein) list.push({ key: "protein", label: filterProtein });
     if (filterCuisine) list.push({ key: "cuisine", label: filterCuisine });
-    if (filterCalorie) list.push({ key: "calorie", label: filterCalorie });
+    if (filterMethod) list.push({ key: "method", label: filterMethod });
     if (filterInStockOnly) list.push({ key: "inStock", label: "In-Stock Only" });
     if (filterMustInclude) list.push({ key: "mustInclude", label: filterMustInclude });
     if (activeFilter) list.push({ key: "quick", label: activeFilter });
     return list;
-  }, [filterCookTime, filterProtein, filterCuisine, filterCalorie, filterInStockOnly, filterMustInclude, activeFilter]);
+  }, [filterCookTime, filterProtein, filterCuisine, filterMethod, filterInStockOnly, filterMustInclude, activeFilter]);
 
   const clearFilter = (key: string) => {
     if (key === "cookTime") setFilterCookTime(null);
     if (key === "protein") setFilterProtein(null);
     if (key === "cuisine") setFilterCuisine(null);
-    if (key === "calorie") setFilterCalorie(null);
+    if (key === "method") setFilterMethod(null);
     if (key === "inStock") setFilterInStockOnly(false);
     if (key === "mustInclude") setFilterMustInclude(null);
     if (key === "quick") setActiveFilter(null);
@@ -129,7 +129,7 @@ export function MealsTab() {
     setFilterCookTime(null);
     setFilterProtein(null);
     setFilterCuisine(null);
-    setFilterCalorie(null);
+    setFilterMethod(null);
     setFilterInStockOnly(false);
     setFilterMustInclude(null);
     setActiveFilter(null);
@@ -223,7 +223,7 @@ export function MealsTab() {
           pantryItems: pantryInStock,
           expiringItems,
           profile,
-          filters: { cookTime: filterCookTime, mainProtein: filterProtein, cuisineOverride: filterCuisine, calorieRange: filterCalorie, inStockOnly: filterInStockOnly, mustInclude: filterMustInclude, quickFilterChip: activeFilter },
+          filters: { cookTime: filterCookTime, mainProtein: filterProtein, cuisineOverride: filterCuisine, cookingMethod: filterMethod, inStockOnly: filterInStockOnly, mustInclude: filterMustInclude, quickFilterChip: activeFilter },
           feedback: { likedTags: [], dislikedMeals: Array.from(dislikedMeals) },
         },
       });
@@ -249,7 +249,7 @@ export function MealsTab() {
           pantryItems: pantryInStock,
           expiringItems,
           profile,
-          filters: { cookTime: filterCookTime, mainProtein: filterProtein, cuisineOverride: filterCuisine, calorieRange: filterCalorie, inStockOnly: filterInStockOnly, quickFilterChip: activeFilter },
+          filters: { cookTime: filterCookTime, mainProtein: filterProtein, cuisineOverride: filterCuisine, cookingMethod: filterMethod, inStockOnly: filterInStockOnly, quickFilterChip: activeFilter },
           feedback: { likedTags: [], dislikedMeals: Array.from(dislikedMeals) },
         },
       });
@@ -450,12 +450,14 @@ export function MealsTab() {
         { label: "French", value: "French" },
         { label: "Surprise Me", value: "Surprise Me" },
       ],
-      calorie: [
+      method: [
         { label: "Any", value: "" },
-        { label: "Under 400", value: "Under 400" },
-        { label: "400-600", value: "400-600" },
-        { label: "600-800", value: "600-800" },
-        { label: "800+", value: "800+" },
+        { label: "Air Fryer Only", value: "Air Fryer Only" },
+        { label: "One Pan", value: "One Pan" },
+        { label: "Oven Only", value: "Oven Only" },
+        { label: "Stovetop Only", value: "Stovetop Only" },
+        { label: "Grill", value: "Grill" },
+        { label: "No Cook", value: "No Cook" },
       ],
     };
 
@@ -463,17 +465,17 @@ export function MealsTab() {
     const setter = showFilterSheet === "cookTime" ? setFilterCookTime
       : showFilterSheet === "protein" ? setFilterProtein
       : showFilterSheet === "cuisine" ? setFilterCuisine
-      : setFilterCalorie;
+      : setFilterMethod;
     const current = showFilterSheet === "cookTime" ? filterCookTime
       : showFilterSheet === "protein" ? filterProtein
       : showFilterSheet === "cuisine" ? filterCuisine
-      : filterCalorie;
+      : filterMethod;
 
     return (
       <div className="fixed inset-0 z-50 flex items-end bg-foreground/30" onClick={() => setShowFilterSheet(null)}>
         <div className="w-full rounded-t-2xl bg-background p-6 animate-slide-in" onClick={e => e.stopPropagation()}>
           <h3 className="font-display text-lg font-bold text-foreground mb-4">
-            {showFilterSheet === "cookTime" ? "Cook Time" : showFilterSheet === "protein" ? "Main Protein" : showFilterSheet === "cuisine" ? "Cuisine" : "Calorie Range"}
+            {showFilterSheet === "cookTime" ? "Cook Time" : showFilterSheet === "protein" ? "Main Protein" : showFilterSheet === "cuisine" ? "Cuisine" : "Cooking Method"}
           </h3>
           <div className="flex flex-col gap-1">
             {items.map(opt => (
@@ -542,7 +544,7 @@ export function MealsTab() {
             { key: "cookTime", label: "Cook Time", icon: Clock, active: !!filterCookTime },
             { key: "protein", label: "Protein", icon: Flame, active: !!filterProtein },
             { key: "cuisine", label: "Cuisine", icon: Filter, active: !!filterCuisine },
-            { key: "calorie", label: "Calories", icon: Leaf, active: !!filterCalorie },
+            { key: "method", label: "Method", icon: UtensilsCrossed, active: !!filterMethod },
           ].map(f => (
             <button
               key={f.key}
