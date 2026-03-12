@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useHousehold } from "@/hooks/useHousehold";
 import { useAuth } from "@/hooks/useAuth";
 import { Trash2, BookOpen, Star, ArrowLeft } from "lucide-react";
+import { RecipeDisplay } from "@/components/RecipeDisplay";
 import { toast } from "sonner";
 
 interface SavedRecipe {
