@@ -501,6 +501,101 @@ export function MealsTab() {
     return null;
   };
 
+  const getCachedRecipeText = (mealName: string) => {
+    const cacheKey = `recipe_${mealName.replace(/\s+/g, "_").toLowerCase()}`;
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (!cached) return "";
+      return JSON.parse(cached).text || "";
+    } catch {
+      return "";
+    }
+  };
+
+  const addMealToShoppingCart = async (meal: {
+    name: string;
+    tags?: string[];
+    recipeText?: string;
+    missingIngredients?: string[];
+  }) => {
+    if (!householdId) return;
+
+    try {
+      const fallbackMissing = Object.values(aiCards)
+        .flat()
+        .find(c => c.name === meal.name)?.missingIngredients || [];
+      const missingIngredients = (meal.missingIngredients && meal.missingIngredients.length > 0
+        ? meal.missingIngredients
+        : fallbackMissing).filter(Boolean);
+
+      let newItemsCount = 0;
+      let skippedCount = 0;
+
+      if (missingIngredients.length > 0) {
+        const { data: existingItems } = await supabase
+          .from("pantry_items")
+          .select("name")
+          .eq("household_id", householdId)
+          .in("name", missingIngredients);
+
+        const existingNames = new Set((existingItems || []).map(item => item.name.toLowerCase()));
+        const newItems = missingIngredients.filter(name => !existingNames.has(name.toLowerCase()));
+
+        if (newItems.length > 0) {
+          const rows = newItems.map(name => ({
+            household_id: householdId,
+            name,
+            category: "Shopping List",
+            in_stock: false,
+            is_custom: true,
+            is_hidden: false,
+          }));
+          const { error: pantryError } = await supabase.from("pantry_items").insert(rows);
+          if (pantryError) throw pantryError;
+        }
+
+        newItemsCount = newItems.length;
+        skippedCount = missingIngredients.length - newItems.length;
+      }
+
+      const { data: existingRecipe, error: existingRecipeError } = await supabase
+        .from("saved_recipes")
+        .select("id")
+        .eq("household_id", householdId)
+        .eq("meal_name", meal.name)
+        .eq("meal_section", "shopping_cart")
+        .maybeSingle();
+
+      if (existingRecipeError) throw existingRecipeError;
+
+      if (!existingRecipe) {
+        const { error: saveError } = await supabase.from("saved_recipes").insert({
+          household_id: householdId,
+          meal_name: meal.name,
+          recipe_text: meal.recipeText || getCachedRecipeText(meal.name) || `Recipe for ${meal.name}`,
+          saved_by: userName,
+          meal_section: "shopping_cart",
+          tags: meal.tags || [],
+        } as any);
+
+        if (saveError) throw saveError;
+      }
+
+      if (missingIngredients.length > 0) {
+        const ingredientsMessage = newItemsCount > 0
+          ? `${newItemsCount} ingredient${newItemsCount > 1 ? "s" : ""} added${skippedCount > 0 ? ` (${skippedCount} already there)` : ""}`
+          : "All ingredients already in your list";
+        const mealMessage = existingRecipe ? "Already in shopping cart" : "Added to shopping cart";
+        toast.success(`${mealMessage} · ${ingredientsMessage}`);
+        return;
+      }
+
+      toast.success(existingRecipe ? "Already in shopping cart" : "Added to shopping cart");
+    } catch {
+      toast.error("Couldn't add to shopping cart");
+    }
+  };
+
   const shareRecipe = async () => {
     if (!recipeView || !recipeView.recipeText) return;
 
