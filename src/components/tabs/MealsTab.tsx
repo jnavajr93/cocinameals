@@ -1,13 +1,14 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { RefreshCw, Star, Send, ThumbsUp, ThumbsDown, ChevronDown, X, Filter, Clock, Flame, UtensilsCrossed, ArrowLeft, Users, ShoppingCart, Plus, Check } from "lucide-react";
+import { RefreshCw, Star, Send, ThumbsUp, ThumbsDown, ChevronDown, X, Filter, Clock, Flame, UtensilsCrossed, ArrowLeft, Users, ShoppingCart, Check } from "lucide-react";
 import { CookingAssistantChat } from "@/components/CookingAssistantChat";
 import { RecipeDisplay } from "@/components/RecipeDisplay";
 import { supabase } from "@/integrations/supabase/client";
 import { useHousehold } from "@/hooks/useHousehold";
 import { useAuth } from "@/hooks/useAuth";
 import { MEAL_POOLS, MealCard } from "@/data/mealPools";
+import { DEFAULT_SECTION_TIMES } from "@/data/mealSections";
 import { toast } from "sonner";
-import { getPantryHash, getMealPool, addToMealPool, isPoolFull, pickFromPool, getRecentSuggestions, addRecentSuggestions, clearAllMealCaches } from "@/lib/mealCache";
+import { getPantryHash, getMealPool, addToMealPool, pickFromPool, getRecentSuggestions, addRecentSuggestions } from "@/lib/mealCache";
 
 interface MealCardWithCookTime extends MealCard {
   cookTime?: number;
@@ -30,7 +31,6 @@ export function MealsTab() {
   const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [craving, setCraving] = useState("");
-  const [cravingLoading, setCravingLoading] = useState(false);
   const [shuffleKey, setShuffleKey] = useState(() => Math.floor(Math.random() * 100000));
   const [quickFilters, setQuickFilters] = useState<string[]>([]);
   const [mealSections, setMealSections] = useState<{ id: string; name: string; enabled: boolean; order: number }[]>([]);
@@ -298,7 +298,7 @@ export function MealsTab() {
       setSavedMealNames(prev => { const n = new Set(prev); n.delete(card.name); return n; });
       toast.success("Removed from saved");
     } else {
-      const cacheKey = `recipe_${card.name.replace(/\s+/g, "_").toLowerCase()}`;
+      const cacheKey = getRecipeCacheKey(card.name);
       let recipeText = "";
       try {
         const cached = localStorage.getItem(cacheKey);
@@ -308,10 +308,15 @@ export function MealsTab() {
         }
       } catch {}
 
+      if (!recipeText) {
+        recipeText = buildLocalRecipeText(card, false, sectionId);
+        persistRecipeLocally(card.name, recipeText);
+      }
+
       const { error } = await supabase.from("saved_recipes").insert({
         household_id: householdId,
         meal_name: card.name,
-        recipe_text: recipeText || `Recipe for ${card.name} — generate from Meals tab to see full instructions.`,
+        recipe_text: recipeText,
         saved_by: userName,
         meal_section: sectionId || null,
         tags: card.tags || [],
@@ -346,9 +351,118 @@ export function MealsTab() {
 
   const currentPantryHash = useMemo(() => getPantryHash(pantryInStock), [pantryInStock]);
 
+  const getRecipeCacheKey = useCallback((mealName: string) => {
+    return `recipe_${mealName.replace(/\s+/g, "_").toLowerCase()}`;
+  }, []);
+
   const trackRecentMeals = useCallback((meals: MealCardWithCookTime[]) => {
     addRecentSuggestions(meals.map(m => m.name));
   }, []);
+
+  const getSectionSeedMeals = useCallback((sectionId: string): MealCardWithCookTime[] => {
+    const pool = (MEAL_POOLS[sectionId] || []) as MealCardWithCookTime[];
+    return pool.map(meal => ({
+      ...meal,
+      cookTime: meal.cookTime ?? DEFAULT_SECTION_TIMES[sectionId] ?? 30,
+    }));
+  }, []);
+
+  const ensureSectionPool = useCallback((sectionId: string): MealCardWithCookTime[] => {
+    let pool = getMealPool(sectionId, currentPantryHash, filterInStockOnly) as MealCardWithCookTime[];
+    if (pool.length >= 3) return pool;
+
+    const seeds = getSectionSeedMeals(sectionId);
+    if (seeds.length > 0) {
+      pool = addToMealPool(sectionId, currentPantryHash, filterInStockOnly, seeds) as MealCardWithCookTime[];
+    }
+
+    return pool;
+  }, [currentPantryHash, filterInStockOnly, getSectionSeedMeals]);
+
+  const buildLocalRecipeText = useCallback((card: MealCardWithCookTime, isBaby = false, sectionId?: string) => {
+    const mealNameLower = card.name.toLowerCase();
+    const proteinHint = mealNameLower.includes("chicken") ? "chicken" :
+      mealNameLower.includes("beef") || mealNameLower.includes("steak") ? "beef" :
+      mealNameLower.includes("pork") ? "pork" :
+      mealNameLower.includes("shrimp") ? "shrimp" :
+      mealNameLower.includes("salmon") || mealNameLower.includes("fish") ? "fish" :
+      mealNameLower.includes("tofu") ? "tofu" :
+      mealNameLower.includes("egg") ? "eggs" : "protein of choice";
+
+    const pantryBased = pantryInStock.slice(0, 6);
+    const defaults = [proteinHint, "onion", "garlic", "olive oil", "salt", "black pepper"];
+    const mergedIngredients = Array.from(new Set([...pantryBased, ...defaults])).slice(0, 8);
+    const cookTime = card.cookTime ?? DEFAULT_SECTION_TIMES[sectionId || "dinner"] ?? 30;
+    const missing = card.missingIngredients || [];
+
+    const ingredientLines = [
+      ...mergedIngredients.map(item => `- 1 portion ${item}`),
+      ...missing.map(item => `- 1 portion ${item} (missing item)`),
+    ].join("\n");
+
+    const babySafety = isBaby
+      ? "\nBABY SERVING NOTES\n- No honey, no added salt, no added sugar.\n- Serve soft, fingertip-size pieces and cool to lukewarm before serving."
+      : "";
+
+    return [
+      "INGREDIENT LIST",
+      ingredientLines,
+      "",
+      "PREP FIRST",
+      "1. Wash, peel, and chop all produce before heat is on.",
+      `2. Measure seasonings and prep ${proteinHint} so cooking stays smooth.`,
+      "",
+      "COOKING STEPS",
+      "Step 1 — pan: medium heat.",
+      "Add oil and aromatics; cook 2-3 minutes until fragrant.",
+      "  - Use 1 portion olive oil and 1 portion onion",
+      "  - Done when: onions are translucent and smell sweet.",
+      "Step 2 — pan: medium-high heat.",
+      `Add ${proteinHint} and sear, stirring as needed for even browning.`,
+      `  - Use 1 portion ${proteinHint}`,
+      "  - Done when: protein is cooked through and lightly caramelized.",
+      "Step 3 — pan: medium-low heat.",
+      `Add remaining ingredients and simmer 4-6 minutes; adjust texture for ${card.name}.`,
+      "  - Use remaining prepared ingredients",
+      "  - Done when: sauce lightly coats the spoon and flavors are balanced.",
+      "",
+      "NEXT LEVEL TIP: Deglaze the pan with a small splash of water and fold that flavor back into the dish for more depth.",
+      "",
+      `ESTIMATED: ${Math.round(card.cal || 450)} cal | P:${Math.round(card.protein || 25)}g C:${Math.round(card.carbs || 35)}g F:${Math.round(card.fat || 18)}g`,
+      `SERVES: 2 people | Cook time: ${cookTime} min`,
+      babySafety,
+    ].join("\n").trim();
+  }, [pantryInStock]);
+
+  const getLocalCravingPicks = useCallback((query: string, count: number): MealCardWithCookTime[] => {
+    const q = query.trim().toLowerCase();
+    const sectionIds = activeSectionsRef.current.map(s => s.id);
+    const byName = new Map<string, MealCardWithCookTime>();
+
+    for (const sectionId of sectionIds) {
+      const pool = ensureSectionPool(sectionId);
+      pool.forEach(meal => {
+        if (!dislikedMeals.has(meal.name)) byName.set(meal.name, meal);
+      });
+    }
+
+    const candidates = Array.from(byName.values());
+    if (candidates.length === 0) return [];
+
+    const tokenMatches = candidates.filter(meal => {
+      const inName = meal.name.toLowerCase().includes(q);
+      const inTags = (meal.tags || []).some(tag => tag.toLowerCase().includes(q.replace(/\s+/g, "_")) || q.includes(tag.toLowerCase().replace(/_/g, " ")));
+      return inName || inTags;
+    });
+
+    const source = tokenMatches.length > 0 ? tokenMatches : candidates;
+    const shuffled = [...source].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
+  }, [dislikedMeals, ensureSectionPool]);
+
+  const persistRecipeLocally = useCallback((mealName: string, recipeText: string) => {
+    localStorage.setItem(getRecipeCacheKey(mealName), JSON.stringify({ text: recipeText, ts: Date.now() }));
+  }, [getRecipeCacheKey]);
 
   const shuffleSection = async (sectionId: string) => {
     if (shuffleCooldowns[sectionId]) return;
@@ -359,11 +473,19 @@ export function MealsTab() {
       setShuffleCooldowns(prev => ({ ...prev, [sectionId]: false }));
     }, 8000);
 
-    // Try pool first — if pool has enough, just pick fresh from pool
-    const poolMeals = pickFromPool(sectionId, currentPantryHash, filterInStockOnly, 3);
-    if (poolMeals.length >= 3 && isPoolFull(sectionId, currentPantryHash, filterInStockOnly)) {
+    const seededPool = ensureSectionPool(sectionId);
+    const poolMeals = pickFromPool(sectionId, currentPantryHash, filterInStockOnly, 3) as MealCardWithCookTime[];
+
+    if (poolMeals.length >= 3) {
       setAiCards(prev => ({ ...prev, [sectionId]: poolMeals }));
       trackRecentMeals(poolMeals);
+      return;
+    }
+
+    if (seededPool.length >= 3) {
+      const fallback = [...seededPool].sort(() => Math.random() - 0.5).slice(0, 3);
+      setAiCards(prev => ({ ...prev, [sectionId]: fallback }));
+      trackRecentMeals(fallback);
       return;
     }
 
@@ -381,24 +503,25 @@ export function MealsTab() {
         },
       });
       if (error) throw error;
+
       if (Array.isArray(data) && data.length > 0) {
         addToMealPool(sectionId, currentPantryHash, filterInStockOnly, data);
         setAiCards(prev => ({ ...prev, [sectionId]: data }));
         trackRecentMeals(data);
-      } else if (poolMeals.length > 0) {
-        // AI returned empty (e.g. usage limit) — use pool
-        setAiCards(prev => ({ ...prev, [sectionId]: poolMeals }));
-        trackRecentMeals(poolMeals);
+      } else {
+        const localSeeds = getSectionSeedMeals(sectionId).slice(0, 3);
+        setAiCards(prev => ({ ...prev, [sectionId]: localSeeds }));
+        if (localSeeds.length) trackRecentMeals(localSeeds);
       }
-    } catch (e) {
-      // Fallback: use pool if available, else local shuffle
-      if (poolMeals.length > 0) {
-        setAiCards(prev => ({ ...prev, [sectionId]: poolMeals }));
-        trackRecentMeals(poolMeals);
+    } catch {
+      const localSeeds = getSectionSeedMeals(sectionId).slice(0, 3);
+      if (localSeeds.length > 0) {
+        setAiCards(prev => ({ ...prev, [sectionId]: localSeeds }));
+        trackRecentMeals(localSeeds);
       } else {
         setShuffleKey(k => k + 1);
       }
-      toast.error("AI unavailable, shuffled locally");
+      toast.error("Showing local meal pool");
     }
     setAiLoading(prev => ({ ...prev, [sectionId]: false }));
   };
@@ -409,31 +532,24 @@ export function MealsTab() {
     const fromPool: Record<string, MealCardWithCookTime[]> = {};
 
     for (const section of sections) {
-      const pool = getMealPool(section.id, currentPantryHash, filterInStockOnly);
+      const pool = ensureSectionPool(section.id);
       if (pool.length >= 3) {
-        // Serve from pool immediately
-        const picked = pickFromPool(section.id, currentPantryHash, filterInStockOnly, 3);
-        fromPool[section.id] = picked;
-      }
-      // Always try to grow the pool if not full
-      if (!isPoolFull(section.id, currentPantryHash, filterInStockOnly)) {
+        fromPool[section.id] = pickFromPool(section.id, currentPantryHash, filterInStockOnly, 3) as MealCardWithCookTime[];
+      } else {
         needsAI.push(section.id);
       }
     }
 
-    // Apply pool results immediately
     if (Object.keys(fromPool).length > 0) {
       setAiCards(prev => ({ ...prev, ...fromPool }));
+      Object.values(fromPool).forEach(trackRecentMeals);
     }
 
     if (needsAI.length === 0) return;
 
-    // Set loading only for sections that don't have pool results yet
     const loadingUpdate: Record<string, boolean> = {};
-    needsAI.forEach(id => { if (!fromPool[id]) loadingUpdate[id] = true; });
-    if (Object.keys(loadingUpdate).length > 0) {
-      setAiLoading(prev => ({ ...prev, ...loadingUpdate }));
-    }
+    needsAI.forEach(id => { loadingUpdate[id] = true; });
+    setAiLoading(prev => ({ ...prev, ...loadingUpdate }));
 
     try {
       const { data, error } = await supabase.functions.invoke("suggest-meals", {
@@ -453,11 +569,11 @@ export function MealsTab() {
         for (const [sectionId, meals] of Object.entries(data)) {
           if (Array.isArray(meals) && meals.length > 0) {
             addToMealPool(sectionId, currentPantryHash, filterInStockOnly, meals as MealCardWithCookTime[]);
-            // Only update displayed cards if we didn't already have pool results
-            if (!fromPool[sectionId]) {
-              newCards[sectionId] = meals as MealCardWithCookTime[];
-            }
-            trackRecentMeals(meals as MealCardWithCookTime[]);
+            newCards[sectionId] = (meals as MealCardWithCookTime[]).slice(0, 3);
+            trackRecentMeals((meals as MealCardWithCookTime[]).slice(0, 3));
+          } else {
+            const localSeeds = getSectionSeedMeals(sectionId).slice(0, 3);
+            if (localSeeds.length > 0) newCards[sectionId] = localSeeds;
           }
         }
         if (Object.keys(newCards).length > 0) {
@@ -465,9 +581,16 @@ export function MealsTab() {
         }
       }
     } catch {
-      // Pool results already shown if available
-      if (Object.keys(fromPool).length === 0) {
-        toast.error("AI unavailable, showing local suggestions");
+      const localFallback: Record<string, MealCardWithCookTime[]> = {};
+      for (const sectionId of needsAI) {
+        const localSeeds = getSectionSeedMeals(sectionId).slice(0, 3);
+        if (localSeeds.length > 0) localFallback[sectionId] = localSeeds;
+      }
+      if (Object.keys(localFallback).length > 0) {
+        setAiCards(prev => ({ ...prev, ...localFallback }));
+        Object.values(localFallback).forEach(trackRecentMeals);
+      } else if (Object.keys(fromPool).length === 0) {
+        toast.error("No local pool available for these filters yet");
       }
     }
 
@@ -478,19 +601,30 @@ export function MealsTab() {
 
   // Trigger batch load when active sections and profile are ready
   useEffect(() => {
-    if (activeSections.length > 0 && profile && pantryInStock.length > 0 && !batchLoaded) {
+    if (activeSections.length > 0 && profile && !batchLoaded) {
       setBatchLoaded(true);
       batchLoadSections(activeSections);
     }
-  }, [activeSections.length, profile, pantryInStock.length, batchLoaded]);
+  }, [activeSections.length, profile, batchLoaded]);
 
   const handleCraving = async () => {
-    if (!craving.trim()) return;
+    const text = craving.trim();
+    if (!text) return;
+
     setCravingPopup({ meals: [], loading: true });
+
+    const localPicks = getLocalCravingPicks(text, 3);
+    if (localPicks.length >= 3) {
+      setCravingPopup({ meals: localPicks, loading: false });
+      trackRecentMeals(localPicks);
+      setCraving("");
+      return;
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke("suggest-meals", {
         body: {
-          craving: craving.trim(),
+          craving: text,
           count: 3,
           pantryItems: pantryInStock,
           expiringItems,
@@ -501,19 +635,30 @@ export function MealsTab() {
         },
       });
       if (error) throw error;
-      if (Array.isArray(data)) {
+      if (Array.isArray(data) && data.length > 0) {
         setCravingPopup({ meals: data.slice(0, 3), loading: false });
         trackRecentMeals(data.slice(0, 3));
+      } else if (localPicks.length > 0) {
+        setCravingPopup({ meals: localPicks, loading: false });
+        trackRecentMeals(localPicks);
+      } else {
+        setCravingPopup({ meals: [], loading: false });
       }
     } catch {
-      toast.error("Something went wrong. Try again.");
-      setCravingPopup(null);
+      if (localPicks.length > 0) {
+        setCravingPopup({ meals: localPicks, loading: false });
+        trackRecentMeals(localPicks);
+      } else {
+        toast.error("No local matches yet — try a broader craving");
+        setCravingPopup(null);
+      }
     }
+
     setCraving("");
   };
 
   const openRecipe = async (card: MealCardWithCookTime, isBaby = false, sectionId?: string) => {
-    const cacheKey = `recipe_${card.name}`;
+    const cacheKey = getRecipeCacheKey(card.name);
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       try {
@@ -528,59 +673,21 @@ export function MealsTab() {
     setRecipeView({ mealName: card.name, recipeText: "", loading: true, isBaby, sectionId, tags: card.tags, discoverMode: !filterInStockOnly, missingIngredients: card.missingIngredients });
 
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-recipe`;
-      const resp = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          mealName: card.name,
-          pantryItems: pantryInStock,
-          expiringItems,
-          profile,
-          isBaby,
-        }),
+      const localRecipe = buildLocalRecipeText(card, isBaby, sectionId);
+      persistRecipeLocally(card.name, localRecipe);
+      setRecipeView({
+        mealName: card.name,
+        recipeText: localRecipe,
+        loading: false,
+        isBaby,
+        sectionId,
+        tags: card.tags,
+        discoverMode: !filterInStockOnly,
+        missingIngredients: card.missingIngredients,
       });
-
-      if (!resp.ok || !resp.body) throw new Error("Failed to stream");
-
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let textBuffer = "";
-      let fullText = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        textBuffer += decoder.decode(value, { stream: true });
-
-        let newlineIndex: number;
-        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              fullText += content;
-              setRecipeView(prev => prev ? { ...prev, recipeText: fullText } : null);
-            }
-          } catch {}
-        }
-      }
-
-      setRecipeView(prev => prev ? { ...prev, loading: false } : null);
-      localStorage.setItem(cacheKey, JSON.stringify({ text: fullText, ts: Date.now() }));
     } catch {
-      toast.error("Something went wrong. Tap to retry.");
-      setRecipeView(prev => prev ? { ...prev, loading: false, recipeText: "Failed to generate recipe. Please go back and try again." } : null);
+      toast.error("Couldn't open recipe. Try another meal.");
+      setRecipeView(prev => prev ? { ...prev, loading: false, recipeText: "Failed to load local recipe." } : null);
     }
   };
 
@@ -621,7 +728,7 @@ export function MealsTab() {
   };
 
   const getCachedRecipeText = (mealName: string) => {
-    const cacheKey = `recipe_${mealName.replace(/\s+/g, "_").toLowerCase()}`;
+    const cacheKey = getRecipeCacheKey(mealName);
     try {
       const cached = localStorage.getItem(cacheKey);
       if (!cached) return "";
