@@ -98,7 +98,7 @@ export default function SharedRecipe() {
         )}
 
         <div className="bg-card rounded-xl border border-border/60 p-4">
-          <RecipeDisplay recipeText={recipe.recipe_text} />
+          <RecipeDisplay text={recipe.recipe_text} />
         </div>
 
         {/* CTA banner */}
