@@ -460,6 +460,28 @@ export function PantryTab() {
           />
         </div>
 
+        {/* Ingredients / Shopping List toggle */}
+        <div className="flex items-center rounded-full bg-secondary p-0.5 mb-3 w-fit">
+          <button
+            onClick={() => { setViewMode("ingredients"); setActiveCategory(null); }}
+            className={`rounded-full px-4 py-1.5 font-body text-xs font-medium transition-colors ${
+              viewMode === "ingredients" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+            }`}
+          >
+            Ingredients
+          </button>
+          <button
+            onClick={() => { setViewMode("shopping"); setActiveCategory(null); }}
+            className={`rounded-full px-4 py-1.5 font-body text-xs font-medium transition-colors flex items-center gap-1.5 ${
+              !( viewMode === "shopping") ? "text-muted-foreground" : "bg-card text-foreground shadow-sm"
+            }`}
+          >
+            <ShoppingCart size={12} />
+            Shopping List
+            {(() => { const count = items.filter(i => !i.is_hidden && (i.category === "Shopping List" || !i.in_stock)).length; return count > 0 ? <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">{count}</span> : null; })()}
+          </button>
+        </div>
+
         {/* Category pills */}
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           <button
