@@ -235,7 +235,6 @@ export function MealsTab() {
     if (key === "people") setFilterPeople(null);
     if (key === "cuisine") setFilterCuisine(null);
     if (key === "method") setFilterMethod(null);
-    if (key === "inStock") setFilterInStockOnly(false);
     if (key === "mustInclude") setFilterMustInclude(null);
     if (key === "quick") setActiveFilter(null);
   };
