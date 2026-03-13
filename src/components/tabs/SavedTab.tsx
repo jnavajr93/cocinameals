@@ -216,6 +216,35 @@ export function SavedTab() {
     ],
   };
 
+  const shareRecipe = async (recipe: SavedRecipe) => {
+    try {
+      toast.info("Creating share link…");
+      const { data, error } = await supabase
+        .from("shared_recipes")
+        .insert({
+          meal_name: recipe.meal_name,
+          recipe_text: recipe.recipe_text,
+          shared_by_name: recipe.saved_by || "Someone",
+          tags: recipe.tags || [],
+        })
+        .select("id")
+        .single();
+      if (error || !data) throw error;
+      const shareUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/og-recipe?id=${data.id}`;
+      const shareText = `🍽️ ${recipe.meal_name} — check out this recipe from cocina!`;
+      if (navigator.share) {
+        await navigator.share({ title: recipe.meal_name, text: shareText, url: shareUrl });
+      } else {
+        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+        toast.success("Link copied to clipboard");
+      }
+    } catch (e: any) {
+      if (e.name !== "AbortError") {
+        toast.error("Couldn't share recipe. Try again.");
+      }
+    }
+  };
+
   // Recipe detail view
   if (viewingRecipe) {
     return (
@@ -225,17 +254,31 @@ export function SavedTab() {
             <ArrowLeft size={20} />
           </button>
           <h1 className="font-display text-lg font-bold text-foreground flex-1 truncate">{viewingRecipe.meal_name}</h1>
+          <button
+            onClick={() => shareRecipe(viewingRecipe)}
+            className="shrink-0 text-muted-foreground hover:text-gold transition-colors"
+            title="Share recipe"
+          >
+            <Send size={16} />
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto px-4 pb-24">
           <RecipeDisplay text={viewingRecipe.recipe_text} />
         </div>
-        <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-4 py-3 flex justify-center pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-4 py-3 flex justify-center gap-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           <button
             onClick={() => { removeRecipe(viewingRecipe.id); setViewingRecipe(null); }}
-            className="flex items-center gap-2 rounded-lg border border-border px-6 py-2.5 font-body text-sm text-muted-foreground"
+            className="flex items-center gap-2 rounded-lg border border-border px-6 py-2.5 font-body text-sm text-muted-foreground hover:text-destructive transition-colors"
           >
             <Trash2 size={14} />
             {viewingRecipe.meal_section === "shopping_cart" ? "Remove from cart" : "Unsave"}
+          </button>
+          <button
+            onClick={() => shareRecipe(viewingRecipe)}
+            className="flex items-center gap-2 rounded-lg bg-gold px-6 py-2.5 font-body text-sm font-medium text-gold-foreground"
+          >
+            <Send size={14} />
+            Share
           </button>
         </div>
       </div>
