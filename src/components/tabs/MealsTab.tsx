@@ -31,7 +31,6 @@ export function MealsTab() {
   const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [craving, setCraving] = useState("");
-  const [cravingLoading, setCravingLoading] = useState(false);
   const [shuffleKey, setShuffleKey] = useState(() => Math.floor(Math.random() * 100000));
   const [quickFilters, setQuickFilters] = useState<string[]>([]);
   const [mealSections, setMealSections] = useState<{ id: string; name: string; enabled: boolean; order: number }[]>([]);
