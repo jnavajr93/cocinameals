@@ -554,15 +554,22 @@ export function MealsTab() {
 
   // Batch load all active sections at once
   const batchLoadSections = async (sections: { id: string; name: string }[]) => {
-    const needsAI: string[] = [];
+    const needsDisplay: string[] = [];
+    const topUpAI: string[] = [];
     const fromPool: Record<string, MealCardWithCookTime[]> = {};
 
     for (const section of sections) {
       const pool = ensureSectionPool(section.id);
+      const targetFloor = Math.min(getPoolLimit(section.id), 24);
+
       if (pool.length >= 3) {
         fromPool[section.id] = pickFromPool(section.id, currentPantryHash, filterInStockOnly, 3) as MealCardWithCookTime[];
       } else {
-        needsAI.push(section.id);
+        needsDisplay.push(section.id);
+      }
+
+      if (pool.length < targetFloor) {
+        topUpAI.push(section.id);
       }
     }
 
@@ -571,16 +578,33 @@ export function MealsTab() {
       Object.values(fromPool).forEach(trackRecentMeals);
     }
 
-    if (needsAI.length === 0) return;
+    const requestSections = Array.from(new Set([...needsDisplay, ...topUpAI]));
+    if (requestSections.length === 0) return;
 
-    const loadingUpdate: Record<string, boolean> = {};
-    needsAI.forEach(id => { loadingUpdate[id] = true; });
-    setAiLoading(prev => ({ ...prev, ...loadingUpdate }));
+    // Respect 6-call/4-hour throttle window
+    if (isAiThrottled() || !recordAiCall()) {
+      const localFallback: Record<string, MealCardWithCookTime[]> = {};
+      for (const sectionId of needsDisplay) {
+        const localSeeds = getSectionSeedMeals(sectionId).slice(0, 3);
+        if (localSeeds.length > 0) localFallback[sectionId] = localSeeds;
+      }
+      if (Object.keys(localFallback).length > 0) {
+        setAiCards(prev => ({ ...prev, ...localFallback }));
+        Object.values(localFallback).forEach(trackRecentMeals);
+      }
+      return;
+    }
+
+    if (needsDisplay.length > 0) {
+      const loadingUpdate: Record<string, boolean> = {};
+      needsDisplay.forEach(id => { loadingUpdate[id] = true; });
+      setAiLoading(prev => ({ ...prev, ...loadingUpdate }));
+    }
 
     try {
       const { data, error } = await supabase.functions.invoke("suggest-meals", {
         body: {
-          sections: needsAI,
+          sections: requestSections,
           pantryItems: pantryInStock,
           expiringItems,
           profile,
@@ -595,20 +619,29 @@ export function MealsTab() {
         for (const [sectionId, meals] of Object.entries(data)) {
           if (Array.isArray(meals) && meals.length > 0) {
             addToMealPool(sectionId, currentPantryHash, filterInStockOnly, meals as MealCardWithCookTime[]);
-            newCards[sectionId] = (meals as MealCardWithCookTime[]).slice(0, 3);
-            trackRecentMeals((meals as MealCardWithCookTime[]).slice(0, 3));
-          } else {
+
+            if (needsDisplay.includes(sectionId)) {
+              const picks = pickFromPool(sectionId, currentPantryHash, filterInStockOnly, 3) as MealCardWithCookTime[];
+              const displayMeals = picks.length ? picks : (meals as MealCardWithCookTime[]).slice(0, 3);
+              newCards[sectionId] = displayMeals;
+              trackRecentMeals(displayMeals);
+            }
+          } else if (needsDisplay.includes(sectionId)) {
             const localSeeds = getSectionSeedMeals(sectionId).slice(0, 3);
-            if (localSeeds.length > 0) newCards[sectionId] = localSeeds;
+            if (localSeeds.length > 0) {
+              newCards[sectionId] = localSeeds;
+              trackRecentMeals(localSeeds);
+            }
           }
         }
+
         if (Object.keys(newCards).length > 0) {
           setAiCards(prev => ({ ...prev, ...newCards }));
         }
       }
     } catch {
       const localFallback: Record<string, MealCardWithCookTime[]> = {};
-      for (const sectionId of needsAI) {
+      for (const sectionId of needsDisplay) {
         const localSeeds = getSectionSeedMeals(sectionId).slice(0, 3);
         if (localSeeds.length > 0) localFallback[sectionId] = localSeeds;
       }
@@ -620,9 +653,11 @@ export function MealsTab() {
       }
     }
 
-    const loadingClear: Record<string, boolean> = {};
-    needsAI.forEach(id => { loadingClear[id] = false; });
-    setAiLoading(prev => ({ ...prev, ...loadingClear }));
+    if (needsDisplay.length > 0) {
+      const loadingClear: Record<string, boolean> = {};
+      needsDisplay.forEach(id => { loadingClear[id] = false; });
+      setAiLoading(prev => ({ ...prev, ...loadingClear }));
+    }
   };
 
   // Trigger batch load when active sections and profile are ready
