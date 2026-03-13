@@ -24,9 +24,9 @@ export default function SharedRecipe() {
       } else {
         setRecipe(data);
         // Update page title & meta for link previews
-        document.title = `${data.meal_name} — cocina`;
+        document.title = `${data.meal_name} — from Cocina app`;
         const metaDesc = document.querySelector('meta[name="description"]');
-        if (metaDesc) metaDesc.setAttribute("content", `${data.meal_name} — made with cocina · smart meal planning`);
+        if (metaDesc) metaDesc.setAttribute("content", `${data.meal_name} — Cook restaurant-quality meals with what you already have.`);
       }
       setLoading(false);
     })();
