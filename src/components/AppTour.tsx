@@ -66,8 +66,8 @@ const STEPS: TourStep[] = [
     arrowDirection: "none",
   },
   {
-    title: "Saved",
-    description: "Your starred recipes and shopping cart meals live here. Build your household cookbook over time — every great meal, one tap away.",
+    title: "Saved & Shopping Cart",
+    description: "⭐ Starred recipes go to your cookbook. 🛒 Add meals to your shopping cart to plan what to buy — missing ingredients are listed so you know exactly what to grab at the store.",
     icon: <BookOpen size={28} className="text-gold" />,
     tabHighlight: "saved",
     arrowDirection: "down",
