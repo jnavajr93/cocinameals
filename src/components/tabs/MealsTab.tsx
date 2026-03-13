@@ -19,6 +19,8 @@ interface RecipeViewState {
   isBaby?: boolean;
   sectionId?: string;
   tags?: string[];
+  discoverMode?: boolean;
+  missingIngredients?: string[];
 }
 
 export function MealsTab() {
