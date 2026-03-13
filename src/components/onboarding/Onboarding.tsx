@@ -320,9 +320,9 @@ export function Onboarding({ onComplete, previewMode }: OnboardingProps) {
         {step === 5 && <StepCookingStyle profile={profile} update={update} onNext={next} />}
         {step === 6 && <StepEquipment profile={profile} update={update} onNext={next} />}
         {step === 7 && <StepMealRhythm profile={profile} update={update} onNext={next} />}
-        {step === 8 && <StepIngredients profile={profile} update={update} onNext={next} />}
+        {step === 8 && <StepCuisine profile={profile} update={update} onNext={next} />}
         {step === 9 && (
-          <StepCuisine
+          <StepIngredients
             profile={profile}
             update={update}
             onNext={finish}
