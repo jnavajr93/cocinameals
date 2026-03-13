@@ -40,6 +40,7 @@ export function SettingsTab() {
   const [addingNonAppMember, setAddingNonAppMember] = useState(false);
   const [newMemberName, setNewMemberName] = useState("");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Expandable sections
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
