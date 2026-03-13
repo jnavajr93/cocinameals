@@ -202,15 +202,14 @@ export function MealsTab() {
   const activeFiltersList = useMemo(() => {
     const list: { key: string; label: string }[] = [];
     if (filterCookTime) list.push({ key: "cookTime", label: filterCookTime });
+    if (filterMethod) list.push({ key: "method", label: filterMethod });
     if (filterProtein) list.push({ key: "protein", label: filterProtein });
     if (filterPeople) list.push({ key: "people", label: filterPeople });
-    if (filterMethod) list.push({ key: "method", label: filterMethod });
     if (filterCuisine) list.push({ key: "cuisine", label: filterCuisine });
-    if (filterInStockOnly) list.push({ key: "inStock", label: "In-Stock Only" });
     if (filterMustInclude) list.push({ key: "mustInclude", label: filterMustInclude });
     if (activeFilter) list.push({ key: "quick", label: activeFilter });
     return list;
-  }, [filterCookTime, filterProtein, filterCuisine, filterMethod, filterInStockOnly, filterMustInclude, activeFilter]);
+  }, [filterCookTime, filterProtein, filterCuisine, filterMethod, filterMustInclude, activeFilter]);
 
   // Auto-refresh all sections when any filter changes
   const filtersSignature = JSON.stringify([filterCookTime, filterProtein, filterPeople, filterCuisine, filterMethod, filterInStockOnly, filterMustInclude, activeFilter]);
@@ -236,7 +235,6 @@ export function MealsTab() {
     if (key === "people") setFilterPeople(null);
     if (key === "cuisine") setFilterCuisine(null);
     if (key === "method") setFilterMethod(null);
-    if (key === "inStock") setFilterInStockOnly(false);
     if (key === "mustInclude") setFilterMustInclude(null);
     if (key === "quick") setActiveFilter(null);
   };
@@ -774,13 +772,33 @@ export function MealsTab() {
           </div>
         )}
 
+        {/* In-Stock / Discover toggle */}
+        <div className="flex items-center rounded-full bg-secondary p-0.5 mb-2 w-fit">
+          <button
+            onClick={() => setFilterInStockOnly(true)}
+            className={`rounded-full px-4 py-1.5 font-body text-xs font-medium transition-colors ${
+              filterInStockOnly ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+            }`}
+          >
+            In-Stock Only
+          </button>
+          <button
+            onClick={() => setFilterInStockOnly(false)}
+            className={`rounded-full px-4 py-1.5 font-body text-xs font-medium transition-colors ${
+              !filterInStockOnly ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+            }`}
+          >
+            ✨ Discover
+          </button>
+        </div>
+
         {/* Meal suggestion filters */}
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {[
             { key: "cookTime", label: "Cook Time", icon: Clock, active: !!filterCookTime },
+            { key: "method", label: "Method", icon: UtensilsCrossed, active: !!filterMethod },
             { key: "protein", label: "Protein", icon: Flame, active: !!filterProtein },
             { key: "people", label: "People", icon: Users, active: !!filterPeople },
-            { key: "method", label: "Method", icon: UtensilsCrossed, active: !!filterMethod },
             { key: "cuisine", label: "Cuisine", icon: Filter, active: !!filterCuisine },
           ].map(f => (
             <button
@@ -795,14 +813,6 @@ export function MealsTab() {
               <ChevronDown size={10} />
             </button>
           ))}
-          <button
-            onClick={() => setFilterInStockOnly(!filterInStockOnly)}
-            className={`shrink-0 flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-body text-xs transition-colors ${
-              filterInStockOnly ? "border-gold bg-gold/10 text-foreground" : "border-primary bg-primary/10 text-primary font-medium"
-            }`}
-          >
-            {filterInStockOnly ? "In-Stock Only" : "✨ Discover"}
-          </button>
         </div>
 
         {/* Quick filters */}
@@ -897,17 +907,31 @@ export function MealsTab() {
     const addMissingToList = async (e: React.MouseEvent) => {
       e.stopPropagation();
       if (!householdId || !card.missingIngredients?.length) return;
-      const items = card.missingIngredients.map(name => ({
-        household_id: householdId,
-        name,
-        category: "Shopping List",
-        in_stock: false,
-        is_custom: true,
-        is_hidden: false,
-      }));
-      const { error } = await supabase.from("pantry_items").upsert(items, { onConflict: "household_id,name", ignoreDuplicates: true });
-      if (error) toast.error("Couldn't add items");
-      else toast.success(`${card.missingIngredients!.length} items added to your list`);
+      // Check which items already exist
+      const { data: existing } = await supabase
+        .from("pantry_items")
+        .select("name")
+        .eq("household_id", householdId)
+        .in("name", card.missingIngredients);
+      const existingNames = new Set((existing || []).map(e => e.name.toLowerCase()));
+      const newItems = card.missingIngredients.filter(name => !existingNames.has(name.toLowerCase()));
+      if (newItems.length > 0) {
+        const rows = newItems.map(name => ({
+          household_id: householdId,
+          name,
+          category: "Shopping List",
+          in_stock: false,
+          is_custom: true,
+          is_hidden: false,
+        }));
+        const { error } = await supabase.from("pantry_items").insert(rows);
+        if (error) { toast.error("Couldn't add items"); return; }
+      }
+      const skipped = card.missingIngredients.length - newItems.length;
+      const msg = newItems.length > 0
+        ? `${newItems.length} item${newItems.length > 1 ? "s" : ""} added to your list${skipped > 0 ? ` (${skipped} already there)` : ""}`
+        : "All items already in your list";
+      toast.success(msg);
     };
 
     return (
