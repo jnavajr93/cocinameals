@@ -363,7 +363,7 @@ export default function Login() {
           <p className="font-body text-muted-foreground text-center mb-12 max-w-md mx-auto">
             Real households, real results — from our founding members.
           </p>
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-3 gap-6">
             {TESTIMONIALS.map((t) => (
               <div key={t.name} className="rounded-2xl border border-border bg-card p-6 flex flex-col gap-4">
                 <p className="font-body text-sm text-foreground leading-relaxed italic">
