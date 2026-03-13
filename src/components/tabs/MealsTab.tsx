@@ -618,7 +618,7 @@ export function MealsTab() {
         throw new Error("Failed to create share link");
       }
 
-      const shareUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/og-recipe?id=${data.id}`;
+      const shareUrl = `${window.location.origin}/recipe/${data.id}`;
 
       if (navigator.share) {
         await navigator.share({
