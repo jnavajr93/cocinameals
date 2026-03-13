@@ -507,7 +507,8 @@ export function MealsTab() {
         throw new Error("Failed to create share link");
       }
 
-      const shareUrl = `${window.location.origin}/recipe/${data.id}`;
+      // Use edge function URL for rich link previews (OG tags)
+      const shareUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/og-recipe?id=${data.id}`;
       const shareText = `🍽️ ${recipeView.mealName} — check out this recipe from cocina!`;
 
       if (navigator.share) {
