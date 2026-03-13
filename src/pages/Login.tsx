@@ -41,7 +41,7 @@ const PAIN_POINTS: ContentItem[] = [
   {
     icon: Users,
     title: "Picky eaters, dietary & health needs",
-    description: "Kids, allergies, spice tolerance, diabetes, high blood pressure. cocina factors in every household member's needs so meals are safe and enjoyable for everyone.",
+    description: "Kids, allergies, spice tolerance, diabetes, high blood pressure. Cocina factors in every household member's needs so meals are safe and enjoyable for everyone.",
   },
 ];
 
