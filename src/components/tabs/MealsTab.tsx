@@ -972,6 +972,30 @@ export function MealsTab() {
         const { error } = await supabase.from("pantry_items").insert(rows);
         if (error) { toast.error("Couldn't add items"); return; }
       }
+      // Also save meal to saved_recipes as shopping_cart
+      const { data: existingRecipe } = await supabase
+        .from("saved_recipes")
+        .select("id")
+        .eq("household_id", householdId)
+        .eq("meal_name", card.name)
+        .eq("meal_section", "shopping_cart")
+        .maybeSingle();
+      if (!existingRecipe) {
+        const cacheKey = `recipe_${card.name.replace(/\s+/g, "_").toLowerCase()}`;
+        let recipeText = "";
+        try {
+          const cached = localStorage.getItem(cacheKey);
+          if (cached) recipeText = JSON.parse(cached).text || "";
+        } catch {}
+        await supabase.from("saved_recipes").insert({
+          household_id: householdId,
+          meal_name: card.name,
+          recipe_text: recipeText || `Recipe for ${card.name}`,
+          saved_by: userName,
+          meal_section: "shopping_cart",
+          tags: card.tags || [],
+        } as any);
+      }
       const skipped = card.missingIngredients.length - newItems.length;
       const msg = newItems.length > 0
         ? `${newItems.length} item${newItems.length > 1 ? "s" : ""} added to your list${skipped > 0 ? ` (${skipped} already there)` : ""}`
