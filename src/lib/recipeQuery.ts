@@ -125,6 +125,7 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
   } = params;
 
   const recentNames = getRecentSuggestions();
+  const recentSet = new Set(recentNames.slice(-18));
 
   // Build query
   let query = supabase
@@ -167,8 +168,8 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
     }
   }
 
-  // Exclude disliked meals and recent
-  const excludeNames = [...new Set([...dislikedMeals, ...recentNames])];
+  // Hard exclude only explicit dislikes (recent meals are soft-deprioritized instead)
+  const excludeNames = [...new Set(dislikedMeals)];
 
   // Fetch a larger pool for variety selection
   query = query.limit(100);
