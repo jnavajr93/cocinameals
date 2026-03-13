@@ -1019,32 +1019,14 @@ export function MealsTab() {
             </div>
           ) : (
             <>
-              <RecipeDisplay text={recipeView.recipeText} loading={recipeView.loading} />
-              {/* Add missing ingredients button — Discover mode only */}
-              {recipeView.discoverMode && !recipeView.loading && recipeView.recipeText && (
-                <div className="mt-4 mb-8">
-                  {addedMissing === "idle" && (
-                    <button
-                      onClick={addMissingIngredientsFromRecipe}
-                      className="w-full rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 font-body text-sm font-medium text-foreground transition-colors hover:bg-gold/20"
-                    >
-                      Add missing ingredients to shopping list
-                    </button>
-                  )}
-                  {addedMissing === "added" && (
-                    <div className="w-full rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 flex items-center justify-center gap-2">
-                      <Check size={16} className="text-gold" />
-                      <span className="font-body text-sm font-medium text-foreground">Added to shopping list</span>
-                    </div>
-                  )}
-                  {addedMissing === "all_in_stock" && (
-                    <div className="w-full rounded-xl border border-success/30 bg-success/10 px-4 py-3 flex items-center justify-center gap-2">
-                      <Check size={16} className="text-success" />
-                      <span className="font-body text-sm font-medium text-foreground">Everything's in stock</span>
-                    </div>
-                  )}
-                </div>
-              )}
+              <RecipeDisplay
+                text={recipeView.recipeText}
+                loading={recipeView.loading}
+                pantryInStock={pantryInStock}
+                discoverMode={recipeView.discoverMode}
+                onAddMissingToShoppingList={addMissingIngredientsFromRecipe}
+                addedMissing={addedMissing}
+              />
             </>
           )}
         </div>
