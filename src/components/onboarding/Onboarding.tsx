@@ -326,6 +326,8 @@ export function Onboarding({ onComplete, previewMode }: OnboardingProps) {
             profile={profile}
             update={update}
             onNext={finish}
+            isLast
+            saving={saving}
           />
         )}
       </div>
