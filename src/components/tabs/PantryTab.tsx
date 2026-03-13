@@ -509,7 +509,7 @@ export function PantryTab() {
           >
             <ShoppingCart size={12} />
             Shopping List
-            {(() => { const count = items.filter(i => !i.is_hidden && (i.category === "Shopping List" || !i.in_stock)).length; return count > 0 ? <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">{count}</span> : null; })()}
+            {(() => { const count = items.filter(i => !i.is_hidden && i.category === "Shopping List").length; return count > 0 ? <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">{count}</span> : null; })()}
           </button>
         </div>
 
