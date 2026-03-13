@@ -523,12 +523,12 @@ export function MealsTab() {
         throw new Error("Failed to create share link");
       }
 
-      const siteUrl = "https://cocinameals.lovable.app";
-      const shareUrl = `${siteUrl}/recipe/${data.id}`;
+      const shareUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/og-image?id=${data.id}`;
 
       if (navigator.share) {
         await navigator.share({
           title: `${recipeView.mealName} — cocina`,
+          text: `🍽️ ${recipeView.mealName} — via cocina`,
           url: shareUrl,
         });
       } else {

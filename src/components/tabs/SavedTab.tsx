@@ -243,10 +243,9 @@ export function SavedTab() {
         .select("id")
         .single();
       if (error || !data) throw error;
-      const siteUrl = "https://cocinameals.lovable.app";
-      const shareUrl = `${siteUrl}/recipe/${data.id}`;
+      const shareUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/og-image?id=${data.id}`;
       if (navigator.share) {
-        await navigator.share({ title: recipe.meal_name, url: shareUrl });
+        await navigator.share({ title: recipe.meal_name, text: `🍽️ ${recipe.meal_name} — via cocina`, url: shareUrl });
       } else {
         await navigator.clipboard.writeText(`${recipe.meal_name} — cocina\n${shareUrl}`);
         toast.success("Link copied to clipboard");
