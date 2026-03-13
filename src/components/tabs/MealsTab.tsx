@@ -528,31 +528,24 @@ export function MealsTab() {
     const fromPool: Record<string, MealCardWithCookTime[]> = {};
 
     for (const section of sections) {
-      const pool = getMealPool(section.id, currentPantryHash, filterInStockOnly);
+      const pool = ensureSectionPool(section.id);
       if (pool.length >= 3) {
-        // Serve from pool immediately
-        const picked = pickFromPool(section.id, currentPantryHash, filterInStockOnly, 3);
-        fromPool[section.id] = picked;
-      }
-      // Always try to grow the pool if not full
-      if (!isPoolFull(section.id, currentPantryHash, filterInStockOnly)) {
+        fromPool[section.id] = pickFromPool(section.id, currentPantryHash, filterInStockOnly, 3) as MealCardWithCookTime[];
+      } else {
         needsAI.push(section.id);
       }
     }
 
-    // Apply pool results immediately
     if (Object.keys(fromPool).length > 0) {
       setAiCards(prev => ({ ...prev, ...fromPool }));
+      Object.values(fromPool).forEach(trackRecentMeals);
     }
 
     if (needsAI.length === 0) return;
 
-    // Set loading only for sections that don't have pool results yet
     const loadingUpdate: Record<string, boolean> = {};
-    needsAI.forEach(id => { if (!fromPool[id]) loadingUpdate[id] = true; });
-    if (Object.keys(loadingUpdate).length > 0) {
-      setAiLoading(prev => ({ ...prev, ...loadingUpdate }));
-    }
+    needsAI.forEach(id => { loadingUpdate[id] = true; });
+    setAiLoading(prev => ({ ...prev, ...loadingUpdate }));
 
     try {
       const { data, error } = await supabase.functions.invoke("suggest-meals", {
@@ -572,11 +565,11 @@ export function MealsTab() {
         for (const [sectionId, meals] of Object.entries(data)) {
           if (Array.isArray(meals) && meals.length > 0) {
             addToMealPool(sectionId, currentPantryHash, filterInStockOnly, meals as MealCardWithCookTime[]);
-            // Only update displayed cards if we didn't already have pool results
-            if (!fromPool[sectionId]) {
-              newCards[sectionId] = meals as MealCardWithCookTime[];
-            }
-            trackRecentMeals(meals as MealCardWithCookTime[]);
+            newCards[sectionId] = (meals as MealCardWithCookTime[]).slice(0, 3);
+            trackRecentMeals((meals as MealCardWithCookTime[]).slice(0, 3));
+          } else {
+            const localSeeds = getSectionSeedMeals(sectionId).slice(0, 3);
+            if (localSeeds.length > 0) newCards[sectionId] = localSeeds;
           }
         }
         if (Object.keys(newCards).length > 0) {
@@ -584,9 +577,16 @@ export function MealsTab() {
         }
       }
     } catch {
-      // Pool results already shown if available
-      if (Object.keys(fromPool).length === 0) {
-        toast.error("AI unavailable, showing local suggestions");
+      const localFallback: Record<string, MealCardWithCookTime[]> = {};
+      for (const sectionId of needsAI) {
+        const localSeeds = getSectionSeedMeals(sectionId).slice(0, 3);
+        if (localSeeds.length > 0) localFallback[sectionId] = localSeeds;
+      }
+      if (Object.keys(localFallback).length > 0) {
+        setAiCards(prev => ({ ...prev, ...localFallback }));
+        Object.values(localFallback).forEach(trackRecentMeals);
+      } else if (Object.keys(fromPool).length === 0) {
+        toast.error("No local pool available for these filters yet");
       }
     }
 
@@ -597,19 +597,30 @@ export function MealsTab() {
 
   // Trigger batch load when active sections and profile are ready
   useEffect(() => {
-    if (activeSections.length > 0 && profile && pantryInStock.length > 0 && !batchLoaded) {
+    if (activeSections.length > 0 && profile && !batchLoaded) {
       setBatchLoaded(true);
       batchLoadSections(activeSections);
     }
-  }, [activeSections.length, profile, pantryInStock.length, batchLoaded]);
+  }, [activeSections.length, profile, batchLoaded]);
 
   const handleCraving = async () => {
-    if (!craving.trim()) return;
+    const text = craving.trim();
+    if (!text) return;
+
     setCravingPopup({ meals: [], loading: true });
+
+    const localPicks = getLocalCravingPicks(text, 3);
+    if (localPicks.length >= 3) {
+      setCravingPopup({ meals: localPicks, loading: false });
+      trackRecentMeals(localPicks);
+      setCraving("");
+      return;
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke("suggest-meals", {
         body: {
-          craving: craving.trim(),
+          craving: text,
           count: 3,
           pantryItems: pantryInStock,
           expiringItems,
@@ -620,14 +631,25 @@ export function MealsTab() {
         },
       });
       if (error) throw error;
-      if (Array.isArray(data)) {
+      if (Array.isArray(data) && data.length > 0) {
         setCravingPopup({ meals: data.slice(0, 3), loading: false });
         trackRecentMeals(data.slice(0, 3));
+      } else if (localPicks.length > 0) {
+        setCravingPopup({ meals: localPicks, loading: false });
+        trackRecentMeals(localPicks);
+      } else {
+        setCravingPopup({ meals: [], loading: false });
       }
     } catch {
-      toast.error("Something went wrong. Try again.");
-      setCravingPopup(null);
+      if (localPicks.length > 0) {
+        setCravingPopup({ meals: localPicks, loading: false });
+        trackRecentMeals(localPicks);
+      } else {
+        toast.error("No local matches yet — try a broader craving");
+        setCravingPopup(null);
+      }
     }
+
     setCraving("");
   };
 
