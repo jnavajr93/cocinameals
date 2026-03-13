@@ -4,7 +4,7 @@ import { CocinaText } from "@/components/CocinaText";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
-import { Mail, Compass, Leaf, DollarSign, Clock, Users, TrendingDown, Utensils, ShoppingCart, Heart, Camera, Activity } from "lucide-react";
+import { Mail, Sparkles, Leaf, DollarSign, Clock, Users, TrendingDown, Utensils, ShoppingCart, Heart, Camera, Activity } from "lucide-react";
 
 type View = "landing" | "signin" | "signup" | "forgot";
 
@@ -58,7 +58,7 @@ const FEATURES: ContentItem[] = [
     description: "Mark what's in stock and only get suggestions for meals you can actually make. No more buying ingredients for one recipe.",
   },
   {
-    icon: Compass,
+    icon: Sparkles,
     title: "Discover New Meals",
     description: "Explore restaurant-quality meal ideas personalized to your equipment, cuisine preferences, and cooking skill level — even beyond what's in your pantry.",
   },
