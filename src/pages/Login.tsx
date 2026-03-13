@@ -4,7 +4,7 @@ import { CocinaText } from "@/components/CocinaText";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
-import { Mail, ChefHat, Leaf, DollarSign, Clock, Users, TrendingDown, Utensils, ShoppingCart, Heart, Camera, Activity } from "lucide-react";
+import { Mail, Compass, Leaf, DollarSign, Clock, Users, TrendingDown, Utensils, ShoppingCart, Heart, Camera, Activity } from "lucide-react";
 
 type View = "landing" | "signin" | "signup" | "forgot";
 
@@ -31,7 +31,7 @@ const PAIN_POINTS: ContentItem[] = [
   {
     icon: Clock,
     title: '"What\'s for dinner?" — every single night',
-    description: "Decision fatigue is real. cocina generates personalized meal ideas based on your pantry, skill level, and family preferences.",
+    description: "Decision fatigue is real. cocina delivers personalized meal ideas based on your pantry, skill level, and family preferences.",
   },
   {
     icon: DollarSign,
@@ -58,9 +58,9 @@ const FEATURES: ContentItem[] = [
     description: "Mark what's in stock and only get suggestions for meals you can actually make. No more buying ingredients for one recipe.",
   },
   {
-    icon: ChefHat,
-    title: "Meal Suggestions",
-    description: "Get restaurant-quality meal ideas personalized to your equipment, cuisine preferences, and cooking skill level.",
+    icon: Compass,
+    title: "Discover New Meals",
+    description: "Explore restaurant-quality meal ideas personalized to your equipment, cuisine preferences, and cooking skill level — even beyond what's in your pantry.",
   },
   {
     icon: Activity,
@@ -75,7 +75,7 @@ const FEATURES: ContentItem[] = [
   {
     icon: Heart,
     title: "Save Favorites & Rate Meals",
-    description: "Build your household cookbook over time. Rate meals so the AI learns what your family actually enjoys.",
+    description: "Build your household cookbook over time. Rate meals so cocina learns what your family actually enjoys.",
   },
 ];
 
