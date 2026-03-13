@@ -403,13 +403,13 @@ export function MealsTab() {
       try {
         const { text, ts } = JSON.parse(cached);
         if (Date.now() - ts < 24 * 3600000) {
-          setRecipeView({ mealName: card.name, recipeText: text, loading: false, isBaby, sectionId, tags: card.tags });
+          setRecipeView({ mealName: card.name, recipeText: text, loading: false, isBaby, sectionId, tags: card.tags, discoverMode: !filterInStockOnly, missingIngredients: card.missingIngredients });
           return;
         }
       } catch {}
     }
 
-    setRecipeView({ mealName: card.name, recipeText: "", loading: true, isBaby, sectionId, tags: card.tags });
+    setRecipeView({ mealName: card.name, recipeText: "", loading: true, isBaby, sectionId, tags: card.tags, discoverMode: !filterInStockOnly, missingIngredients: card.missingIngredients });
 
     try {
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-recipe`;
