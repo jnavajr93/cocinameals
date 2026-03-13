@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { UtensilsCrossed, ShoppingCart, BookOpen, Settings, ChevronRight, Sparkles, ScanLine, ChefHat } from "lucide-react";
+import { UtensilsCrossed, ShoppingCart, BookOpen, Settings, ChevronRight, Sparkles, ChefHat } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { CocinaText } from "@/components/CocinaText";
 
 const TOUR_SEEN_KEY = "cocina_app_tour_seen";
 
@@ -8,17 +9,19 @@ interface TourStep {
   title: string;
   description: string;
   icon: React.ReactNode;
-  tabHighlight: string | null; // tab id to highlight
+  tabHighlight: string | null;
   arrowDirection: "down" | "none";
+  useLogo?: boolean;
 }
 
 const STEPS: TourStep[] = [
   {
-    title: "Welcome to cocina",
-    description: "Turn your pantry into restaurant-quality meals.\nLet's take a quick tour.",
-    icon: <ChefHat size={32} className="text-gold" />,
+    title: "",
+    description: "Cook what you have. Eat like a chef.\nLet's take a quick tour.",
+    icon: null,
     tabHighlight: null,
     arrowDirection: "none",
+    useLogo: true,
   },
   {
     title: "Ingredients",

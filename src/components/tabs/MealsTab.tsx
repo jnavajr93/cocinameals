@@ -991,46 +991,44 @@ export function MealsTab() {
             {cuisineTag && (
               <span className="inline-block mt-1 rounded-full bg-secondary px-2 py-0.5 font-body text-xs text-muted-foreground">{cuisineTag}</span>
             )}
-            {hasMissing && (
-              <div className="mt-2 flex items-start gap-1.5">
-                <ShoppingCart size={12} className="text-muted-foreground mt-0.5 shrink-0" />
-                <p className="font-body text-xs text-muted-foreground leading-snug">
-                  Need: {card.missingIngredients!.join(", ")}
-                </p>
-              </div>
-            )}
           </div>
         </button>
-        <div className="flex items-center justify-between px-3 pb-2">
-          {hasMissing ? (
+        {hasMissing && (
+          <div className="px-3 pb-2">
+            <div className="flex items-start gap-1.5 mb-2">
+              <ShoppingCart size={12} className="text-gold mt-0.5 shrink-0" />
+              <p className="font-body text-xs text-muted-foreground leading-snug">
+                Need: {card.missingIngredients!.join(", ")}
+              </p>
+            </div>
             <button
               onClick={addMissingToList}
-              className="flex items-center gap-1 text-primary hover:text-primary/80 transition-colors"
+              className="flex items-center gap-1.5 rounded-md bg-gold/10 border border-gold/30 px-3 py-1.5 text-foreground hover:bg-gold/20 transition-colors"
             >
-              <Plus size={14} />
-              <span className="font-body text-xs font-medium">Add to list</span>
-            </button>
-          ) : <div />}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => handleFeedback(card, "liked")}
-              className={`transition-colors ${isLiked ? "text-gold" : "text-muted-foreground hover:text-gold"}`}
-            >
-              <ThumbsUp size={16} />
-            </button>
-            <button
-              onClick={() => handleFeedback(card, "disliked")}
-              className={`transition-colors ${isDisliked ? "text-destructive" : "text-muted-foreground hover:text-destructive"}`}
-            >
-              <ThumbsDown size={16} />
-            </button>
-            <button
-              onClick={() => saveMeal(card, sectionId)}
-              className={`transition-colors ${isSaved ? "text-gold" : "text-muted-foreground hover:text-gold"}`}
-            >
-              <Star size={16} fill={isSaved ? "currentColor" : "none"} />
+              <Plus size={12} className="text-gold" />
+              <span className="font-body text-xs font-medium">Add to shopping list</span>
             </button>
           </div>
+        )}
+        <div className="flex items-center justify-end gap-3 px-3 pb-2">
+          <button
+            onClick={() => handleFeedback(card, "liked")}
+            className={`transition-colors ${isLiked ? "text-gold" : "text-muted-foreground hover:text-gold"}`}
+          >
+            <ThumbsUp size={16} />
+          </button>
+          <button
+            onClick={() => handleFeedback(card, "disliked")}
+            className={`transition-colors ${isDisliked ? "text-destructive" : "text-muted-foreground hover:text-destructive"}`}
+          >
+            <ThumbsDown size={16} />
+          </button>
+          <button
+            onClick={() => saveMeal(card, sectionId)}
+            className={`transition-colors ${isSaved ? "text-gold" : "text-muted-foreground hover:text-gold"}`}
+          >
+            <Star size={16} fill={isSaved ? "currentColor" : "none"} />
+          </button>
         </div>
       </div>
     );
