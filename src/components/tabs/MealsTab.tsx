@@ -501,6 +501,101 @@ export function MealsTab() {
     return null;
   };
 
+  const getCachedRecipeText = (mealName: string) => {
+    const cacheKey = `recipe_${mealName.replace(/\s+/g, "_").toLowerCase()}`;
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (!cached) return "";
+      return JSON.parse(cached).text || "";
+    } catch {
+      return "";
+    }
+  };
+
+  const addMealToShoppingCart = async (meal: {
+    name: string;
+    tags?: string[];
+    recipeText?: string;
+    missingIngredients?: string[];
+  }) => {
+    if (!householdId) return;
+
+    try {
+      const fallbackMissing = Object.values(aiCards)
+        .flat()
+        .find(c => c.name === meal.name)?.missingIngredients || [];
+      const missingIngredients = (meal.missingIngredients && meal.missingIngredients.length > 0
+        ? meal.missingIngredients
+        : fallbackMissing).filter(Boolean);
+
+      let newItemsCount = 0;
+      let skippedCount = 0;
+
+      if (missingIngredients.length > 0) {
+        const { data: existingItems } = await supabase
+          .from("pantry_items")
+          .select("name")
+          .eq("household_id", householdId)
+          .in("name", missingIngredients);
+
+        const existingNames = new Set((existingItems || []).map(item => item.name.toLowerCase()));
+        const newItems = missingIngredients.filter(name => !existingNames.has(name.toLowerCase()));
+
+        if (newItems.length > 0) {
+          const rows = newItems.map(name => ({
+            household_id: householdId,
+            name,
+            category: "Shopping List",
+            in_stock: false,
+            is_custom: true,
+            is_hidden: false,
+          }));
+          const { error: pantryError } = await supabase.from("pantry_items").insert(rows);
+          if (pantryError) throw pantryError;
+        }
+
+        newItemsCount = newItems.length;
+        skippedCount = missingIngredients.length - newItems.length;
+      }
+
+      const { data: existingRecipe, error: existingRecipeError } = await supabase
+        .from("saved_recipes")
+        .select("id")
+        .eq("household_id", householdId)
+        .eq("meal_name", meal.name)
+        .eq("meal_section", "shopping_cart")
+        .maybeSingle();
+
+      if (existingRecipeError) throw existingRecipeError;
+
+      if (!existingRecipe) {
+        const { error: saveError } = await supabase.from("saved_recipes").insert({
+          household_id: householdId,
+          meal_name: meal.name,
+          recipe_text: meal.recipeText || getCachedRecipeText(meal.name) || `Recipe for ${meal.name}`,
+          saved_by: userName,
+          meal_section: "shopping_cart",
+          tags: meal.tags || [],
+        } as any);
+
+        if (saveError) throw saveError;
+      }
+
+      if (missingIngredients.length > 0) {
+        const ingredientsMessage = newItemsCount > 0
+          ? `${newItemsCount} ingredient${newItemsCount > 1 ? "s" : ""} added${skippedCount > 0 ? ` (${skippedCount} already there)` : ""}`
+          : "All ingredients already in your list";
+        const mealMessage = existingRecipe ? "Already in shopping cart" : "Added to shopping cart";
+        toast.success(`${mealMessage} · ${ingredientsMessage}`);
+        return;
+      }
+
+      toast.success(existingRecipe ? "Already in shopping cart" : "Added to shopping cart");
+    } catch {
+      toast.error("Couldn't add to shopping cart");
+    }
+  };
+
   const shareRecipe = async () => {
     if (!recipeView || !recipeView.recipeText) return;
 
@@ -558,47 +653,17 @@ export function MealsTab() {
           >
             <Send size={16} />
           </button>
-          {!filterInStockOnly && recipeView.tags && (
-            <button
-              onClick={async () => {
-                if (!householdId) return;
-                // Get missing ingredients from the cached card data
-                const cardKey = recipeView.mealName;
-                const card = Object.values(aiCards).flat().find(c => c.name === cardKey);
-                if (!card?.missingIngredients?.length) {
-                  toast("No missing ingredients for this meal");
-                  return;
-                }
-                const { data: existing } = await supabase
-                  .from("pantry_items")
-                  .select("name")
-                  .eq("household_id", householdId)
-                  .in("name", card.missingIngredients);
-                const existingNames = new Set((existing || []).map(e => e.name.toLowerCase()));
-                const newItems = card.missingIngredients.filter(name => !existingNames.has(name.toLowerCase()));
-                if (newItems.length > 0) {
-                  const rows = newItems.map(name => ({
-                    household_id: householdId,
-                    name,
-                    category: "Shopping List",
-                    in_stock: false,
-                    is_custom: true,
-                    is_hidden: false,
-                  }));
-                  await supabase.from("pantry_items").insert(rows);
-                }
-                const skipped = card.missingIngredients.length - newItems.length;
-                const msg = newItems.length > 0
-                  ? `${newItems.length} item${newItems.length > 1 ? "s" : ""} added to shopping list${skipped > 0 ? ` (${skipped} already there)` : ""}`
-                  : "All items already in your list";
-                toast.success(msg);
-              }}
-              className="shrink-0 text-muted-foreground hover:text-gold transition-colors"
-              title="Add to shopping list"
-            >
-              <ShoppingCart size={16} />
-            </button>
-          )}
+          <button
+            onClick={() => addMealToShoppingCart({
+              name: recipeView.mealName,
+              tags: recipeView.tags,
+              recipeText: recipeView.recipeText,
+            })}
+            className="shrink-0 text-muted-foreground hover:text-gold transition-colors"
+            title="Add to shopping cart"
+          >
+            <ShoppingCart size={16} />
+          </button>
           <button
             onClick={() => {
               handleFeedback({ name: recipeView.mealName, tags: [], cal: 0, protein: 0, carbs: 0, fat: 0 } as MealCardWithCookTime, "liked");
@@ -769,6 +834,17 @@ export function MealsTab() {
                       )}
                     </button>
                     <div className="flex items-center justify-end gap-3 mt-2">
+                      <button
+                        onClick={() => addMealToShoppingCart({
+                          name: card.name,
+                          tags: card.tags,
+                          missingIngredients: card.missingIngredients,
+                        })}
+                        className="transition-colors text-muted-foreground hover:text-gold"
+                        title="Add to shopping cart"
+                      >
+                        <ShoppingCart size={16} />
+                      </button>
                       <button onClick={() => handleFeedback(card, "liked")} className={`transition-colors ${isLiked ? "text-gold" : "text-muted-foreground hover:text-gold"}`}>
                         <ThumbsUp size={16} />
                       </button>
@@ -964,58 +1040,13 @@ export function MealsTab() {
     const isSaved = savedMealNames.has(card.name);
     const hasMissing = !filterInStockOnly && card.missingIngredients && card.missingIngredients.length > 0;
 
-    const addMissingToList = async (e: React.MouseEvent) => {
+    const addToShoppingCart = async (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (!householdId || !card.missingIngredients?.length) return;
-      // Check which items already exist
-      const { data: existing } = await supabase
-        .from("pantry_items")
-        .select("name")
-        .eq("household_id", householdId)
-        .in("name", card.missingIngredients);
-      const existingNames = new Set((existing || []).map(e => e.name.toLowerCase()));
-      const newItems = card.missingIngredients.filter(name => !existingNames.has(name.toLowerCase()));
-      if (newItems.length > 0) {
-        const rows = newItems.map(name => ({
-          household_id: householdId,
-          name,
-          category: "Shopping List",
-          in_stock: false,
-          is_custom: true,
-          is_hidden: false,
-        }));
-        const { error } = await supabase.from("pantry_items").insert(rows);
-        if (error) { toast.error("Couldn't add items"); return; }
-      }
-      // Also save meal to saved_recipes as shopping_cart
-      const { data: existingRecipe } = await supabase
-        .from("saved_recipes")
-        .select("id")
-        .eq("household_id", householdId)
-        .eq("meal_name", card.name)
-        .eq("meal_section", "shopping_cart")
-        .maybeSingle();
-      if (!existingRecipe) {
-        const cacheKey = `recipe_${card.name.replace(/\s+/g, "_").toLowerCase()}`;
-        let recipeText = "";
-        try {
-          const cached = localStorage.getItem(cacheKey);
-          if (cached) recipeText = JSON.parse(cached).text || "";
-        } catch {}
-        await supabase.from("saved_recipes").insert({
-          household_id: householdId,
-          meal_name: card.name,
-          recipe_text: recipeText || `Recipe for ${card.name}`,
-          saved_by: userName,
-          meal_section: "shopping_cart",
-          tags: card.tags || [],
-        } as any);
-      }
-      const skipped = card.missingIngredients.length - newItems.length;
-      const msg = newItems.length > 0
-        ? `${newItems.length} item${newItems.length > 1 ? "s" : ""} added to your list${skipped > 0 ? ` (${skipped} already there)` : ""}`
-        : "All items already in your list";
-      toast.success(msg);
+      await addMealToShoppingCart({
+        name: card.name,
+        tags: card.tags,
+        missingIngredients: card.missingIngredients,
+      });
     };
 
     return (
@@ -1044,15 +1075,13 @@ export function MealsTab() {
           </div>
         )}
         <div className="flex items-center justify-end gap-3 px-3 pb-2">
-          {hasMissing && (
-            <button
-              onClick={addMissingToList}
-              className="text-muted-foreground hover:text-gold transition-colors"
-              title="Add to shopping list"
-            >
-              <ShoppingCart size={16} />
-            </button>
-          )}
+          <button
+            onClick={addToShoppingCart}
+            className="text-muted-foreground hover:text-gold transition-colors"
+            title="Add to shopping cart"
+          >
+            <ShoppingCart size={16} />
+          </button>
           <button
             onClick={() => handleFeedback(card, "liked")}
             className={`transition-colors ${isLiked ? "text-gold" : "text-muted-foreground hover:text-gold"}`}
