@@ -3,6 +3,7 @@ import { PantryTab } from "@/components/tabs/PantryTab";
 import { MealsTab } from "@/components/tabs/MealsTab";
 import { SavedTab } from "@/components/tabs/SavedTab";
 import { SettingsTab } from "@/components/tabs/SettingsTab";
+import { AppTour, useAppTour } from "@/components/AppTour";
 import { ShoppingCart, UtensilsCrossed, BookOpen, Settings } from "lucide-react";
 
 const TABS = [
@@ -16,6 +17,7 @@ type TabId = (typeof TABS)[number]["id"];
 
 export function AppShell() {
   const [activeTab, setActiveTab] = useState<TabId>("pantry");
+  const { showTour, closeTour } = useAppTour();
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -44,6 +46,8 @@ export function AppShell() {
           );
         })}
       </div>
+
+      {showTour && <AppTour onComplete={closeTour} />}
     </div>
   );
 }
