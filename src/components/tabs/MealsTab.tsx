@@ -513,8 +513,7 @@ export function MealsTab() {
 
       if (navigator.share) {
         await navigator.share({
-          title: recipeView.mealName,
-          text: shareText,
+          title: `${recipeView.mealName} — cocina`,
           url: shareUrl,
         });
       } else {
