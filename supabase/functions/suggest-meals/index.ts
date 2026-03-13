@@ -159,8 +159,10 @@ TAGS TO USE: mexican, asian, southeast_asian, south_asian, mediterranean, italia
           });
         }
         if (response.status === 402) {
-          return new Response(JSON.stringify({ error: "Usage limit reached." }), {
-            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          const fallbackResults: Record<string, any[]> = {};
+          for (const s of sections) fallbackResults[s] = [];
+          return new Response(JSON.stringify(fallbackResults), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
         const t = await response.text();
@@ -247,8 +249,8 @@ TAGS TO USE: mexican, asian, southeast_asian, south_asian, mediterranean, italia
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Usage limit reached." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        return new Response(JSON.stringify([]), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const t = await response.text();
