@@ -27,6 +27,7 @@ export function PantryTab() {
   const [items, setItems] = useState<PantryItem[]>([]);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"ingredients" | "shopping">("ingredients");
   const [addMode, setAddMode] = useState(false);
   const [addCategoryTarget, setAddCategoryTarget] = useState<string | null>(null);
   const [addSearch, setAddSearch] = useState("");
