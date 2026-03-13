@@ -469,11 +469,19 @@ export function MealsTab() {
       setShuffleCooldowns(prev => ({ ...prev, [sectionId]: false }));
     }, 8000);
 
-    // Try pool first — if pool has enough, just pick fresh from pool
-    const poolMeals = pickFromPool(sectionId, currentPantryHash, filterInStockOnly, 3);
-    if (poolMeals.length >= 3 && isPoolFull(sectionId, currentPantryHash, filterInStockOnly)) {
+    const seededPool = ensureSectionPool(sectionId);
+    const poolMeals = pickFromPool(sectionId, currentPantryHash, filterInStockOnly, 3) as MealCardWithCookTime[];
+
+    if (poolMeals.length >= 3) {
       setAiCards(prev => ({ ...prev, [sectionId]: poolMeals }));
       trackRecentMeals(poolMeals);
+      return;
+    }
+
+    if (seededPool.length >= 3) {
+      const fallback = [...seededPool].sort(() => Math.random() - 0.5).slice(0, 3);
+      setAiCards(prev => ({ ...prev, [sectionId]: fallback }));
+      trackRecentMeals(fallback);
       return;
     }
 
@@ -491,24 +499,25 @@ export function MealsTab() {
         },
       });
       if (error) throw error;
+
       if (Array.isArray(data) && data.length > 0) {
         addToMealPool(sectionId, currentPantryHash, filterInStockOnly, data);
         setAiCards(prev => ({ ...prev, [sectionId]: data }));
         trackRecentMeals(data);
-      } else if (poolMeals.length > 0) {
-        // AI returned empty (e.g. usage limit) — use pool
-        setAiCards(prev => ({ ...prev, [sectionId]: poolMeals }));
-        trackRecentMeals(poolMeals);
+      } else {
+        const localSeeds = getSectionSeedMeals(sectionId).slice(0, 3);
+        setAiCards(prev => ({ ...prev, [sectionId]: localSeeds }));
+        if (localSeeds.length) trackRecentMeals(localSeeds);
       }
-    } catch (e) {
-      // Fallback: use pool if available, else local shuffle
-      if (poolMeals.length > 0) {
-        setAiCards(prev => ({ ...prev, [sectionId]: poolMeals }));
-        trackRecentMeals(poolMeals);
+    } catch {
+      const localSeeds = getSectionSeedMeals(sectionId).slice(0, 3);
+      if (localSeeds.length > 0) {
+        setAiCards(prev => ({ ...prev, [sectionId]: localSeeds }));
+        trackRecentMeals(localSeeds);
       } else {
         setShuffleKey(k => k + 1);
       }
-      toast.error("AI unavailable, shuffled locally");
+      toast.error("Showing local meal pool");
     }
     setAiLoading(prev => ({ ...prev, [sectionId]: false }));
   };
