@@ -82,23 +82,18 @@ const FEATURES: ContentItem[] = [
 const TESTIMONIALS = [
   {
     quote: "We went from eating out 4 nights a week to maybe once. Our grocery bill dropped by $400/month.",
-    name: "Sarah M.",
-    detail: "Family of 4, Austin TX",
+    name: "Isaias G.",
+    detail: "Family of 4, Phoenix AZ",
+  },
+  {
+    quote: "My kids are picky and my wife has celiac. cocina is the first app that actually accounts for all of us.",
+    name: "Ricardo M.",
+    detail: "Family of 5, Tucson AZ",
   },
   {
     quote: "I used to throw away so much produce. Now I just check my pantry in the app and it tells me exactly what to make.",
-    name: "James R.",
-    detail: "Home cook, Chicago IL",
-  },
-  {
-    quote: "My kids are picky and my husband has celiac. cocina is the first app that actually accounts for all of us.",
-    name: "Maria L.",
-    detail: "Family of 5, Miami FL",
-  },
-  {
-    quote: "I'm not a great cook but the recipes are clear and use equipment I actually own. Game changer.",
-    name: "David K.",
-    detail: "Beginner cook, Seattle WA",
+    name: "Maria D.",
+    detail: "Home cook, Atlanta GA",
   },
 ];
 
