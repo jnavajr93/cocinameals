@@ -60,7 +60,7 @@ const STEPS: TourStep[] = [
   },
   {
     title: "Settings",
-    description: "Set your skill level, diet, allergies, equipment & cuisines. cocina adapts every recipe to you.",
+    description: "Set your skill level, diet, allergies, equipment & cuisines. Cocina adapts every recipe to you.",
     icon: <Settings size={28} className="text-gold" />,
     arrowTarget: "tab-settings",
   },
