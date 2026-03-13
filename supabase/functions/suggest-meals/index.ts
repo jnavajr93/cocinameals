@@ -13,17 +13,21 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    const inStockOnly = filters?.inStockOnly ?? true;
+
     const systemPrompt = `You are a meal suggestion engine for cocina, a household meal planning app.
 Mission: help people cook restaurant-quality meals at home using what they already have — cutting food waste and the need to eat out.
 
 Suggest exactly 3 meals. Return ONLY a valid JSON array. No preamble. No markdown.
 
-Each meal object: { "name": string, "cal": number, "protein": number, "carbs": number, "fat": number, "cookTime": number, "tags": string[] }
+Each meal object: { "name": string, "cal": number, "protein": number, "carbs": number, "fat": number, "cookTime": number, "tags": string[]${!inStockOnly ? ', "missingIngredients": string[]' : ''} }
+
+${!inStockOnly ? 'DISCOVERY MODE: The user wants to explore meals beyond their current pantry. Suggest creative, inspiring meals. For each meal, include "missingIngredients" — a short list (max 6) of key ingredients the user would need to buy that are NOT in their current pantry. Only list important ingredients they likely need to purchase (skip common staples like salt, pepper, oil, water). Keep ingredient names short and grocery-friendly (e.g. "chicken thighs" not "boneless skinless chicken thighs").' : ''}
 
 HARD RULES:
 - Only suggest meals the user's equipment can make.
 - Never suggest meals that violate diet restrictions.
-- If inStockOnly is true: every ingredient must be currently in-stock. Zero exceptions.
+${inStockOnly ? '- If inStockOnly is true: every ingredient must be currently in-stock. Zero exceptions.' : '- Suggest meals freely — they do NOT need to use only in-stock items. Be creative and inspiring.'}
 - If mustInclude is set: that ingredient must be central to at least 2 of 3 meals.
 - If mainProtein is set: that protein must star in all 3 meals.
 - If cookTime filter is set: total time must be under that limit for all 3.
@@ -67,6 +71,25 @@ TAGS TO USE: mexican, asian, southeast_asian, south_asian, mediterranean, italia
       childAgeMonths: childAgeMonths || null,
     });
 
+    const mealSchema: Record<string, any> = {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        cal: { type: "number" },
+        protein: { type: "number" },
+        carbs: { type: "number" },
+        fat: { type: "number" },
+        cookTime: { type: "number" },
+        tags: { type: "array", items: { type: "string" } },
+      },
+      required: ["name", "cal", "protein", "carbs", "fat", "cookTime", "tags"],
+    };
+
+    if (!inStockOnly) {
+      mealSchema.properties.missingIngredients = { type: "array", items: { type: "string" } };
+      mealSchema.required.push("missingIngredients");
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -90,19 +113,7 @@ TAGS TO USE: mexican, asian, southeast_asian, south_asian, mediterranean, italia
                 properties: {
                   meals: {
                     type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        name: { type: "string" },
-                        cal: { type: "number" },
-                        protein: { type: "number" },
-                        carbs: { type: "number" },
-                        fat: { type: "number" },
-                        cookTime: { type: "number" },
-                        tags: { type: "array", items: { type: "string" } },
-                      },
-                      required: ["name", "cal", "protein", "carbs", "fat", "cookTime", "tags"],
-                    },
+                    items: mealSchema,
                   },
                 },
                 required: ["meals"],

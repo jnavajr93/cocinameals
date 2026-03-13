@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { RefreshCw, Star, Send, ThumbsUp, ThumbsDown, ChevronDown, X, Filter, Clock, Flame, UtensilsCrossed, ArrowLeft, Users } from "lucide-react";
+import { RefreshCw, Star, Send, ThumbsUp, ThumbsDown, ChevronDown, X, Filter, Clock, Flame, UtensilsCrossed, ArrowLeft, Users, ShoppingCart, Plus } from "lucide-react";
 import { RecipeDisplay } from "@/components/RecipeDisplay";
 import { supabase } from "@/integrations/supabase/client";
 import { useHousehold } from "@/hooks/useHousehold";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 interface MealCardWithCookTime extends MealCard {
   cookTime?: number;
+  missingIngredients?: string[];
 }
 
 interface RecipeViewState {
@@ -797,10 +798,10 @@ export function MealsTab() {
           <button
             onClick={() => setFilterInStockOnly(!filterInStockOnly)}
             className={`shrink-0 flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-body text-xs transition-colors ${
-              filterInStockOnly ? "border-gold bg-gold/10 text-foreground" : "border-border bg-card text-muted-foreground"
+              filterInStockOnly ? "border-gold bg-gold/10 text-foreground" : "border-primary bg-primary/10 text-primary font-medium"
             }`}
           >
-            In-Stock Only
+            {filterInStockOnly ? "In-Stock Only" : "✨ Discover"}
           </button>
         </div>
 
@@ -891,6 +892,23 @@ export function MealsTab() {
     const isLiked = likedMeals.has(card.name);
     const isDisliked = dislikedMeals.has(card.name);
     const isSaved = savedMealNames.has(card.name);
+    const hasMissing = !filterInStockOnly && card.missingIngredients && card.missingIngredients.length > 0;
+
+    const addMissingToList = async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!householdId || !card.missingIngredients?.length) return;
+      const items = card.missingIngredients.map(name => ({
+        household_id: householdId,
+        name,
+        category: "Shopping List",
+        in_stock: false,
+        is_custom: true,
+        is_hidden: false,
+      }));
+      const { error } = await supabase.from("pantry_items").upsert(items, { onConflict: "household_id,name", ignoreDuplicates: true });
+      if (error) toast.error("Couldn't add items");
+      else toast.success(`${card.missingIngredients!.length} items added to your list`);
+    };
 
     return (
       <div
@@ -908,27 +926,46 @@ export function MealsTab() {
             {cuisineTag && (
               <span className="inline-block mt-1 rounded-full bg-secondary px-2 py-0.5 font-body text-xs text-muted-foreground">{cuisineTag}</span>
             )}
+            {hasMissing && (
+              <div className="mt-2 flex items-start gap-1.5">
+                <ShoppingCart size={12} className="text-muted-foreground mt-0.5 shrink-0" />
+                <p className="font-body text-xs text-muted-foreground leading-snug">
+                  Need: {card.missingIngredients!.join(", ")}
+                </p>
+              </div>
+            )}
           </div>
         </button>
-        <div className="flex items-center justify-end gap-3 px-3 pb-2">
-          <button
-            onClick={() => handleFeedback(card, "liked")}
-            className={`transition-colors ${isLiked ? "text-gold" : "text-muted-foreground hover:text-gold"}`}
-          >
-            <ThumbsUp size={16} />
-          </button>
-          <button
-            onClick={() => handleFeedback(card, "disliked")}
-            className={`transition-colors ${isDisliked ? "text-destructive" : "text-muted-foreground hover:text-destructive"}`}
-          >
-            <ThumbsDown size={16} />
-          </button>
-          <button
-            onClick={() => saveMeal(card, sectionId)}
-            className={`transition-colors ${isSaved ? "text-gold" : "text-muted-foreground hover:text-gold"}`}
-          >
-            <Star size={16} fill={isSaved ? "currentColor" : "none"} />
-          </button>
+        <div className="flex items-center justify-between px-3 pb-2">
+          {hasMissing ? (
+            <button
+              onClick={addMissingToList}
+              className="flex items-center gap-1 text-primary hover:text-primary/80 transition-colors"
+            >
+              <Plus size={14} />
+              <span className="font-body text-xs font-medium">Add to list</span>
+            </button>
+          ) : <div />}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => handleFeedback(card, "liked")}
+              className={`transition-colors ${isLiked ? "text-gold" : "text-muted-foreground hover:text-gold"}`}
+            >
+              <ThumbsUp size={16} />
+            </button>
+            <button
+              onClick={() => handleFeedback(card, "disliked")}
+              className={`transition-colors ${isDisliked ? "text-destructive" : "text-muted-foreground hover:text-destructive"}`}
+            >
+              <ThumbsDown size={16} />
+            </button>
+            <button
+              onClick={() => saveMeal(card, sectionId)}
+              className={`transition-colors ${isSaved ? "text-gold" : "text-muted-foreground hover:text-gold"}`}
+            >
+              <Star size={16} fill={isSaved ? "currentColor" : "none"} />
+            </button>
+          </div>
         </div>
       </div>
     );
