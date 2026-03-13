@@ -1428,7 +1428,7 @@ export function MealsTab() {
         </button>
         {hasMissing && (
           <div className="px-3 pb-1">
-            <p className="font-body text-xs text-muted-foreground leading-snug">
+            <p className="font-body text-xs text-destructive leading-snug">
               Need: {card.missingIngredients!.join(", ")}
             </p>
           </div>
