@@ -523,9 +523,8 @@ export function MealsTab() {
         throw new Error("Failed to create share link");
       }
 
-      const siteUrl = window.location.origin;
+      const siteUrl = "https://cocinameals.lovable.app";
       const shareUrl = `${siteUrl}/recipe/${data.id}`;
-      const shareText = `${recipeView.mealName} — cocina`;
 
       if (navigator.share) {
         await navigator.share({
@@ -533,7 +532,7 @@ export function MealsTab() {
           url: shareUrl,
         });
       } else {
-        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+        await navigator.clipboard.writeText(`${recipeView.mealName} — cocina\n${shareUrl}`);
         toast.success("Share link copied to clipboard!");
       }
     } catch (e: any) {

@@ -27,7 +27,8 @@ serve(async (req) => {
   const title = `${mealName} — cocina`;
   const siteUrl = Deno.env.get("SITE_URL") || "https://cocinameals.lovable.app";
   const redirectUrl = `${siteUrl}/recipe/${id}`;
-  const ogImage = `${siteUrl}/icon-512.png`;
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const ogImage = `${supabaseUrl}/functions/v1/og-image?id=${id}`;
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -42,7 +43,7 @@ serve(async (req) => {
   <meta property="og:image" content="${ogImage}" />
   <meta property="og:url" content="${redirectUrl}" />
   <meta property="og:site_name" content="cocina" />
-  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${escapeHtml(title)}" />
   <meta name="twitter:description" content="${escapeHtml(description)}" />
   <meta name="twitter:image" content="${ogImage}" />
