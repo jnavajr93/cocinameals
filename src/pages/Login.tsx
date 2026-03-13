@@ -60,7 +60,7 @@ const FEATURES: ContentItem[] = [
   {
     icon: Sparkles,
     title: "Discover New Meals",
-    description: "Explore restaurant-quality meal ideas personalized to your equipment, cuisine preferences, and cooking skill level — even beyond what's in your pantry.",
+    description: "Explore restaurant-quality meal ideas personalized to your equipment, cuisine preferences, and cooking skill level.",
   },
   {
     icon: Activity,
