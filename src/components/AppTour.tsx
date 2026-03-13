@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ShoppingCart, UtensilsCrossed, BookOpen, Settings, ChevronRight, Camera, Sparkles, ThumbsUp, Star, Send, Lightbulb, ShoppingBag } from "lucide-react";
+import { ShoppingCart, UtensilsCrossed, BookOpen, Settings, ChevronRight, Camera, Sparkles, ThumbsUp, Lightbulb } from "lucide-react";
 import { Logo } from "@/components/Logo";
 
 const TOUR_SEEN_KEY = "cocina_app_tour_seen";
@@ -8,8 +8,6 @@ interface TourStep {
   title: string;
   description: string;
   icon: React.ReactNode;
-  tabHighlight: string | null;
-  arrowDirection: "down" | "none";
   arrowTarget?: string;
   useLogo?: boolean;
 }
@@ -19,100 +17,84 @@ const STEPS: TourStep[] = [
     title: "",
     description: "Cook what you have. Eat like a chef.\nLet's take a quick tour.",
     icon: null,
-    tabHighlight: null,
-    arrowDirection: "none",
     useLogo: true,
   },
   {
     title: "Ingredients",
     description: "Track what you have at home. Toggle items in and out of stock with a tap.",
     icon: <ShoppingCart size={28} className="text-gold" />,
-    tabHighlight: "pantry",
-    arrowDirection: "down",
+    arrowTarget: "tab-pantry",
   },
   {
     title: "📸 Scan Receipts (Beta)",
     description: "Snap a photo of your grocery receipt and we'll auto-add items with expiration dates. Still in beta — getting smarter every day!",
     icon: <Camera size={28} className="text-gold" />,
-    tabHighlight: "pantry",
-    arrowDirection: "down",
     arrowTarget: "scan-receipt",
   },
   {
     title: "Meals",
     description: "Get AI-powered meal suggestions based on your ingredients. Use the \"I'm craving...\" box to get instant recipe ideas for anything.",
     icon: <UtensilsCrossed size={28} className="text-gold" />,
-    tabHighlight: "meals",
-    arrowDirection: "down",
+    arrowTarget: "tab-meals",
   },
   {
     title: "✨ Discover Mode",
     description: "Toggle to Discover to explore meals beyond your pantry. Missing ingredients are listed on each card — tap the 🛒 icon to add them to your shopping list.",
     icon: <Sparkles size={28} className="text-gold" />,
-    tabHighlight: "meals",
-    arrowDirection: "none",
   },
   {
     title: "Rate & Save",
     description: "👍 Like meals to see more like them. 👎 Dislike to hide them. ⭐ Star to save to your cookbook. cocina learns your taste over time.",
     icon: <ThumbsUp size={28} className="text-gold" />,
-    tabHighlight: "meals",
-    arrowDirection: "none",
   },
   {
     title: "🔥 Next Level Tips",
     description: "Every recipe includes a \"Next Level Tip\" — a chef secret to elevate your dish from good to unforgettable.",
     icon: <Lightbulb size={28} className="text-gold" />,
-    tabHighlight: null,
-    arrowDirection: "none",
   },
   {
     title: "Saved & Shopping Cart",
-    description: "⭐ Starred recipes go to your cookbook. 🛒 Add meals to your shopping cart to plan what to buy — missing ingredients are listed so you know exactly what to grab at the store.",
+    description: "⭐ Starred recipes go to your cookbook. 🛒 Tap the cart icon on any meal card to add missing ingredients to your shopping list. Then switch to the Shopping List tab in Ingredients — check items off as you buy them and they'll automatically mark as in-stock.",
     icon: <BookOpen size={28} className="text-gold" />,
-    tabHighlight: "saved",
-    arrowDirection: "down",
+    arrowTarget: "tab-saved",
   },
   {
     title: "Settings",
     description: "Set your skill level, diet, allergies, equipment & cuisines. cocina adapts every recipe to you.",
     icon: <Settings size={28} className="text-gold" />,
-    tabHighlight: "settings",
-    arrowDirection: "down",
+    arrowTarget: "tab-settings",
   },
   {
     title: "You're all set!",
     description: "Start by checking your ingredients, then head to Meals and let cocina do the rest. Happy cooking! 🍳",
     icon: null,
-    tabHighlight: null,
-    arrowDirection: "none",
     useLogo: true,
   },
 ];
 
-const TAB_INDEX: Record<string, number> = { pantry: 0, meals: 1, saved: 2, settings: 3 };
-
-function ArrowToElement({ targetId, direction }: { targetId: string; direction: "up" | "down" }) {
+function ArrowToElement({ targetId }: { targetId: string }) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
-    const el = document.querySelector(`[data-tour-id="${targetId}"]`);
-    if (el) {
-      const rect = el.getBoundingClientRect();
-      setPos({ x: rect.left + rect.width / 2, y: direction === "up" ? rect.top - 8 : rect.bottom + 8 });
-    }
-  }, [targetId, direction]);
+    // Small delay to let layout settle
+    const timer = setTimeout(() => {
+      const el = document.querySelector(`[data-tour-id="${targetId}"]`);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        setPos({ x: rect.left + rect.width / 2, y: rect.top - 12 });
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [targetId]);
 
   if (!pos) return null;
-
-  const rotation = direction === "up" ? "rotate(180deg)" : "";
 
   return (
     <div
       className="fixed animate-bounce z-[101]"
-      style={{ left: pos.x - 12, top: direction === "up" ? pos.y - 24 : pos.y }}
+      style={{ left: pos.x - 12, top: pos.y - 20 }}
     >
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-gold" style={{ transform: rotation }}>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-gold">
         <path d="M12 4L12 20M12 20L6 14M12 20L18 14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </div>
@@ -140,13 +122,6 @@ export function AppTour({ onComplete }: { onComplete: () => void }) {
     localStorage.setItem(TOUR_SEEN_KEY, "true");
     setTimeout(onComplete, 300);
   };
-
-  const tabHighlightStyle = current.tabHighlight
-    ? {
-        left: `${(TAB_INDEX[current.tabHighlight] / 4) * 100 + 12.5}%`,
-        width: "25%",
-      }
-    : null;
 
   return (
     <div
@@ -211,40 +186,10 @@ export function AppTour({ onComplete }: { onComplete: () => void }) {
             )}
           </div>
         </div>
-
-        {/* Arrow pointing at specific element (e.g. scan receipt button) */}
-        {current.arrowDirection === "down" && current.arrowTarget && (
-          <ArrowToElement targetId={current.arrowTarget} direction="up" />
-        )}
-
-        {/* Arrow pointing down to the tab */}
-        {current.arrowDirection === "down" && !current.arrowTarget && tabHighlightStyle && (
-          <div
-            className="absolute bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] animate-bounce"
-            style={{ left: tabHighlightStyle.left, width: tabHighlightStyle.width, display: "flex", justifyContent: "center" }}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-gold">
-              <path d="M12 4L12 20M12 20L6 14M12 20L18 14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-        )}
       </div>
 
-      {/* Tab bar highlight overlay */}
-      {current.tabHighlight && (
-        <div className="relative h-0">
-          <div
-            className="absolute bottom-0 h-[calc(3.5rem+env(safe-area-inset-bottom))] transition-all duration-500 rounded-t-xl"
-            style={{
-              left: `${(TAB_INDEX[current.tabHighlight] / 4) * 100}%`,
-              width: "25%",
-              background: "hsla(34, 65%, 47%, 0.15)",
-              border: "2px solid hsla(34, 65%, 47%, 0.4)",
-              borderBottom: "none",
-            }}
-          />
-        </div>
-      )}
+      {/* Arrow pointing at target element */}
+      {current.arrowTarget && <ArrowToElement targetId={current.arrowTarget} />}
     </div>
   );
 }
