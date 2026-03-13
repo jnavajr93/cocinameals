@@ -123,10 +123,16 @@ export function MealsTab() {
       .channel(`meals-sync-${householdId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'household_profile', filter: `household_id=eq.${householdId}` }, () => loadMealsData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pantry_items', filter: `household_id=eq.${householdId}` }, () => loadMealsData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_preferences', filter: `user_id=eq.${user?.id}` }, () => {
+        loadMealsData();
+        // Clear AI cards so sections re-generate with updated diet restrictions
+        setAiCards({});
+        setShuffleKey(k => k + 1);
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [householdId]);
+  }, [householdId, user?.id]);
 
   // Pull-to-refresh handlers
   const handleTouchStart = useCallback((e: TouchEvent) => {
@@ -266,6 +272,16 @@ export function MealsTab() {
     }
 
     cards = cards.filter(c => !dislikedMeals.has(c.name));
+
+    // Apply diet restriction filters to local pool
+    const diets = profile?.dietRestrictions || [];
+    if (diets.length > 0 && !diets.includes("None")) {
+      cards = cards.filter(c => {
+        if ((diets.includes("Vegan") || diets.includes("Plant-Based Whole Foods")) && !c.tags.includes("vegan")) return false;
+        if (diets.includes("Vegetarian") && !c.tags.includes("vegetarian") && !c.tags.includes("vegan")) return false;
+        return true;
+      });
+    }
 
     const seed = shuffleKey + sectionId.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
     cards.sort((a, b) => Math.sin(seed * 9301 + cards.indexOf(a) * 49297) - Math.sin(seed * 9301 + cards.indexOf(b) * 49297));
