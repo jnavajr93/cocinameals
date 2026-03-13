@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { UtensilsCrossed, ShoppingCart, BookOpen, Settings, ChevronRight, Sparkles, ScanLine, ChefHat } from "lucide-react";
+import { UtensilsCrossed, ShoppingCart, BookOpen, Settings, ChevronRight, Sparkles, ChefHat } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { CocinaText } from "@/components/CocinaText";
 
 const TOUR_SEEN_KEY = "cocina_app_tour_seen";
 
@@ -8,17 +9,19 @@ interface TourStep {
   title: string;
   description: string;
   icon: React.ReactNode;
-  tabHighlight: string | null; // tab id to highlight
+  tabHighlight: string | null;
   arrowDirection: "down" | "none";
+  useLogo?: boolean;
 }
 
 const STEPS: TourStep[] = [
   {
-    title: "Welcome to cocina",
-    description: "Turn your pantry into restaurant-quality meals.\nLet's take a quick tour.",
-    icon: <ChefHat size={32} className="text-gold" />,
+    title: "",
+    description: "Cook what you have. Eat like a chef.\nLet's take a quick tour.",
+    icon: null,
     tabHighlight: null,
     arrowDirection: "none",
+    useLogo: true,
   },
   {
     title: "Ingredients",
@@ -51,9 +54,10 @@ const STEPS: TourStep[] = [
   {
     title: "You're all set!",
     description: "Start by checking your ingredients, then head to Meals and let cocina do the rest. Happy cooking! 🍳",
-    icon: <Sparkles size={32} className="text-gold" />,
+    icon: null,
     tabHighlight: null,
     arrowDirection: "none",
+    useLogo: true,
   },
 ];
 
@@ -117,14 +121,20 @@ export function AppTour({ onComplete }: { onComplete: () => void }) {
             ))}
           </div>
 
-          {/* Icon */}
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gold/10">
-            {current.icon}
-          </div>
+          {/* Icon or Logo */}
+          {current.useLogo ? (
+            <div className="flex flex-col items-center gap-2">
+              <Logo size="lg" />
+            </div>
+          ) : (
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gold/10">
+              {current.icon}
+            </div>
+          )}
 
           {/* Text */}
           <div>
-            <h2 className="font-display text-xl font-bold text-foreground mb-2">{current.title}</h2>
+            {current.title && <h2 className="font-display text-xl font-bold text-foreground mb-2">{current.title}</h2>}
             <p className="font-body text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
               {current.description}
             </p>
