@@ -566,7 +566,7 @@ export function MealsTab() {
             <Star size={16} fill={savedMealNames.has(recipeView.mealName) ? "currentColor" : "none"} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-4 pb-8">
+        <div className="flex-1 overflow-y-auto px-4 pb-32">
           {recipeView.loading && !recipeView.recipeText ? (
             <div className="space-y-3 mt-4">
               {[...Array(8)].map((_, i) => (

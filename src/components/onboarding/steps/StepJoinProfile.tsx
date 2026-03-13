@@ -9,9 +9,9 @@ interface Props {
 }
 
 const SKILL_LEVELS = [
-  { value: "beginner", label: "Beginner", desc: "Explain everything" },
-  { value: "intermediate", label: "Intermediate", desc: "Know the basics" },
-  { value: "confident", label: "Confident", desc: "Just the essentials" },
+  { value: "beginner", label: "Beginner", desc: "Simple, approachable meals" },
+  { value: "intermediate", label: "Intermediate", desc: "Balanced techniques & flavors" },
+  { value: "confident", label: "Confident", desc: "Challenge me — restaurant-level" },
 ];
 
 export function StepJoinProfile({ profile, update, onFinish, saving, householdName }: Props) {

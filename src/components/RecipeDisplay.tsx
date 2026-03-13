@@ -245,6 +245,9 @@ export function RecipeDisplay({ text, loading }: RecipeDisplayProps) {
       )}
 
       {loading && <span className="animate-pulse text-gold font-body text-lg">|</span>}
+
+      {/* Dead space so Next Level Tip isn't cut off by bottom nav */}
+      <div className="h-32" />
     </div>
   );
 }
