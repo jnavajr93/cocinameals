@@ -490,32 +490,40 @@ export function MealsTab() {
     if (!recipeView || !recipeView.recipeText) return;
 
     try {
-      toast.info("Creating recipe card…");
-      const blob = await generateRecipeCard(recipeView.mealName, recipeView.recipeText);
-      const file = new File([blob], `${recipeView.mealName.replace(/\s+/g, "-").toLowerCase()}-cocina.png`, { type: "image/png" });
+      toast.info("Creating share link…");
 
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      // Save recipe to shared_recipes table
+      const { data, error } = await supabase
+        .from("shared_recipes")
+        .insert({
+          meal_name: recipeView.mealName,
+          recipe_text: recipeView.recipeText,
+          tags: recipeView.tags ?? [],
+          shared_by_name: userName || null,
+        })
+        .select("id")
+        .single();
+
+      if (error || !data) {
+        throw new Error("Failed to create share link");
+      }
+
+      const shareUrl = `${window.location.origin}/recipe/${data.id}`;
+      const shareText = `🍽️ ${recipeView.mealName} — check out this recipe from cocina!`;
+
+      if (navigator.share) {
         await navigator.share({
           title: recipeView.mealName,
-          text: `🍽️ ${recipeView.mealName} — via cocina`,
-          files: [file],
+          text: shareText,
+          url: shareUrl,
         });
       } else {
-        // Fallback: download the image
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = file.name;
-        a.click();
-        URL.revokeObjectURL(url);
-        toast.success("Recipe card downloaded!");
+        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+        toast.success("Share link copied to clipboard!");
       }
     } catch (e: any) {
       if (e.name !== "AbortError") {
-        // Final fallback: copy text
-        const shareText = `🍽️ ${recipeView.mealName}\n\n${recipeView.recipeText}\n\n— — —\nMade with cocina · smart meal planning\ncocinameals.lovable.app`;
-        await navigator.clipboard.writeText(shareText);
-        toast.success("Recipe copied to clipboard");
+        toast.error("Couldn't share recipe. Try again.");
       }
     }
   };
