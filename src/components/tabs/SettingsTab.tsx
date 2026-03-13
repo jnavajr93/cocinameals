@@ -593,53 +593,7 @@ export function SettingsTab() {
           )}
         </section>
 
-        {/* Health Conditions */}
-        <section className="border-b border-border">
-          <button onClick={() => toggle("health")} className="flex items-center justify-between w-full py-3">
-            <div className="flex items-center gap-2">
-              <h2 className="font-display text-base font-bold text-foreground">Health Conditions</h2>
-            </div>
-            {expanded.has("health") ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
-          </button>
-          {expanded.has("health") && (
-            <div className="pb-4 space-y-4">
-              <p className="font-body text-xs text-muted-foreground">Recipes quietly adapt to these conditions. Any household member can update these.</p>
 
-              {members.map(member => (
-                <div key={member.id}>
-                  <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{member.user_name}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {HEALTH_CONDITIONS.map(h => (
-                      <button key={h} onClick={() => toggleMemberHealth(member.id, h)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${(member.health_conditions || []).includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              {children.map(child => (
-                <div key={child.id}>
-                  <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{child.name || "Child"}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {HEALTH_CONDITIONS.map(h => (
-                      <button key={h} onClick={() => toggleChildHealth(child.id, h)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${(child.health_conditions || []).includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              {nonAppMembers.map((member, i) => (
-                <div key={`non-${i}`}>
-                  <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{member.name}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {HEALTH_CONDITIONS.map(h => (
-                      <button key={h} onClick={() => toggleNonAppMemberHealth(i, h)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${(member.healthConditions || []).includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
 
         {/* Meal Schedule (renamed from Meal Sections) */}
         <section className="border-b border-border">
