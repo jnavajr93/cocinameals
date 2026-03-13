@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { MEAL_POOLS, MealCard } from "@/data/mealPools";
 import { DEFAULT_SECTION_TIMES } from "@/data/mealSections";
 import { toast } from "sonner";
-import { getPantryHash, getMealPool, addToMealPool, pickFromPool, getRecentSuggestions, addRecentSuggestions } from "@/lib/mealCache";
+import { getPantryHash, getMealPool, addToMealPool, pickFromPool, getRecentSuggestions, addRecentSuggestions, isAiThrottled, recordAiCall } from "@/lib/mealCache";
 
 interface MealCardWithCookTime extends MealCard {
   cookTime?: number;
