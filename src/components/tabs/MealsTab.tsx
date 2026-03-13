@@ -641,6 +641,82 @@ export function MealsTab() {
     }
   };
 
+  // Missing ingredients button state
+  const [addedMissing, setAddedMissing] = useState<"idle" | "added" | "all_in_stock">("idle");
+
+  const addMissingIngredientsFromRecipe = async () => {
+    if (!recipeView || !householdId) return;
+
+    try {
+      // Parse ingredients from recipe text
+      const lines = recipeView.recipeText.split("\n");
+      let inIngredients = false;
+      const recipeIngredients: string[] = [];
+      for (const line of lines) {
+        const trimmed = line.trim();
+        const upper = trimmed.toUpperCase();
+        if (upper === "INGREDIENT LIST" || upper === "INGREDIENTS") { inIngredients = true; continue; }
+        if (upper === "PREP FIRST" || upper === "PREP STEPS" || upper === "PREPARATION" || upper === "COOKING STEPS" || upper === "COOKING") { inIngredients = false; continue; }
+        if (inIngredients && trimmed) {
+          // Strip bullet, quantity — extract just the ingredient name
+          const cleaned = trimmed.replace(/^[-•]\s*/, "").replace(/^\d+[\/.]\d*\s*(cups?|tbsp|tsp|oz|lbs?|g|ml|pieces?|cloves?|stalks?|cans?|bunch|head)?\s*/i, "").trim();
+          if (cleaned) recipeIngredients.push(cleaned);
+        }
+      }
+
+      // Also use missingIngredients from card if available
+      const missingFromCard = recipeView.missingIngredients || [];
+      const allMissing = missingFromCard.length > 0 ? missingFromCard : recipeIngredients;
+
+      if (allMissing.length === 0) {
+        setAddedMissing("all_in_stock");
+        toast.success("You already have everything for this meal. Head to your pantry to get started.");
+        return;
+      }
+
+      // Check which ones are already in stock
+      const { data: pantryData } = await supabase
+        .from("pantry_items")
+        .select("name, in_stock")
+        .eq("household_id", householdId);
+
+      const inStockNames = new Set((pantryData || []).filter(p => p.in_stock).map(p => p.name.toLowerCase()));
+      const existingNames = new Set((pantryData || []).map(p => p.name.toLowerCase()));
+
+      const toAdd = allMissing.filter(name => !inStockNames.has(name.toLowerCase()));
+
+      if (toAdd.length === 0) {
+        setAddedMissing("all_in_stock");
+        toast.success("You already have everything for this meal. Head to your pantry to get started.");
+        return;
+      }
+
+      // Add only truly new items
+      const newItems = toAdd.filter(name => !existingNames.has(name.toLowerCase()));
+      if (newItems.length > 0) {
+        const rows = newItems.map(name => ({
+          household_id: householdId,
+          name,
+          category: "Shopping List",
+          in_stock: false,
+          is_custom: true,
+          is_hidden: false,
+        }));
+        await supabase.from("pantry_items").insert(rows);
+      }
+
+      setAddedMissing("added");
+      toast.success(`${toAdd.length} ingredient${toAdd.length > 1 ? "s" : ""} added to your shopping list.`);
+    } catch {
+      toast.error("Couldn't add ingredients. Try again.");
+    }
+  };
+
+  // Reset missing state when recipe changes
+  useEffect(() => {
+    setAddedMissing("idle");
+  }, [recipeView?.mealName]);
+
   // Recipe view
   if (recipeView) {
     return (
@@ -699,9 +775,45 @@ export function MealsTab() {
               ))}
             </div>
           ) : (
-            <RecipeDisplay text={recipeView.recipeText} loading={recipeView.loading} />
+            <>
+              <RecipeDisplay text={recipeView.recipeText} loading={recipeView.loading} />
+              {/* Add missing ingredients button — Discover mode only */}
+              {recipeView.discoverMode && !recipeView.loading && recipeView.recipeText && (
+                <div className="mt-4 mb-8">
+                  {addedMissing === "idle" && (
+                    <button
+                      onClick={addMissingIngredientsFromRecipe}
+                      className="w-full rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 font-body text-sm font-medium text-foreground transition-colors hover:bg-gold/20"
+                    >
+                      Add missing ingredients to shopping list
+                    </button>
+                  )}
+                  {addedMissing === "added" && (
+                    <div className="w-full rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 flex items-center justify-center gap-2">
+                      <Check size={16} className="text-gold" />
+                      <span className="font-body text-sm font-medium text-foreground">Added to shopping list</span>
+                    </div>
+                  )}
+                  {addedMissing === "all_in_stock" && (
+                    <div className="w-full rounded-xl border border-success/30 bg-success/10 px-4 py-3 flex items-center justify-center gap-2">
+                      <Check size={16} className="text-success" />
+                      <span className="font-body text-sm font-medium text-foreground">Everything's in stock</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
+        {/* Cooking assistant */}
+        {recipeView.recipeText && !recipeView.loading && (
+          <CookingAssistantChat
+            recipeName={recipeView.mealName}
+            recipeText={recipeView.recipeText}
+            equipment={profile?.equipment || []}
+            skillLevel={profile?.skillLevel || "intermediate"}
+          />
+        )}
       </div>
     );
   }
