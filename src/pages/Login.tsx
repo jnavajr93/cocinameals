@@ -396,7 +396,7 @@ export default function Login() {
               onClick={() => setView("signup")}
               className="w-full rounded-lg bg-gold px-6 py-3.5 font-body font-semibold text-gold-foreground transition-colors hover:opacity-90"
             >
-              Claim your early access — it's free
+              Claim your early access, it's free
             </button>
             <p className="font-body text-xs text-primary-foreground/50">
               Already a member?{" "}
