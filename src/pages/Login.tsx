@@ -385,8 +385,8 @@ export default function Login() {
           <div className="rounded-full bg-gold/20 px-4 py-1.5 font-body text-xs font-semibold text-gold tracking-wide uppercase">
             🚀 Early Access — Limited Spots
           </div>
-          <h2 className="font-display text-2xl md:text-3xl font-bold text-primary-foreground">
-            Stop wasting food. Start cooking smarter.
+          <h2 className="font-display text-2xl md:text-3xl font-bold text-primary-foreground whitespace-nowrap">
+            Stop wasting food.<br />Start cooking smarter.
           </h2>
           <p className="font-body text-sm text-primary-foreground/70 max-w-sm">
             We're opening up to a small group of early users. Get in now and help us build the smartest kitchen assistant ever made.
