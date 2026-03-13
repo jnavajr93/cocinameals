@@ -359,6 +359,14 @@ export function MealsTab() {
       setShuffleCooldowns(prev => ({ ...prev, [sectionId]: false }));
     }, 8000);
 
+    // Try pool first — if pool has enough, just pick fresh from pool
+    const poolMeals = pickFromPool(sectionId, currentPantryHash, filterInStockOnly, 3);
+    if (poolMeals.length >= 3 && isPoolFull(sectionId, currentPantryHash, filterInStockOnly)) {
+      setAiCards(prev => ({ ...prev, [sectionId]: poolMeals }));
+      trackRecentMeals(poolMeals);
+      return;
+    }
+
     setAiLoading(prev => ({ ...prev, [sectionId]: true }));
     try {
       const { data, error } = await supabase.functions.invoke("suggest-meals", {
@@ -373,13 +381,23 @@ export function MealsTab() {
         },
       });
       if (error) throw error;
-      if (Array.isArray(data)) {
+      if (Array.isArray(data) && data.length > 0) {
+        addToMealPool(sectionId, currentPantryHash, filterInStockOnly, data);
         setAiCards(prev => ({ ...prev, [sectionId]: data }));
-        setCachedMeals(sectionId, currentPantryHash, filterInStockOnly, data);
         trackRecentMeals(data);
+      } else if (poolMeals.length > 0) {
+        // AI returned empty (e.g. usage limit) — use pool
+        setAiCards(prev => ({ ...prev, [sectionId]: poolMeals }));
+        trackRecentMeals(poolMeals);
       }
     } catch (e) {
-      setShuffleKey(k => k + 1);
+      // Fallback: use pool if available, else local shuffle
+      if (poolMeals.length > 0) {
+        setAiCards(prev => ({ ...prev, [sectionId]: poolMeals }));
+        trackRecentMeals(poolMeals);
+      } else {
+        setShuffleKey(k => k + 1);
+      }
       toast.error("AI unavailable, shuffled locally");
     }
     setAiLoading(prev => ({ ...prev, [sectionId]: false }));
@@ -387,35 +405,40 @@ export function MealsTab() {
 
   // Batch load all active sections at once
   const batchLoadSections = async (sections: { id: string; name: string }[]) => {
-    // Check cache first, collect uncached sections
-    const uncached: string[] = [];
-    const fromCache: Record<string, MealCardWithCookTime[]> = {};
+    const needsAI: string[] = [];
+    const fromPool: Record<string, MealCardWithCookTime[]> = {};
 
     for (const section of sections) {
-      const cached = getCachedMeals(section.id, currentPantryHash, filterInStockOnly);
-      if (cached) {
-        fromCache[section.id] = cached;
-      } else {
-        uncached.push(section.id);
+      const pool = getMealPool(section.id, currentPantryHash, filterInStockOnly);
+      if (pool.length >= 3) {
+        // Serve from pool immediately
+        const picked = pickFromPool(section.id, currentPantryHash, filterInStockOnly, 3);
+        fromPool[section.id] = picked;
+      }
+      // Always try to grow the pool if not full
+      if (!isPoolFull(section.id, currentPantryHash, filterInStockOnly)) {
+        needsAI.push(section.id);
       }
     }
 
-    // Apply cached results immediately
-    if (Object.keys(fromCache).length > 0) {
-      setAiCards(prev => ({ ...prev, ...fromCache }));
+    // Apply pool results immediately
+    if (Object.keys(fromPool).length > 0) {
+      setAiCards(prev => ({ ...prev, ...fromPool }));
     }
 
-    if (uncached.length === 0) return;
+    if (needsAI.length === 0) return;
 
-    // Set loading for uncached sections
+    // Set loading only for sections that don't have pool results yet
     const loadingUpdate: Record<string, boolean> = {};
-    uncached.forEach(id => { loadingUpdate[id] = true; });
-    setAiLoading(prev => ({ ...prev, ...loadingUpdate }));
+    needsAI.forEach(id => { if (!fromPool[id]) loadingUpdate[id] = true; });
+    if (Object.keys(loadingUpdate).length > 0) {
+      setAiLoading(prev => ({ ...prev, ...loadingUpdate }));
+    }
 
     try {
       const { data, error } = await supabase.functions.invoke("suggest-meals", {
         body: {
-          sections: uncached,
+          sections: needsAI,
           pantryItems: pantryInStock,
           expiringItems,
           profile,
@@ -428,20 +451,28 @@ export function MealsTab() {
       if (data && typeof data === "object" && !Array.isArray(data)) {
         const newCards: Record<string, MealCardWithCookTime[]> = {};
         for (const [sectionId, meals] of Object.entries(data)) {
-          if (Array.isArray(meals)) {
-            newCards[sectionId] = meals as MealCardWithCookTime[];
-            setCachedMeals(sectionId, currentPantryHash, filterInStockOnly, meals as MealCardWithCookTime[]);
+          if (Array.isArray(meals) && meals.length > 0) {
+            addToMealPool(sectionId, currentPantryHash, filterInStockOnly, meals as MealCardWithCookTime[]);
+            // Only update displayed cards if we didn't already have pool results
+            if (!fromPool[sectionId]) {
+              newCards[sectionId] = meals as MealCardWithCookTime[];
+            }
             trackRecentMeals(meals as MealCardWithCookTime[]);
           }
         }
-        setAiCards(prev => ({ ...prev, ...newCards }));
+        if (Object.keys(newCards).length > 0) {
+          setAiCards(prev => ({ ...prev, ...newCards }));
+        }
       }
     } catch {
-      toast.error("AI unavailable, showing local suggestions");
+      // Pool results already shown if available
+      if (Object.keys(fromPool).length === 0) {
+        toast.error("AI unavailable, showing local suggestions");
+      }
     }
 
     const loadingClear: Record<string, boolean> = {};
-    uncached.forEach(id => { loadingClear[id] = false; });
+    needsAI.forEach(id => { loadingClear[id] = false; });
     setAiLoading(prev => ({ ...prev, ...loadingClear }));
   };
 
