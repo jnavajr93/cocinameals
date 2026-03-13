@@ -86,7 +86,7 @@ const TESTIMONIALS = [
     detail: "Family of 4, Phoenix AZ",
   },
   {
-    quote: "My kids are picky and my wife has celiac. cocina is the first app that actually accounts for all of us.",
+    quote: "My kids are picky and my wife has celiac. Cocina is the first app that actually accounts for all of us.",
     name: "Ricardo M.",
     detail: "Family of 5, Tucson AZ",
   },
