@@ -361,7 +361,7 @@ export default function Login() {
             Early users are loving it
           </h2>
           <p className="font-body text-muted-foreground text-center mb-12 max-w-md mx-auto">
-            Real households, real results — from our founding members.
+            Real households, real results from our founding members.
           </p>
           <div className="grid md:grid-cols-3 gap-6">
             {TESTIMONIALS.map((t) => (
