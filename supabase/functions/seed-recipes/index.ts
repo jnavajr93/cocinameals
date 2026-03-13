@@ -1302,7 +1302,7 @@ function generateRecipeText(name: string, cuisine: string, protein: string | nul
 
   // Add tip and macros
   lines.push("");
-  lines.push(`NEXT LEVEL TIP: ${getProTip(dishType, cuisine, protein)}`);
+  lines.push(`NEXT LEVEL TIP: ${getProTip(dishType, cuisine, protein, name)}`);
   lines.push("");
   lines.push(`SERVES: 2 people | Cook time: ${cookTime} min`);
 
