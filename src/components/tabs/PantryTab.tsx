@@ -557,10 +557,13 @@ export function PantryTab() {
       <div className="flex-1 overflow-y-auto px-4 pb-24">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center">
+            <ShoppingCart size={32} className="text-muted-foreground/30 mb-3" />
             <p className="font-body text-sm text-muted-foreground">
               {search
                 ? "No items match your search."
-                : "No ingredients yet. Tap + to add items."}
+                : viewMode === "shopping"
+                  ? "Your shopping list is empty. Add items from recipe cards using the cart icon."
+                  : "No ingredients yet. Tap + to add items."}
             </p>
           </div>
         ) : (
