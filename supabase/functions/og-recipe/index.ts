@@ -1,7 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
 
@@ -58,10 +57,11 @@ serve(async (req) => {
 </html>`;
 
   return new Response(html, {
-    headers: {
-      "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "public, max-age=3600",
-    },
+    status: 200,
+    headers: new Headers({
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "public, max-age=3600",
+    }),
   });
 });
 
