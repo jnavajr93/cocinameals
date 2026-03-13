@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Search, Check, Plus, ChevronDown, ChevronRight, Copy, Camera, Loader2, X, Trash2, Info, CalendarDays, ShoppingCart } from "lucide-react";
+import { Search, Check, Plus, ChevronDown, ChevronRight, Camera, Loader2, X, Trash2, Info, CalendarDays, ShoppingCart } from "lucide-react";
 import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
