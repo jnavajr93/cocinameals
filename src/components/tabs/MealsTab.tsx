@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { RefreshCw, Star, Send, ThumbsUp, ThumbsDown, ChevronDown, X, Filter, Clock, Flame, UtensilsCrossed, ArrowLeft, Users, ShoppingCart, Check } from "lucide-react";
 import { CookingAssistantChat } from "@/components/CookingAssistantChat";
 import { RecipeDisplay } from "@/components/RecipeDisplay";
+import { extractIngredientName, findPantryMatch } from "@/lib/ingredientMatch";
 import { supabase } from "@/integrations/supabase/client";
 import { useHousehold } from "@/hooks/useHousehold";
 import { useAuth } from "@/hooks/useAuth";
