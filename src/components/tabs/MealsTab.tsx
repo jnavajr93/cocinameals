@@ -36,6 +36,8 @@ export function MealsTab() {
   const [mealSections, setMealSections] = useState<{ id: string; name: string; enabled: boolean; order: number }[]>([]);
   const [aiCards, setAiCards] = useState<Record<string, MealCardWithCookTime[]>>({});
   const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
+  const [shuffleCooldowns, setShuffleCooldowns] = useState<Record<string, boolean>>({});
+  const [batchLoaded, setBatchLoaded] = useState(false);
   const [savedMealNames, setSavedMealNames] = useState<Set<string>>(new Set());
   const [likedMeals, setLikedMeals] = useState<Set<string>>(new Set());
   const [dislikedMeals, setDislikedMeals] = useState<Set<string>>(new Set());
