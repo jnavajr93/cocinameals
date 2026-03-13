@@ -88,6 +88,7 @@ export function Onboarding({ onComplete, previewMode }: OnboardingProps) {
     quickFilters: [],
     bulkCookDays: [],
     children: [],
+    selectedIngredients: [],
   });
 
   const update = useCallback(
