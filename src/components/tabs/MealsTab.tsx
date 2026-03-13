@@ -347,11 +347,118 @@ export function MealsTab() {
 
   const currentPantryHash = useMemo(() => getPantryHash(pantryInStock), [pantryInStock]);
 
+  const getRecipeCacheKey = useCallback((mealName: string) => {
+    return `recipe_${mealName.replace(/\s+/g, "_").toLowerCase()}`;
+  }, []);
+
   const trackRecentMeals = useCallback((meals: MealCardWithCookTime[]) => {
     addRecentSuggestions(meals.map(m => m.name));
   }, []);
 
-  const shuffleSection = async (sectionId: string) => {
+  const getSectionSeedMeals = useCallback((sectionId: string): MealCardWithCookTime[] => {
+    const pool = (MEAL_POOLS[sectionId] || []) as MealCardWithCookTime[];
+    return pool.map(meal => ({
+      ...meal,
+      cookTime: meal.cookTime ?? DEFAULT_SECTION_TIMES[sectionId] ?? 30,
+    }));
+  }, []);
+
+  const ensureSectionPool = useCallback((sectionId: string): MealCardWithCookTime[] => {
+    let pool = getMealPool(sectionId, currentPantryHash, filterInStockOnly) as MealCardWithCookTime[];
+    if (pool.length >= 3) return pool;
+
+    const seeds = getSectionSeedMeals(sectionId);
+    if (seeds.length > 0) {
+      pool = addToMealPool(sectionId, currentPantryHash, filterInStockOnly, seeds) as MealCardWithCookTime[];
+    }
+
+    return pool;
+  }, [currentPantryHash, filterInStockOnly, getSectionSeedMeals]);
+
+  const buildLocalRecipeText = useCallback((card: MealCardWithCookTime, isBaby = false, sectionId?: string) => {
+    const mealNameLower = card.name.toLowerCase();
+    const proteinHint = mealNameLower.includes("chicken") ? "chicken" :
+      mealNameLower.includes("beef") || mealNameLower.includes("steak") ? "beef" :
+      mealNameLower.includes("pork") ? "pork" :
+      mealNameLower.includes("shrimp") ? "shrimp" :
+      mealNameLower.includes("salmon") || mealNameLower.includes("fish") ? "fish" :
+      mealNameLower.includes("tofu") ? "tofu" :
+      mealNameLower.includes("egg") ? "eggs" : "protein of choice";
+
+    const pantryBased = pantryInStock.slice(0, 6);
+    const defaults = [proteinHint, "onion", "garlic", "olive oil", "salt", "black pepper"];
+    const mergedIngredients = Array.from(new Set([...pantryBased, ...defaults])).slice(0, 8);
+    const cookTime = card.cookTime ?? DEFAULT_SECTION_TIMES[sectionId || "dinner"] ?? 30;
+    const missing = card.missingIngredients || [];
+
+    const ingredientLines = [
+      ...mergedIngredients.map(item => `- 1 portion ${item}`),
+      ...missing.map(item => `- 1 portion ${item} (missing item)`),
+    ].join("\n");
+
+    const babySafety = isBaby
+      ? "\nBABY SERVING NOTES\n- No honey, no added salt, no added sugar.\n- Serve soft, fingertip-size pieces and cool to lukewarm before serving."
+      : "";
+
+    return [
+      "INGREDIENT LIST",
+      ingredientLines,
+      "",
+      "PREP FIRST",
+      "1. Wash, peel, and chop all produce before heat is on.",
+      `2. Measure seasonings and prep ${proteinHint} so cooking stays smooth.",
+      "",
+      "COOKING STEPS",
+      "Step 1 — pan: medium heat.",
+      "Add oil and aromatics; cook 2-3 minutes until fragrant.",
+      "  - Use 1 portion olive oil and 1 portion onion",
+      "  - Done when: onions are translucent and smell sweet.",
+      "Step 2 — pan: medium-high heat.",
+      `Add ${proteinHint} and sear, stirring as needed for even browning.",
+      `  - Use 1 portion ${proteinHint}",
+      "  - Done when: protein is cooked through and lightly caramelized.",
+      "Step 3 — pan: medium-low heat.",
+      `Add remaining ingredients and simmer 4-6 minutes; adjust texture for ${card.name}.",
+      "  - Use remaining prepared ingredients",
+      "  - Done when: sauce lightly coats the spoon and flavors are balanced.",
+      "",
+      "NEXT LEVEL TIP: Deglaze the pan with a small splash of water and fold that flavor back into the dish for more depth.",
+      "",
+      `ESTIMATED: ${Math.round(card.cal || 450)} cal | P:${Math.round(card.protein || 25)}g C:${Math.round(card.carbs || 35)}g F:${Math.round(card.fat || 18)}g`,
+      `SERVES: 2 people | Cook time: ${cookTime} min`,
+      babySafety,
+    ].join("\n").trim();
+  }, [pantryInStock]);
+
+  const getLocalCravingPicks = useCallback((query: string, count: number): MealCardWithCookTime[] => {
+    const q = query.trim().toLowerCase();
+    const sectionIds = activeSectionsRef.current.map(s => s.id);
+    const byName = new Map<string, MealCardWithCookTime>();
+
+    for (const sectionId of sectionIds) {
+      const pool = ensureSectionPool(sectionId);
+      pool.forEach(meal => {
+        if (!dislikedMeals.has(meal.name)) byName.set(meal.name, meal);
+      });
+    }
+
+    const candidates = Array.from(byName.values());
+    if (candidates.length === 0) return [];
+
+    const tokenMatches = candidates.filter(meal => {
+      const inName = meal.name.toLowerCase().includes(q);
+      const inTags = (meal.tags || []).some(tag => tag.toLowerCase().includes(q.replace(/\s+/g, "_")) || q.includes(tag.toLowerCase().replace(/_/g, " ")));
+      return inName || inTags;
+    });
+
+    const source = tokenMatches.length > 0 ? tokenMatches : candidates;
+    const shuffled = [...source].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
+  }, [dislikedMeals, ensureSectionPool]);
+
+  const persistRecipeLocally = useCallback((mealName: string, recipeText: string) => {
+    localStorage.setItem(getRecipeCacheKey(mealName), JSON.stringify({ text: recipeText, ts: Date.now() }));
+  }, [getRecipeCacheKey]);
     if (shuffleCooldowns[sectionId]) return;
 
     // Start cooldown
