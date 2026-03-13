@@ -34,7 +34,8 @@ const STEPS: TourStep[] = [
     description: "Snap a photo of your grocery receipt and we'll auto-add items with expiration dates. Still in beta — getting smarter every day!",
     icon: <Camera size={28} className="text-gold" />,
     tabHighlight: "pantry",
-    arrowDirection: "none",
+    arrowDirection: "down",
+    arrowTarget: "scan-receipt",
   },
   {
     title: "Meals",
