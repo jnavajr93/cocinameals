@@ -132,7 +132,7 @@ export function MealsTab() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [householdId]);
+  }, [householdId, user?.id]);
 
   // Pull-to-refresh handlers
   const handleTouchStart = useCallback((e: TouchEvent) => {
