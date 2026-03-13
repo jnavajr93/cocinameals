@@ -1024,24 +1024,29 @@ export function MealsTab() {
           </div>
         )}
 
-        {/* In-Stock / Discover toggle */}
-        <div className="flex items-center rounded-full bg-secondary p-0.5 mb-2 w-fit">
-          <button
-            onClick={() => setFilterInStockOnly(true)}
-            className={`rounded-full px-4 py-1.5 font-body text-xs font-medium transition-colors ${
-              filterInStockOnly ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-            }`}
-          >
-            In-Stock Only
-          </button>
-          <button
-            onClick={() => setFilterInStockOnly(false)}
-            className={`rounded-full px-4 py-1.5 font-body text-xs font-medium transition-colors ${
-              !filterInStockOnly ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-            }`}
-          >
-            ✨ Discover
-          </button>
+        {/* In My Pantry / Discover toggle */}
+        <div className="flex flex-col mb-2">
+          <div className="flex items-center rounded-full bg-secondary p-0.5 w-fit">
+            <button
+              onClick={() => setFilterInStockOnly(true)}
+              className={`rounded-full px-4 py-1.5 font-body text-xs font-medium transition-colors ${
+                filterInStockOnly ? "bg-gold text-gold-foreground shadow-sm" : "text-muted-foreground"
+              }`}
+            >
+              In My Pantry
+            </button>
+            <button
+              onClick={() => setFilterInStockOnly(false)}
+              className={`rounded-full px-4 py-1.5 font-body text-xs font-medium transition-colors ${
+                !filterInStockOnly ? "bg-gold text-gold-foreground shadow-sm" : "text-muted-foreground"
+              }`}
+            >
+              ✨ Discover
+            </button>
+          </div>
+          {!filterInStockOnly && (
+            <p className="font-body text-xs text-muted-foreground mt-1 ml-1">Showing meals beyond your current pantry</p>
+          )}
         </div>
 
         {/* Meal suggestion filters */}
