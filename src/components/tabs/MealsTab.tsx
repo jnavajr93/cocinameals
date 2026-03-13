@@ -172,11 +172,9 @@ export function MealsTab() {
       setPullRefreshing(true);
       setPullDistance(50);
       setAiCards({});
+      setBatchLoaded(false);
       setShuffleKey(k => k + 1);
       await loadMealsData();
-      for (const section of activeSectionsRef.current) {
-        shuffleSection(section.id);
-      }
       setPullRefreshing(false);
     }
     setPullDistance(0);
