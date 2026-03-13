@@ -39,6 +39,7 @@ export interface OnboardingProfile {
 
 interface OnboardingProps {
   onComplete: () => void;
+  previewMode?: boolean;
 }
 
 function generateInviteCode(): string {
@@ -50,7 +51,7 @@ function generateInviteCode(): string {
 
 const TOTAL_STEPS = 8;
 
-export function Onboarding({ onComplete }: OnboardingProps) {
+export function Onboarding({ onComplete, previewMode }: OnboardingProps) {
   const { user } = useAuth();
   const [started, setStarted] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState("en");
@@ -122,6 +123,10 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   };
 
   const finish = async () => {
+    if (previewMode) {
+      onComplete();
+      return;
+    }
     if (!user) return;
     setSaving(true);
 

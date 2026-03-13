@@ -15,9 +15,9 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
-export function AppShell() {
+export function AppShell({ forceShowTour }: { forceShowTour?: boolean }) {
   const [activeTab, setActiveTab] = useState<TabId>("pantry");
-  const { showTour, closeTour } = useAppTour();
+  const { showTour, closeTour } = useAppTour(forceShowTour);
 
   return (
     <div className="flex flex-col h-screen bg-background">

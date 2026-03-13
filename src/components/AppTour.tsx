@@ -249,16 +249,20 @@ export function AppTour({ onComplete }: { onComplete: () => void }) {
   );
 }
 
-export function useAppTour() {
+export function useAppTour(forceShow?: boolean) {
   const [showTour, setShowTour] = useState(false);
 
   useEffect(() => {
+    if (forceShow) {
+      setShowTour(true);
+      return;
+    }
     const seen = localStorage.getItem(TOUR_SEEN_KEY);
     if (!seen) {
       const timer = setTimeout(() => setShowTour(true), 800);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [forceShow]);
 
   return { showTour, closeTour: () => setShowTour(false) };
 }
