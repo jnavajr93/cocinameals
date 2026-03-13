@@ -628,20 +628,25 @@ export function MealsTab() {
     const options: Record<string, { label: string; value: string }[]> = {
       cookTime: [
         { label: "Any", value: "" },
+        { label: "No Cook", value: "No Cook" },
         { label: "Under 15 min", value: "Under 15 min" },
         { label: "Under 30 min", value: "Under 30 min" },
-        { label: "Under 45 min", value: "Under 45 min" },
-        { label: "1 hr+", value: "1 hr+" },
+        { label: "Under 60 min", value: "Under 60 min" },
       ],
       protein: [
         { label: "Any", value: "" },
-        { label: "Chicken", value: "Chicken" },
-        { label: "Beef", value: "Beef" },
+        { label: "Chicken Breast", value: "Chicken Breast" },
+        { label: "Chicken Thigh", value: "Chicken Thigh" },
+        { label: "Chicken Drumsticks", value: "Chicken Drumsticks" },
+        { label: "Steaks", value: "Steaks" },
+        { label: "Ground Beef", value: "Ground Beef" },
         { label: "Pork", value: "Pork" },
-        { label: "Seafood", value: "Seafood" },
+        { label: "Salmon", value: "Salmon" },
+        { label: "Shrimp", value: "Shrimp" },
+        { label: "Tuna", value: "Tuna" },
+        { label: "Tilapia", value: "Tilapia" },
         { label: "Eggs", value: "Eggs" },
-        { label: "Plant-Based", value: "Plant-Based" },
-        { label: "Use What's Expiring", value: "Use What's Expiring" },
+        { label: "Plant Based", value: "Plant Based" },
       ],
       cuisine: [
         { label: "My Profile", value: "" },
@@ -667,9 +672,8 @@ export function MealsTab() {
         { label: "Air Fryer Only", value: "Air Fryer Only" },
         { label: "One Pan", value: "One Pan" },
         { label: "Oven Only", value: "Oven Only" },
-        { label: "Stovetop Only", value: "Stovetop Only" },
         { label: "Grill", value: "Grill" },
-        { label: "No Cook", value: "No Cook" },
+        { label: "Griddle", value: "Griddle" },
       ],
     };
 
