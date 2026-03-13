@@ -202,15 +202,14 @@ export function MealsTab() {
   const activeFiltersList = useMemo(() => {
     const list: { key: string; label: string }[] = [];
     if (filterCookTime) list.push({ key: "cookTime", label: filterCookTime });
+    if (filterMethod) list.push({ key: "method", label: filterMethod });
     if (filterProtein) list.push({ key: "protein", label: filterProtein });
     if (filterPeople) list.push({ key: "people", label: filterPeople });
-    if (filterMethod) list.push({ key: "method", label: filterMethod });
     if (filterCuisine) list.push({ key: "cuisine", label: filterCuisine });
-    if (filterInStockOnly) list.push({ key: "inStock", label: "In-Stock Only" });
     if (filterMustInclude) list.push({ key: "mustInclude", label: filterMustInclude });
     if (activeFilter) list.push({ key: "quick", label: activeFilter });
     return list;
-  }, [filterCookTime, filterProtein, filterCuisine, filterMethod, filterInStockOnly, filterMustInclude, activeFilter]);
+  }, [filterCookTime, filterProtein, filterCuisine, filterMethod, filterMustInclude, activeFilter]);
 
   // Auto-refresh all sections when any filter changes
   const filtersSignature = JSON.stringify([filterCookTime, filterProtein, filterPeople, filterCuisine, filterMethod, filterInStockOnly, filterMustInclude, activeFilter]);
