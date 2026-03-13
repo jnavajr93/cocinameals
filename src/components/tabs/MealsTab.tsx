@@ -773,13 +773,33 @@ export function MealsTab() {
           </div>
         )}
 
+        {/* In-Stock / Discover toggle */}
+        <div className="flex items-center rounded-full bg-secondary p-0.5 mb-2 w-fit">
+          <button
+            onClick={() => setFilterInStockOnly(true)}
+            className={`rounded-full px-4 py-1.5 font-body text-xs font-medium transition-colors ${
+              filterInStockOnly ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+            }`}
+          >
+            In-Stock Only
+          </button>
+          <button
+            onClick={() => setFilterInStockOnly(false)}
+            className={`rounded-full px-4 py-1.5 font-body text-xs font-medium transition-colors ${
+              !filterInStockOnly ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+            }`}
+          >
+            ✨ Discover
+          </button>
+        </div>
+
         {/* Meal suggestion filters */}
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {[
             { key: "cookTime", label: "Cook Time", icon: Clock, active: !!filterCookTime },
+            { key: "method", label: "Method", icon: UtensilsCrossed, active: !!filterMethod },
             { key: "protein", label: "Protein", icon: Flame, active: !!filterProtein },
             { key: "people", label: "People", icon: Users, active: !!filterPeople },
-            { key: "method", label: "Method", icon: UtensilsCrossed, active: !!filterMethod },
             { key: "cuisine", label: "Cuisine", icon: Filter, active: !!filterCuisine },
           ].map(f => (
             <button
@@ -794,14 +814,6 @@ export function MealsTab() {
               <ChevronDown size={10} />
             </button>
           ))}
-          <button
-            onClick={() => setFilterInStockOnly(!filterInStockOnly)}
-            className={`shrink-0 flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-body text-xs transition-colors ${
-              filterInStockOnly ? "border-gold bg-gold/10 text-foreground" : "border-primary bg-primary/10 text-primary font-medium"
-            }`}
-          >
-            {filterInStockOnly ? "In-Stock Only" : "✨ Discover"}
-          </button>
         </div>
 
         {/* Quick filters */}
