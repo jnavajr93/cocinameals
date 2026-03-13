@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { RefreshCw, Star, Send, ThumbsUp, ThumbsDown, ChevronDown, X, Filter, Clock, Flame, UtensilsCrossed, ArrowLeft, Users, ShoppingCart, Check } from "lucide-react";
 import { CookingAssistantChat } from "@/components/CookingAssistantChat";
 import { RecipeDisplay } from "@/components/RecipeDisplay";
+import { extractIngredientName, findPantryMatch } from "@/lib/ingredientMatch";
 import { supabase } from "@/integrations/supabase/client";
 import { useHousehold } from "@/hooks/useHousehold";
 import { useAuth } from "@/hooks/useAuth";
@@ -396,8 +397,8 @@ export function MealsTab() {
     const missing = card.missingIngredients || [];
 
     const ingredientLines = [
-      ...mergedIngredients.map(item => `- 1 portion ${item}`),
-      ...missing.map(item => `- 1 portion ${item} (missing item)`),
+      ...mergedIngredients.map(item => `- ${item}`),
+      ...missing.map(item => `- ${item}`),
     ].join("\n");
 
     const babySafety = isBaby
@@ -415,11 +416,11 @@ export function MealsTab() {
       "COOKING STEPS",
       "Step 1 — pan: medium heat.",
       "Add oil and aromatics; cook 2-3 minutes until fragrant.",
-      "  - Use 1 portion olive oil and 1 portion onion",
+      "  - Use olive oil and onion",
       "  - Done when: onions are translucent and smell sweet.",
       "Step 2 — pan: medium-high heat.",
       `Add ${proteinHint} and sear, stirring as needed for even browning.`,
-      `  - Use 1 portion ${proteinHint}`,
+      `  - Use ${proteinHint}`,
       "  - Done when: protein is cooked through and lightly caramelized.",
       "Step 3 — pan: medium-low heat.",
       `Add remaining ingredients and simmer 4-6 minutes; adjust texture for ${card.name}.`,
@@ -760,28 +761,28 @@ export function MealsTab() {
       if (missingIngredients.length > 0) {
         const { data: existingItems } = await supabase
           .from("pantry_items")
-          .select("name")
-          .eq("household_id", householdId)
-          .in("name", missingIngredients);
+          .select("name, in_stock")
+          .eq("household_id", householdId);
 
-        const existingNames = new Set((existingItems || []).map(item => item.name.toLowerCase()));
-        const newItems = missingIngredients.filter(name => !existingNames.has(name.toLowerCase()));
+        const allPantryNames = (existingItems || []).map(item => item.name);
 
-        if (newItems.length > 0) {
-          const rows = newItems.map(name => ({
-            household_id: householdId,
-            name,
-            category: "Shopping List",
-            in_stock: false,
-            is_custom: true,
-            is_hidden: false,
-          }));
-          const { error: pantryError } = await supabase.from("pantry_items").insert(rows);
-          if (pantryError) throw pantryError;
+        for (const ingredient of missingIngredients) {
+          const cleanName = extractIngredientName(ingredient);
+          const match = findPantryMatch(cleanName, allPantryNames);
+          if (match) {
+            skippedCount++;
+          } else {
+            const { error } = await supabase.from("pantry_items").insert({
+              household_id: householdId,
+              name: cleanName,
+              category: "Shopping List",
+              in_stock: false,
+              is_custom: true,
+              is_hidden: false,
+            });
+            if (!error) newItemsCount++;
+          }
         }
-
-        newItemsCount = newItems.length;
-        skippedCount = missingIngredients.length - newItems.length;
       }
 
       const { data: existingRecipe, error: existingRecipeError } = await supabase
@@ -867,69 +868,88 @@ export function MealsTab() {
   // Missing ingredients button state
   const [addedMissing, setAddedMissing] = useState<"idle" | "added" | "all_in_stock">("idle");
 
-  const addMissingIngredientsFromRecipe = async () => {
-    if (!recipeView || !householdId) return;
+  const addMissingIngredientsFromRecipe = async (missingNames?: string[]) => {
+    if (!householdId) return;
 
     try {
-      // Parse ingredients from recipe text
-      const lines = recipeView.recipeText.split("\n");
-      let inIngredients = false;
-      const recipeIngredients: string[] = [];
-      for (const line of lines) {
-        const trimmed = line.trim();
-        const upper = trimmed.toUpperCase();
-        if (upper === "INGREDIENT LIST" || upper === "INGREDIENTS") { inIngredients = true; continue; }
-        if (upper === "PREP FIRST" || upper === "PREP STEPS" || upper === "PREPARATION" || upper === "COOKING STEPS" || upper === "COOKING") { inIngredients = false; continue; }
-        if (inIngredients && trimmed) {
-          // Strip bullet, quantity — extract just the ingredient name
-          const cleaned = trimmed.replace(/^[-•]\s*/, "").replace(/^\d+[\/.]\d*\s*(cups?|tbsp|tsp|oz|lbs?|g|ml|pieces?|cloves?|stalks?|cans?|bunch|head)?\s*/i, "").trim();
-          if (cleaned) recipeIngredients.push(cleaned);
+      // Use passed missing names or parse from recipe
+      let toProcess: string[] = missingNames || [];
+
+      if (toProcess.length === 0 && recipeView) {
+        const lines = recipeView.recipeText.split("\n");
+        let inIngredients = false;
+        for (const line of lines) {
+          const trimmed = line.trim();
+          const upper = trimmed.toUpperCase();
+          if (upper === "INGREDIENT LIST" || upper === "INGREDIENTS") { inIngredients = true; continue; }
+          if (upper === "PREP FIRST" || upper === "PREP STEPS" || upper === "PREPARATION" || upper === "COOKING STEPS" || upper === "COOKING") { inIngredients = false; continue; }
+          if (inIngredients && trimmed) {
+            const cleaned = extractIngredientName(trimmed);
+            if (cleaned) toProcess.push(cleaned);
+          }
         }
       }
 
-      // Also use missingIngredients from card if available
-      const missingFromCard = recipeView.missingIngredients || [];
-      const allMissing = missingFromCard.length > 0 ? missingFromCard : recipeIngredients;
-
-      if (allMissing.length === 0) {
+      if (toProcess.length === 0) {
         setAddedMissing("all_in_stock");
-        toast.success("You already have everything for this meal. Head to your pantry to get started.");
+        toast.success("You already have everything for this meal.");
         return;
       }
 
-      // Check which ones are already in stock
+      // Get all pantry items for this household
       const { data: pantryData } = await supabase
         .from("pantry_items")
         .select("name, in_stock")
         .eq("household_id", householdId);
 
-      const inStockNames = new Set((pantryData || []).filter(p => p.in_stock).map(p => p.name.toLowerCase()));
-      const existingNames = new Set((pantryData || []).map(p => p.name.toLowerCase()));
+      const allPantryNames = (pantryData || []).map(p => p.name);
+      const inStockNames = (pantryData || []).filter(p => p.in_stock).map(p => p.name);
 
-      const toAdd = allMissing.filter(name => !inStockNames.has(name.toLowerCase()));
+      let addedCount = 0;
+      let alreadyCount = 0;
 
-      if (toAdd.length === 0) {
-        setAddedMissing("all_in_stock");
-        toast.success("You already have everything for this meal. Head to your pantry to get started.");
-        return;
-      }
+      for (const ingredientName of toProcess) {
+        // Check if already in stock via smart match
+        const stockMatch = findPantryMatch(ingredientName, inStockNames);
+        if (stockMatch) {
+          alreadyCount++;
+          continue;
+        }
 
-      // Add only truly new items
-      const newItems = toAdd.filter(name => !existingNames.has(name.toLowerCase()));
-      if (newItems.length > 0) {
-        const rows = newItems.map(name => ({
+        // Check if exists in pantry (not in stock) — just needs to go to shopping list
+        const pantryMatch = findPantryMatch(ingredientName, allPantryNames);
+        if (pantryMatch) {
+          // Item exists but not in stock — mark it as a shopping list need
+          // Check if already on shopping list
+          const existingItem = (pantryData || []).find(p => p.name === pantryMatch);
+          if (existingItem && !existingItem.in_stock) {
+            alreadyCount++;
+          } else {
+            // It's in stock, skip
+            alreadyCount++;
+          }
+          continue;
+        }
+
+        // No match found — add as new shopping list item with clean name
+        const { error } = await supabase.from("pantry_items").insert({
           household_id: householdId,
-          name,
+          name: ingredientName,
           category: "Shopping List",
           in_stock: false,
           is_custom: true,
           is_hidden: false,
-        }));
-        await supabase.from("pantry_items").insert(rows);
+        });
+        if (!error) addedCount++;
       }
 
-      setAddedMissing("added");
-      toast.success(`${toAdd.length} ingredient${toAdd.length > 1 ? "s" : ""} added to your shopping list.`);
+      if (addedCount === 0 && alreadyCount === toProcess.length) {
+        setAddedMissing("all_in_stock");
+        toast.success("Everything's already in your pantry or shopping list!");
+      } else {
+        setAddedMissing("added");
+        toast.success(`${addedCount} ingredient${addedCount !== 1 ? "s" : ""} added to shopping list${alreadyCount > 0 ? ` (${alreadyCount} already there)` : ""}`);
+      }
     } catch {
       toast.error("Couldn't add ingredients. Try again.");
     }
@@ -999,32 +1019,14 @@ export function MealsTab() {
             </div>
           ) : (
             <>
-              <RecipeDisplay text={recipeView.recipeText} loading={recipeView.loading} />
-              {/* Add missing ingredients button — Discover mode only */}
-              {recipeView.discoverMode && !recipeView.loading && recipeView.recipeText && (
-                <div className="mt-4 mb-8">
-                  {addedMissing === "idle" && (
-                    <button
-                      onClick={addMissingIngredientsFromRecipe}
-                      className="w-full rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 font-body text-sm font-medium text-foreground transition-colors hover:bg-gold/20"
-                    >
-                      Add missing ingredients to shopping list
-                    </button>
-                  )}
-                  {addedMissing === "added" && (
-                    <div className="w-full rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 flex items-center justify-center gap-2">
-                      <Check size={16} className="text-gold" />
-                      <span className="font-body text-sm font-medium text-foreground">Added to shopping list</span>
-                    </div>
-                  )}
-                  {addedMissing === "all_in_stock" && (
-                    <div className="w-full rounded-xl border border-success/30 bg-success/10 px-4 py-3 flex items-center justify-center gap-2">
-                      <Check size={16} className="text-success" />
-                      <span className="font-body text-sm font-medium text-foreground">Everything's in stock</span>
-                    </div>
-                  )}
-                </div>
-              )}
+              <RecipeDisplay
+                text={recipeView.recipeText}
+                loading={recipeView.loading}
+                pantryInStock={pantryInStock}
+                discoverMode={recipeView.discoverMode}
+                onAddMissingToShoppingList={addMissingIngredientsFromRecipe}
+                addedMissing={addedMissing}
+              />
             </>
           )}
         </div>
@@ -1426,7 +1428,7 @@ export function MealsTab() {
         </button>
         {hasMissing && (
           <div className="px-3 pb-1">
-            <p className="font-body text-xs text-muted-foreground leading-snug">
+            <p className="font-body text-xs text-destructive leading-snug">
               Need: {card.missingIngredients!.join(", ")}
             </p>
           </div>
