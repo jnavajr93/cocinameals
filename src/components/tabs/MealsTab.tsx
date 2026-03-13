@@ -469,14 +469,14 @@ export function MealsTab() {
     // Always try local pool first — instant, no cooldown
     const seededPool = ensureSectionPool(sectionId);
     const poolMeals = pickFromPool(sectionId, currentPantryHash, filterInStockOnly, 3) as MealCardWithCookTime[];
+    const poolTopUpTarget = Math.min(getPoolLimit(sectionId), 36);
 
     if (poolMeals.length >= 3) {
       setAiCards(prev => ({ ...prev, [sectionId]: poolMeals }));
       trackRecentMeals(poolMeals);
 
-      // Background AI fill if pool is small and AI not throttled
-      if (seededPool.length < 20 && !isAiThrottled()) {
-        recordAiCall();
+      // Background AI top-up so shuffle has more variety over time
+      if (seededPool.length < poolTopUpTarget && !isAiThrottled() && recordAiCall()) {
         supabase.functions.invoke("suggest-meals", {
           body: {
             section: sectionId,
@@ -497,14 +497,14 @@ export function MealsTab() {
     }
 
     if (seededPool.length >= 3) {
-      const fallback = [...seededPool].sort(() => Math.random() - 0.5).slice(0, 3);
+      const fallback = pickFromPool(sectionId, currentPantryHash, filterInStockOnly, 3) as MealCardWithCookTime[];
       setAiCards(prev => ({ ...prev, [sectionId]: fallback }));
       trackRecentMeals(fallback);
       return;
     }
 
-    // Only call AI if not throttled
-    if (isAiThrottled()) {
+    // Only call AI if not throttled and within call budget
+    if (isAiThrottled() || !recordAiCall()) {
       const localSeeds = getSectionSeedMeals(sectionId).slice(0, 3);
       if (localSeeds.length > 0) {
         setAiCards(prev => ({ ...prev, [sectionId]: localSeeds }));
@@ -516,7 +516,6 @@ export function MealsTab() {
     }
 
     setAiLoading(prev => ({ ...prev, [sectionId]: true }));
-    recordAiCall();
     try {
       const { data, error } = await supabase.functions.invoke("suggest-meals", {
         body: {
@@ -533,8 +532,9 @@ export function MealsTab() {
 
       if (Array.isArray(data) && data.length > 0) {
         addToMealPool(sectionId, currentPantryHash, filterInStockOnly, data);
-        setAiCards(prev => ({ ...prev, [sectionId]: data }));
-        trackRecentMeals(data);
+        const nextPicks = pickFromPool(sectionId, currentPantryHash, filterInStockOnly, 3) as MealCardWithCookTime[];
+        setAiCards(prev => ({ ...prev, [sectionId]: nextPicks.length ? nextPicks : (data as MealCardWithCookTime[]).slice(0, 3) }));
+        trackRecentMeals(nextPicks.length ? nextPicks : (data as MealCardWithCookTime[]).slice(0, 3));
       } else {
         const localSeeds = getSectionSeedMeals(sectionId).slice(0, 3);
         setAiCards(prev => ({ ...prev, [sectionId]: localSeeds }));
