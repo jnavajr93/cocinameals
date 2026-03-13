@@ -11,7 +11,7 @@ interface Props {
   saving?: boolean;
 }
 
-export function StepIngredients({ profile, update, onNext }: Props) {
+export function StepIngredients({ profile, update, onNext, isLast, saving }: Props) {
   const [search, setSearch] = useState("");
   const [collapsedCats, setCollapsedCats] = useState<Set<string>>(new Set());
   const q = search.toLowerCase();
