@@ -645,8 +645,8 @@ export function PantryTab() {
                             {item.name}
                           </span>
                         )}
-                        {/* Calendar icon for perishable items */}
-                        {item.in_stock && (
+                        {/* Calendar icon for perishable items — not for shopping list */}
+                        {item.in_stock && viewMode !== "shopping" && (
                           <Popover>
                             <PopoverTrigger asChild>
                               <span
