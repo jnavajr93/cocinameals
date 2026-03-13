@@ -571,7 +571,8 @@ export function PantryTab() {
                 </button>
               </div>
               {!collapsedCats.has(cat) && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {catItems.map(item => {
                     const badge = getExpiryBadge(item);
                     const isSelected = selectedIds.has(item.id);
@@ -688,6 +689,10 @@ export function PantryTab() {
                     );
                   })}
                 </div>
+                  <p className="font-body text-[10px] text-muted-foreground/60 mt-1.5 text-center italic">
+                    Hold an item to select & remove
+                  </p>
+                </>
               )}
             </div>
           ))

@@ -35,6 +35,7 @@ export function AppShell({ forceShowTour }: { forceShowTour?: boolean }) {
           return (
             <button
               key={tab.id}
+              data-tour-id={`tab-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
               className="flex flex-col items-center gap-0.5 px-4 py-1 transition-colors"
             >

@@ -8,6 +8,7 @@ import { StepChildren } from "./steps/StepChildren";
 import { StepEquipment } from "./steps/StepEquipment";
 import { StepCuisine } from "./steps/StepCuisine";
 import { StepCookingStyle } from "./steps/StepCookingStyle";
+import { StepIngredients } from "./steps/StepIngredients";
 import { StepMealRhythm } from "./steps/StepMealRhythm";
 import { StepJoinProfile } from "./steps/StepJoinProfile";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +36,7 @@ export interface OnboardingProfile {
   quickFilters: string[];
   bulkCookDays: string[];
   children: { name: string; dob: string }[];
+  selectedIngredients: string[];
 }
 
 interface OnboardingProps {
@@ -49,7 +51,7 @@ function generateInviteCode(): string {
   return code;
 }
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 9;
 
 export function Onboarding({ onComplete, previewMode }: OnboardingProps) {
   const { user } = useAuth();
@@ -87,6 +89,7 @@ export function Onboarding({ onComplete, previewMode }: OnboardingProps) {
     quickFilters: [],
     bulkCookDays: [],
     children: [],
+    selectedIngredients: [],
   });
 
   const update = useCallback(
@@ -181,7 +184,7 @@ export function Onboarding({ onComplete, previewMode }: OnboardingProps) {
             household_id: householdId,
             name,
             category: cat.name,
-            in_stock: false,
+            in_stock: profile.selectedIngredients.includes(name),
             is_custom: false,
             is_hidden: false,
           }))
@@ -317,7 +320,8 @@ export function Onboarding({ onComplete, previewMode }: OnboardingProps) {
         {step === 5 && <StepCookingStyle profile={profile} update={update} onNext={next} />}
         {step === 6 && <StepEquipment profile={profile} update={update} onNext={next} />}
         {step === 7 && <StepMealRhythm profile={profile} update={update} onNext={next} />}
-        {step === 8 && (
+        {step === 8 && <StepIngredients profile={profile} update={update} onNext={next} />}
+        {step === 9 && (
           <StepCuisine
             profile={profile}
             update={update}
