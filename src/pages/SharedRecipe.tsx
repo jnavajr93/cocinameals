@@ -111,7 +111,7 @@ export default function SharedRecipe() {
             Want meals like this every day?
           </p>
           <p className="text-muted-foreground font-body text-sm mb-4">
-            cocina plans meals based on what's in your pantry. Less waste, better meals.
+            Cocina plans meals based on what's in your pantry. Less waste, better meals.
           </p>
           <Link
             to="/"

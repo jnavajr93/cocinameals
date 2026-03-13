@@ -66,7 +66,7 @@ const STEPS: TourStep[] = [
   },
   {
     title: "You're all set!",
-    description: "Start by checking your ingredients, then head to Meals and let cocina do the rest. Happy cooking! 🍳",
+    description: "Start by checking your ingredients, then head to Meals and let Cocina do the rest. Happy cooking! 🍳",
     icon: null,
     useLogo: true,
   },

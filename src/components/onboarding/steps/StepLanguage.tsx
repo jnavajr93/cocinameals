@@ -22,7 +22,7 @@ export function StepLanguage({ selectedLanguage, onSelect, onNext }: Props) {
         <Logo size="md" />
         <h1 className="font-display text-2xl font-bold text-foreground">Choose your language</h1>
         <p className="font-body text-sm text-muted-foreground text-center">
-          cocina will adapt all recipes and the interface to your language.
+          Cocina will adapt all recipes and the interface to your language.
         </p>
       </div>
 

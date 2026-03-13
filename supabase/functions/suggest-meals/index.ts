@@ -15,7 +15,7 @@ serve(async (req) => {
 
     const inStockOnly = filters?.inStockOnly ?? true;
 
-    const systemPrompt = `You are a meal suggestion engine for cocina, a household meal planning app.
+    const systemPrompt = `You are a meal suggestion engine for Cocina, a household meal planning app.
 Mission: help people cook restaurant-quality meals at home using what they already have — cutting food waste and the need to eat out.
 
 Suggest exactly 3 meals. Return ONLY a valid JSON array. No preamble. No markdown.

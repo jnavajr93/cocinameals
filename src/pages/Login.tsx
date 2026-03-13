@@ -413,7 +413,7 @@ export default function Login() {
         <div className="max-w-4xl mx-auto flex flex-col items-center gap-2">
           <Logo size="sm" />
           <p className="font-body text-xs text-muted-foreground">
-            © {new Date().getFullYear()} cocina. All rights reserved.
+            © {new Date().getFullYear()} Cocina. All rights reserved.
           </p>
         </div>
       </footer>
