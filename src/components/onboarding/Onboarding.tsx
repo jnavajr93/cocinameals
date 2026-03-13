@@ -35,6 +35,7 @@ export interface OnboardingProfile {
   quickFilters: string[];
   bulkCookDays: string[];
   children: { name: string; dob: string }[];
+  selectedIngredients: string[];
 }
 
 interface OnboardingProps {
