@@ -273,6 +273,16 @@ export function MealsTab() {
 
     cards = cards.filter(c => !dislikedMeals.has(c.name));
 
+    // Apply diet restriction filters to local pool
+    const diets = profile?.dietRestrictions || [];
+    if (diets.length > 0 && !diets.includes("None")) {
+      cards = cards.filter(c => {
+        if ((diets.includes("Vegan") || diets.includes("Plant-Based Whole Foods")) && !c.tags.includes("vegan")) return false;
+        if (diets.includes("Vegetarian") && !c.tags.includes("vegetarian") && !c.tags.includes("vegan")) return false;
+        return true;
+      });
+    }
+
     const seed = shuffleKey + sectionId.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
     cards.sort((a, b) => Math.sin(seed * 9301 + cards.indexOf(a) * 49297) - Math.sin(seed * 9301 + cards.indexOf(b) * 49297));
 

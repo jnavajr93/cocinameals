@@ -28,6 +28,11 @@ HARD RULES:
 - Only suggest meals the user's equipment can make.
 - Never suggest meals that violate diet restrictions.
 - Adapt meal complexity to skillLevel: "beginner" → simple comfort food, minimal techniques; "intermediate" → balanced techniques and layered flavors; "confident" → ambitious restaurant-quality dishes with advanced techniques. Higher skill = more rewarding and challenging meals.
+
+DIET RESTRICTION DETAILS:
+  "Plant-Based Whole Foods" → STRICT: 100% plant-based (no meat, dairy, eggs, honey). ZERO processed foods — no refined flour, white pasta, white bread, refined sugar, protein powders, fake meats (Beyond/Impossible), vegan cheese, processed oils. Only whole grains (brown rice, quinoa, oats, whole wheat), legumes, nuts, seeds, fruits, vegetables, tofu, tempeh. Minimal added oil — prefer water sauté or oil-free dressings. This is for health-focused longevity eating.
+  "Vegan" → No animal products (meat, dairy, eggs, honey). Processed vegan foods are allowed.
+  "Vegetarian" → No meat/fish. Dairy and eggs are allowed.
 ${inStockOnly ? '- If inStockOnly is true: every ingredient must be currently in-stock. Zero exceptions.' : '- Suggest meals freely — they do NOT need to use only in-stock items. Be creative and inspiring.'}
 - If mustInclude is set: that ingredient must be central to at least 2 of 3 meals.
 - If mainProtein is set: that protein must star in all 3 meals.
