@@ -15,6 +15,9 @@ import { queryRecipes, sectionToCategory, RecipeResult } from "@/lib/recipeQuery
 interface MealCardWithCookTime extends MealCard {
   cookTime?: number;
   missingIngredients?: string[];
+  cuisine?: string;
+  primaryProtein?: string | null;
+  recipeText?: string | null;
 }
 
 interface RecipeViewState {
