@@ -420,7 +420,7 @@ export function MealsTab() {
       "  - Done when: onions are translucent and smell sweet.",
       "Step 2 — pan: medium-high heat.",
       `Add ${proteinHint} and sear, stirring as needed for even browning.`,
-      `  - Use 1 portion ${proteinHint}`,
+      `  - Use ${proteinHint}`,
       "  - Done when: protein is cooked through and lightly caramelized.",
       "Step 3 — pan: medium-low heat.",
       `Add remaining ingredients and simmer 4-6 minutes; adjust texture for ${card.name}.`,
