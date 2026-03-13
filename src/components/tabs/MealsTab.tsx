@@ -397,8 +397,8 @@ export function MealsTab() {
     const missing = card.missingIngredients || [];
 
     const ingredientLines = [
-      ...mergedIngredients.map(item => `- 1 portion ${item}`),
-      ...missing.map(item => `- 1 portion ${item} (missing item)`),
+      ...mergedIngredients.map(item => `- ${item}`),
+      ...missing.map(item => `- ${item}`),
     ].join("\n");
 
     const babySafety = isBaby
