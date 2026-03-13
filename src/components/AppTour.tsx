@@ -120,14 +120,20 @@ export function AppTour({ onComplete }: { onComplete: () => void }) {
             ))}
           </div>
 
-          {/* Icon */}
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gold/10">
-            {current.icon}
-          </div>
+          {/* Icon or Logo */}
+          {current.useLogo ? (
+            <div className="flex flex-col items-center gap-2">
+              <Logo size="lg" />
+            </div>
+          ) : (
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gold/10">
+              {current.icon}
+            </div>
+          )}
 
           {/* Text */}
           <div>
-            <h2 className="font-display text-xl font-bold text-foreground mb-2">{current.title}</h2>
+            {current.title && <h2 className="font-display text-xl font-bold text-foreground mb-2">{current.title}</h2>}
             <p className="font-body text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
               {current.description}
             </p>
