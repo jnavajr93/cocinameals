@@ -383,7 +383,7 @@ export default function Login() {
       <section className="px-6 py-20 bg-primary">
         <div className="max-w-lg mx-auto flex flex-col items-center gap-6 text-center">
           <div className="rounded-full bg-gold/20 px-4 py-1.5 font-body text-xs font-semibold text-gold tracking-wide uppercase">
-            🚀 Early Access — Limited Spots
+            🚀 Early Access, Limited Spots
           </div>
           <h2 className="font-display text-2xl md:text-3xl font-bold text-primary-foreground whitespace-nowrap">
             Stop wasting food.<br />Start cooking smarter.
