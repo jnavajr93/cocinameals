@@ -58,9 +58,9 @@ const FEATURES: ContentItem[] = [
     description: "Mark what's in stock and only get suggestions for meals you can actually make. No more buying ingredients for one recipe.",
   },
   {
-    icon: ChefHat,
-    title: "Meal Suggestions",
-    description: "Get restaurant-quality meal ideas personalized to your equipment, cuisine preferences, and cooking skill level.",
+    icon: Compass,
+    title: "Discover New Meals",
+    description: "Explore restaurant-quality meal ideas personalized to your equipment, cuisine preferences, and cooking skill level — even beyond what's in your pantry.",
   },
   {
     icon: Activity,
