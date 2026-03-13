@@ -39,6 +39,7 @@ export interface OnboardingProfile {
 
 interface OnboardingProps {
   onComplete: () => void;
+  previewMode?: boolean;
 }
 
 function generateInviteCode(): string {
