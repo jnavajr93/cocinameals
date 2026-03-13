@@ -44,7 +44,7 @@ const STEPS: TourStep[] = [
   },
   {
     title: "Rate & Save",
-    description: "👍 Like meals to see more like them. 👎 Dislike to hide them. ⭐ Star to save to your cookbook. cocina learns your taste over time.",
+    description: "👍 Like meals to see more like them. 👎 Dislike to hide them. ⭐ Star to save to your cookbook. Cocina learns your taste over time.",
     icon: <ThumbsUp size={28} className="text-gold" />,
   },
   {
