@@ -30,7 +30,7 @@ const PAIN_POINTS: ContentItem[] = [
   },
   {
     icon: Clock,
-    title: '"What\'s for dinner?" — every single night',
+    title: '"What\'s for dinner?" every single night',
     description: "Decision fatigue is real. cocina delivers personalized meal ideas based on your pantry, skill level, and family preferences.",
   },
   {
@@ -40,8 +40,8 @@ const PAIN_POINTS: ContentItem[] = [
   },
   {
     icon: Users,
-    title: "Picky eaters and dietary needs",
-    description: "Kids, allergies, spice tolerance — everyone's different. cocina factors in your whole household so every meal works for everyone.",
+    title: "Picky eaters, dietary & health needs",
+    description: "Kids, allergies, spice tolerance, diabetes, high blood pressure. cocina factors in every household member's needs so meals are safe and enjoyable for everyone.",
   },
 ];
 
