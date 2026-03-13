@@ -998,23 +998,22 @@ export function MealsTab() {
           </div>
         </button>
         {hasMissing && (
-          <div className="px-3 pb-2">
-            <div className="flex items-start gap-1.5 mb-2">
-              <ShoppingCart size={12} className="text-gold mt-0.5 shrink-0" />
-              <p className="font-body text-xs text-muted-foreground leading-snug">
-                Need: {card.missingIngredients!.join(", ")}
-              </p>
-            </div>
-            <button
-              onClick={addMissingToList}
-              className="flex items-center gap-1.5 rounded-md bg-gold/10 border border-gold/30 px-3 py-1.5 text-foreground hover:bg-gold/20 transition-colors"
-            >
-              <Plus size={12} className="text-gold" />
-              <span className="font-body text-xs font-medium">Add to shopping list</span>
-            </button>
+          <div className="px-3 pb-1">
+            <p className="font-body text-xs text-muted-foreground leading-snug">
+              Need: {card.missingIngredients!.join(", ")}
+            </p>
           </div>
         )}
         <div className="flex items-center justify-end gap-3 px-3 pb-2">
+          {hasMissing && (
+            <button
+              onClick={addMissingToList}
+              className="text-muted-foreground hover:text-gold transition-colors"
+              title="Add to shopping list"
+            >
+              <ShoppingCart size={16} />
+            </button>
+          )}
           <button
             onClick={() => handleFeedback(card, "liked")}
             className={`transition-colors ${isLiked ? "text-gold" : "text-muted-foreground hover:text-gold"}`}

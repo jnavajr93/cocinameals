@@ -49,6 +49,6 @@ export const QUICK_FILTERS = [
 ] as const;
 
 export const DIET_RESTRICTIONS = [
-  "None", "Vegetarian", "Vegan", "Gluten-Free", "Dairy-Free",
+  "None", "Vegetarian", "Vegan", "Plant-Based Whole Foods", "Gluten-Free", "Dairy-Free",
   "Keto / Low Carb", "Halal", "Kosher", "Nut-Free", "Shellfish-Free",
 ] as const;

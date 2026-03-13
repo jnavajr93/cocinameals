@@ -544,7 +544,6 @@ export function SettingsTab() {
         <section className="border-b border-border">
           <button onClick={() => toggle("health")} className="flex items-center justify-between w-full py-3">
             <div className="flex items-center gap-2">
-              <Lock size={14} className="text-muted-foreground" />
               <h2 className="font-display text-base font-bold text-foreground">Health Conditions</h2>
             </div>
             {expanded.has("health") ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
