@@ -8,6 +8,7 @@ import { StepChildren } from "./steps/StepChildren";
 import { StepEquipment } from "./steps/StepEquipment";
 import { StepCuisine } from "./steps/StepCuisine";
 import { StepCookingStyle } from "./steps/StepCookingStyle";
+import { StepIngredients } from "./steps/StepIngredients";
 import { StepMealRhythm } from "./steps/StepMealRhythm";
 import { StepJoinProfile } from "./steps/StepJoinProfile";
 import { supabase } from "@/integrations/supabase/client";
