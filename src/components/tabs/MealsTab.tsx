@@ -527,6 +527,14 @@ export function MealsTab() {
   };
 
   const openRecipe = async (card: MealCardWithCookTime, isBaby = false, sectionId?: string) => {
+    // 1. Check if recipe_text came from the DB
+    if (card.recipeText) {
+      persistRecipeLocally(card.name, card.recipeText);
+      setRecipeView({ mealName: card.name, recipeText: card.recipeText, loading: false, isBaby, sectionId, tags: card.tags, discoverMode: !filterInStockOnly, missingIngredients: card.missingIngredients });
+      return;
+    }
+
+    // 2. Check localStorage cache
     const cacheKey = getRecipeCacheKey(card.name);
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
@@ -539,6 +547,7 @@ export function MealsTab() {
       } catch {}
     }
 
+    // 3. Generate locally or via AI
     setRecipeView({ mealName: card.name, recipeText: "", loading: true, isBaby, sectionId, tags: card.tags, discoverMode: !filterInStockOnly, missingIngredients: card.missingIngredients });
 
     try {
@@ -557,6 +566,7 @@ export function MealsTab() {
     } catch {
       toast.error("Couldn't open recipe. Try another meal.");
       setRecipeView(prev => prev ? { ...prev, loading: false, recipeText: "Failed to load local recipe." } : null);
+    }
     }
   };
 
