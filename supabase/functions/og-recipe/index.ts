@@ -57,10 +57,11 @@ Deno.serve(async (req) => {
 </html>`;
 
   return new Response(html, {
-    headers: {
-      "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "public, max-age=3600",
-    },
+    status: 200,
+    headers: new Headers({
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "public, max-age=3600",
+    }),
   });
 });
 
