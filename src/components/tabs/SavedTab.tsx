@@ -245,9 +245,9 @@ export function SavedTab() {
       if (error || !data) throw error;
       const shareUrl = `${window.location.origin}/recipe/${data.id}`;
       if (navigator.share) {
-        await navigator.share({ title: `${recipe.meal_name} — from Cocina app`, text: `🍽️ ${recipe.meal_name} — from Cocina app.\n\nCook restaurant-quality meals with what you already have. Sign up free today!`, url: shareUrl });
+        await navigator.share({ title: `🍽️ ${recipe.meal_name} — from Cocina app`, url: shareUrl });
       } else {
-        await navigator.clipboard.writeText(`🍽️ ${recipe.meal_name} — from Cocina app.\n\nCook restaurant-quality meals with what you already have. Sign up free today!\n${shareUrl}`);
+        await navigator.clipboard.writeText(shareUrl);
         toast.success("Link copied to clipboard");
       }
     } catch (e: any) {

@@ -622,12 +622,11 @@ export function MealsTab() {
 
       if (navigator.share) {
         await navigator.share({
-          title: `${recipeView.mealName} — from Cocina app`,
-          text: `🍽️ ${recipeView.mealName} — from Cocina app.\n\nCook restaurant-quality meals with what you already have. Sign up free today!`,
+          title: `🍽️ ${recipeView.mealName} — from Cocina app`,
           url: shareUrl,
         });
       } else {
-        await navigator.clipboard.writeText(`🍽️ ${recipeView.mealName} — from Cocina app.\n\nCook restaurant-quality meals with what you already have. Sign up free today!\n${shareUrl}`);
+        await navigator.clipboard.writeText(shareUrl);
         toast.success("Share link copied to clipboard!");
       }
     } catch (e: any) {
