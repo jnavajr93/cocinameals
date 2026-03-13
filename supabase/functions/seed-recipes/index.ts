@@ -1328,7 +1328,7 @@ function generateProteinCookSteps(lines: string[], pg: ProteinGuide | null, name
   lines.push(`Season with ${cp.spices[0]} and ${cp.spices[1] || "salt"}.`);
 }
 
-function getProTip(dishType: DishType, cuisine: string, protein: string | null): string {
+function getProTip(dishType: DishType, cuisine: string, protein: string | null, name: string = "meal"): string {
   const tips: Record<string, string[]> = {
     omelette: ["Run a thin slick of cold butter over the finished omelette for a restaurant-quality glossy sheen.", "For the creamiest texture, pull the omelette off heat while the center is still slightly underset — it continues cooking on the plate."],
     scramble: ["Gordon Ramsay's secret: take the pan on and off the heat every 20 seconds. This gives you silky, custard-like curds instead of dry, rubbery eggs.", "A small knob of cold butter stirred in at the very end stops the cooking and adds richness."],
