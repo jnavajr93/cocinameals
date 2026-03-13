@@ -463,26 +463,51 @@ export function SavedTab() {
           </div>
         ) : viewMode === "shopping" ? (
           <div className="flex flex-col gap-2 mt-2">
-            {filteredRecipes.map(recipe => (
-              <div key={recipe.id} className="rounded-lg border border-border bg-card p-3 flex items-start justify-between">
-                <button onClick={() => setViewingRecipe(recipe)} className="flex-1 min-w-0 text-left">
-                  <p className="font-body text-sm font-medium text-foreground">{recipe.meal_name}</p>
-                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                    <span className="font-body text-xs text-muted-foreground">
-                      {recipe.saved_by} · {formatDate(recipe.created_at)}
-                    </span>
-                    {recipe.tags.slice(0, 3).map(tag => (
-                      <span key={tag} className="rounded-full bg-secondary px-2 py-0.5 font-body text-[10px] text-muted-foreground">
-                        {tag.replace(/_/g, " ")}
+            {filteredRecipes.map(recipe => {
+              const previewSnippet = extractPreview(recipe.recipe_text);
+              return (
+                <button
+                  key={recipe.id}
+                  onClick={() => setViewingRecipe(recipe)}
+                  className="rounded-xl border border-border bg-card p-4 text-left transition-colors hover:bg-secondary/50 w-full"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-display text-sm font-bold text-foreground">{recipe.meal_name}</p>
+                      {previewSnippet && (
+                        <p className="font-body text-xs text-muted-foreground mt-1 line-clamp-2">{previewSnippet}</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <span className="font-body text-[10px] text-muted-foreground">
+                          {recipe.saved_by} · {formatDate(recipe.created_at)}
+                        </span>
+                        {recipe.tags.slice(0, 3).map(tag => (
+                          <span key={tag} className="rounded-full bg-secondary px-2 py-0.5 font-body text-[10px] text-muted-foreground">
+                            {tag.replace(/_/g, " ")}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span
+                        role="button"
+                        onClick={(e) => { e.stopPropagation(); shareRecipe(recipe); }}
+                        className="p-1.5 rounded-md text-muted-foreground hover:text-gold transition-colors"
+                      >
+                        <Send size={14} />
                       </span>
-                    ))}
+                      <span
+                        role="button"
+                        onClick={(e) => { e.stopPropagation(); removeRecipe(recipe.id); }}
+                        className="p-1.5 rounded-md text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </span>
+                    </div>
                   </div>
                 </button>
-                <button onClick={() => removeRecipe(recipe.id)} className="ml-2 shrink-0 text-muted-foreground hover:text-destructive transition-colors">
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="flex flex-col gap-4 mt-2">
