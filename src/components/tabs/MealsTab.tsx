@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { RefreshCw, Star, Send, ThumbsUp, ThumbsDown, ChevronDown, X, Filter, Clock, Flame, UtensilsCrossed, ArrowLeft, Users, ShoppingCart, Plus } from "lucide-react";
+import { RefreshCw, Star, Send, ThumbsUp, ThumbsDown, ChevronDown, X, Filter, Clock, Flame, UtensilsCrossed, ArrowLeft, Users, ShoppingCart, Plus, Check } from "lucide-react";
+import { CookingAssistantChat } from "@/components/CookingAssistantChat";
 import { RecipeDisplay } from "@/components/RecipeDisplay";
 import { supabase } from "@/integrations/supabase/client";
 import { useHousehold } from "@/hooks/useHousehold";
@@ -19,6 +20,8 @@ interface RecipeViewState {
   isBaby?: boolean;
   sectionId?: string;
   tags?: string[];
+  discoverMode?: boolean;
+  missingIngredients?: string[];
 }
 
 export function MealsTab() {
@@ -400,13 +403,13 @@ export function MealsTab() {
       try {
         const { text, ts } = JSON.parse(cached);
         if (Date.now() - ts < 24 * 3600000) {
-          setRecipeView({ mealName: card.name, recipeText: text, loading: false, isBaby, sectionId, tags: card.tags });
+          setRecipeView({ mealName: card.name, recipeText: text, loading: false, isBaby, sectionId, tags: card.tags, discoverMode: !filterInStockOnly, missingIngredients: card.missingIngredients });
           return;
         }
       } catch {}
     }
 
-    setRecipeView({ mealName: card.name, recipeText: "", loading: true, isBaby, sectionId, tags: card.tags });
+    setRecipeView({ mealName: card.name, recipeText: "", loading: true, isBaby, sectionId, tags: card.tags, discoverMode: !filterInStockOnly, missingIngredients: card.missingIngredients });
 
     try {
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-recipe`;
@@ -638,6 +641,82 @@ export function MealsTab() {
     }
   };
 
+  // Missing ingredients button state
+  const [addedMissing, setAddedMissing] = useState<"idle" | "added" | "all_in_stock">("idle");
+
+  const addMissingIngredientsFromRecipe = async () => {
+    if (!recipeView || !householdId) return;
+
+    try {
+      // Parse ingredients from recipe text
+      const lines = recipeView.recipeText.split("\n");
+      let inIngredients = false;
+      const recipeIngredients: string[] = [];
+      for (const line of lines) {
+        const trimmed = line.trim();
+        const upper = trimmed.toUpperCase();
+        if (upper === "INGREDIENT LIST" || upper === "INGREDIENTS") { inIngredients = true; continue; }
+        if (upper === "PREP FIRST" || upper === "PREP STEPS" || upper === "PREPARATION" || upper === "COOKING STEPS" || upper === "COOKING") { inIngredients = false; continue; }
+        if (inIngredients && trimmed) {
+          // Strip bullet, quantity — extract just the ingredient name
+          const cleaned = trimmed.replace(/^[-•]\s*/, "").replace(/^\d+[\/.]\d*\s*(cups?|tbsp|tsp|oz|lbs?|g|ml|pieces?|cloves?|stalks?|cans?|bunch|head)?\s*/i, "").trim();
+          if (cleaned) recipeIngredients.push(cleaned);
+        }
+      }
+
+      // Also use missingIngredients from card if available
+      const missingFromCard = recipeView.missingIngredients || [];
+      const allMissing = missingFromCard.length > 0 ? missingFromCard : recipeIngredients;
+
+      if (allMissing.length === 0) {
+        setAddedMissing("all_in_stock");
+        toast.success("You already have everything for this meal. Head to your pantry to get started.");
+        return;
+      }
+
+      // Check which ones are already in stock
+      const { data: pantryData } = await supabase
+        .from("pantry_items")
+        .select("name, in_stock")
+        .eq("household_id", householdId);
+
+      const inStockNames = new Set((pantryData || []).filter(p => p.in_stock).map(p => p.name.toLowerCase()));
+      const existingNames = new Set((pantryData || []).map(p => p.name.toLowerCase()));
+
+      const toAdd = allMissing.filter(name => !inStockNames.has(name.toLowerCase()));
+
+      if (toAdd.length === 0) {
+        setAddedMissing("all_in_stock");
+        toast.success("You already have everything for this meal. Head to your pantry to get started.");
+        return;
+      }
+
+      // Add only truly new items
+      const newItems = toAdd.filter(name => !existingNames.has(name.toLowerCase()));
+      if (newItems.length > 0) {
+        const rows = newItems.map(name => ({
+          household_id: householdId,
+          name,
+          category: "Shopping List",
+          in_stock: false,
+          is_custom: true,
+          is_hidden: false,
+        }));
+        await supabase.from("pantry_items").insert(rows);
+      }
+
+      setAddedMissing("added");
+      toast.success(`${toAdd.length} ingredient${toAdd.length > 1 ? "s" : ""} added to your shopping list.`);
+    } catch {
+      toast.error("Couldn't add ingredients. Try again.");
+    }
+  };
+
+  // Reset missing state when recipe changes
+  useEffect(() => {
+    setAddedMissing("idle");
+  }, [recipeView?.mealName]);
+
   // Recipe view
   if (recipeView) {
     return (
@@ -696,9 +775,45 @@ export function MealsTab() {
               ))}
             </div>
           ) : (
-            <RecipeDisplay text={recipeView.recipeText} loading={recipeView.loading} />
+            <>
+              <RecipeDisplay text={recipeView.recipeText} loading={recipeView.loading} />
+              {/* Add missing ingredients button — Discover mode only */}
+              {recipeView.discoverMode && !recipeView.loading && recipeView.recipeText && (
+                <div className="mt-4 mb-8">
+                  {addedMissing === "idle" && (
+                    <button
+                      onClick={addMissingIngredientsFromRecipe}
+                      className="w-full rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 font-body text-sm font-medium text-foreground transition-colors hover:bg-gold/20"
+                    >
+                      Add missing ingredients to shopping list
+                    </button>
+                  )}
+                  {addedMissing === "added" && (
+                    <div className="w-full rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 flex items-center justify-center gap-2">
+                      <Check size={16} className="text-gold" />
+                      <span className="font-body text-sm font-medium text-foreground">Added to shopping list</span>
+                    </div>
+                  )}
+                  {addedMissing === "all_in_stock" && (
+                    <div className="w-full rounded-xl border border-success/30 bg-success/10 px-4 py-3 flex items-center justify-center gap-2">
+                      <Check size={16} className="text-success" />
+                      <span className="font-body text-sm font-medium text-foreground">Everything's in stock</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
+        {/* Cooking assistant */}
+        {recipeView.recipeText && !recipeView.loading && (
+          <CookingAssistantChat
+            recipeName={recipeView.mealName}
+            recipeText={recipeView.recipeText}
+            equipment={profile?.equipment || []}
+            skillLevel={profile?.skillLevel || "intermediate"}
+          />
+        )}
       </div>
     );
   }
@@ -827,6 +942,12 @@ export function MealsTab() {
                     <button onClick={() => { setCravingPopup(null); openRecipe(card); }} className="text-left w-full">
                       <p className="font-body text-sm font-medium text-foreground leading-tight">{card.name}</p>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        {card.cookTime && (
+                          <span className="flex items-center gap-1 font-body text-xs text-muted-foreground">
+                            <Clock size={10} />
+                            {card.cookTime} min
+                          </span>
+                        )}
                         <span className="font-body text-xs text-muted-foreground">{card.cal} cal</span>
                         <span className="font-body text-xs text-muted-foreground">P:{card.protein}g C:{card.carbs}g F:{card.fat}g</span>
                       </div>
@@ -878,7 +999,7 @@ export function MealsTab() {
             value={craving}
             onChange={e => setCraving(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleCraving()}
-            placeholder="I'm craving..."
+            placeholder={filterInStockOnly ? "I'm craving..." : "I'm craving... (beyond your pantry)"}
             className="w-full rounded-lg border border-border bg-input pl-4 pr-10 py-2.5 font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold"
           />
           <button
@@ -909,24 +1030,29 @@ export function MealsTab() {
           </div>
         )}
 
-        {/* In-Stock / Discover toggle */}
-        <div className="flex items-center rounded-full bg-secondary p-0.5 mb-2 w-fit">
-          <button
-            onClick={() => setFilterInStockOnly(true)}
-            className={`rounded-full px-4 py-1.5 font-body text-xs font-medium transition-colors ${
-              filterInStockOnly ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-            }`}
-          >
-            In-Stock Only
-          </button>
-          <button
-            onClick={() => setFilterInStockOnly(false)}
-            className={`rounded-full px-4 py-1.5 font-body text-xs font-medium transition-colors ${
-              !filterInStockOnly ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-            }`}
-          >
-            ✨ Discover
-          </button>
+        {/* In My Pantry / Discover toggle */}
+        <div className="flex flex-col mb-2">
+          <div className="flex items-center rounded-full bg-secondary p-0.5 w-fit">
+            <button
+              onClick={() => setFilterInStockOnly(true)}
+              className={`rounded-full px-4 py-1.5 font-body text-xs font-medium transition-colors ${
+                filterInStockOnly ? "bg-gold text-gold-foreground shadow-sm" : "text-muted-foreground"
+              }`}
+            >
+              In My Pantry
+            </button>
+            <button
+              onClick={() => setFilterInStockOnly(false)}
+              className={`rounded-full px-4 py-1.5 font-body text-xs font-medium transition-colors ${
+                !filterInStockOnly ? "bg-gold text-gold-foreground shadow-sm" : "text-muted-foreground"
+              }`}
+            >
+              ✨ Discover
+            </button>
+          </div>
+          {!filterInStockOnly && (
+            <p className="font-body text-xs text-muted-foreground mt-1 ml-1">Showing meals beyond your current pantry</p>
+          )}
         </div>
 
         {/* Meal suggestion filters */}
@@ -1059,9 +1185,14 @@ export function MealsTab() {
           <div className="p-3">
             <p className="font-body text-sm font-medium text-foreground leading-tight">{card.name}</p>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
+              {card.cookTime && (
+                <span className="flex items-center gap-1 font-body text-xs text-muted-foreground">
+                  <Clock size={10} />
+                  {card.cookTime} min
+                </span>
+              )}
               <span className="font-body text-xs text-muted-foreground">{card.cal} cal</span>
               <span className="font-body text-xs text-muted-foreground">P:{card.protein}g C:{card.carbs}g F:{card.fat}g</span>
-              {card.cookTime && <span className="font-body text-xs text-muted-foreground">{card.cookTime} min</span>}
             </div>
             {cuisineTag && (
               <span className="inline-block mt-1 rounded-full bg-secondary px-2 py-0.5 font-body text-xs text-muted-foreground">{cuisineTag}</span>
