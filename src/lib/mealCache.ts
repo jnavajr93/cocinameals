@@ -50,18 +50,23 @@ export function isAiThrottled(): boolean {
   } catch { return false; }
 }
 
-/** Record an AI shuffle call. Returns true if still allowed, false if now throttled. */
+/** Record an AI shuffle call. Returns true if this call is allowed. */
 export function recordAiCall(): boolean {
   try {
     if (isAiThrottled()) return false;
+
     const count = parseInt(localStorage.getItem(AI_CALL_COUNT_KEY) || "0", 10) + 1;
     localStorage.setItem(AI_CALL_COUNT_KEY, String(count));
+
+    // Allow this call, but throttle subsequent calls for 4 hours once limit is reached
     if (count >= AI_CALL_LIMIT) {
       localStorage.setItem(AI_THROTTLE_UNTIL_KEY, String(Date.now() + AI_THROTTLE_MS));
-      return false;
     }
+
     return true;
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 }
 
 /** Get remaining AI calls before throttle */
