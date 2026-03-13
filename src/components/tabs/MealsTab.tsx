@@ -349,7 +349,21 @@ export function MealsTab() {
     }
   };
 
+  const currentPantryHash = useMemo(() => getPantryHash(pantryInStock), [pantryInStock]);
+
+  const trackRecentMeals = useCallback((meals: MealCardWithCookTime[]) => {
+    addRecentSuggestions(meals.map(m => m.name));
+  }, []);
+
   const shuffleSection = async (sectionId: string) => {
+    if (shuffleCooldowns[sectionId]) return;
+
+    // Start cooldown
+    setShuffleCooldowns(prev => ({ ...prev, [sectionId]: true }));
+    setTimeout(() => {
+      setShuffleCooldowns(prev => ({ ...prev, [sectionId]: false }));
+    }, 8000);
+
     setAiLoading(prev => ({ ...prev, [sectionId]: true }));
     try {
       const { data, error } = await supabase.functions.invoke("suggest-meals", {
@@ -360,11 +374,14 @@ export function MealsTab() {
           profile,
           filters: { cookTime: filterCookTime, mainProtein: filterProtein, cuisineOverride: filterCuisine, cookingMethod: filterMethod, inStockOnly: filterInStockOnly, mustInclude: filterMustInclude, quickFilterChip: activeFilter },
           feedback: { likedTags: [], dislikedMeals: Array.from(dislikedMeals) },
+          recentSuggestions: getRecentSuggestions(),
         },
       });
       if (error) throw error;
       if (Array.isArray(data)) {
         setAiCards(prev => ({ ...prev, [sectionId]: data }));
+        setCachedMeals(sectionId, currentPantryHash, filterInStockOnly, data);
+        trackRecentMeals(data);
       }
     } catch (e) {
       setShuffleKey(k => k + 1);
@@ -372,6 +389,74 @@ export function MealsTab() {
     }
     setAiLoading(prev => ({ ...prev, [sectionId]: false }));
   };
+
+  // Batch load all active sections at once
+  const batchLoadSections = async (sections: { id: string; name: string }[]) => {
+    // Check cache first, collect uncached sections
+    const uncached: string[] = [];
+    const fromCache: Record<string, MealCardWithCookTime[]> = {};
+
+    for (const section of sections) {
+      const cached = getCachedMeals(section.id, currentPantryHash, filterInStockOnly);
+      if (cached) {
+        fromCache[section.id] = cached;
+      } else {
+        uncached.push(section.id);
+      }
+    }
+
+    // Apply cached results immediately
+    if (Object.keys(fromCache).length > 0) {
+      setAiCards(prev => ({ ...prev, ...fromCache }));
+    }
+
+    if (uncached.length === 0) return;
+
+    // Set loading for uncached sections
+    const loadingUpdate: Record<string, boolean> = {};
+    uncached.forEach(id => { loadingUpdate[id] = true; });
+    setAiLoading(prev => ({ ...prev, ...loadingUpdate }));
+
+    try {
+      const { data, error } = await supabase.functions.invoke("suggest-meals", {
+        body: {
+          sections: uncached,
+          pantryItems: pantryInStock,
+          expiringItems,
+          profile,
+          filters: { cookTime: filterCookTime, mainProtein: filterProtein, cuisineOverride: filterCuisine, cookingMethod: filterMethod, inStockOnly: filterInStockOnly, mustInclude: filterMustInclude, quickFilterChip: activeFilter },
+          feedback: { likedTags: [], dislikedMeals: Array.from(dislikedMeals) },
+          recentSuggestions: getRecentSuggestions(),
+        },
+      });
+      if (error) throw error;
+      if (data && typeof data === "object" && !Array.isArray(data)) {
+        const newCards: Record<string, MealCardWithCookTime[]> = {};
+        for (const [sectionId, meals] of Object.entries(data)) {
+          if (Array.isArray(meals)) {
+            newCards[sectionId] = meals as MealCardWithCookTime[];
+            setCachedMeals(sectionId, currentPantryHash, filterInStockOnly, meals as MealCardWithCookTime[]);
+            trackRecentMeals(meals as MealCardWithCookTime[]);
+          }
+        }
+        setAiCards(prev => ({ ...prev, ...newCards }));
+      }
+    } catch {
+      toast.error("AI unavailable, showing local suggestions");
+    }
+
+    const loadingClear: Record<string, boolean> = {};
+    uncached.forEach(id => { loadingClear[id] = false; });
+    setAiLoading(prev => ({ ...prev, ...loadingClear }));
+  };
+
+  // Trigger batch load when active sections and profile are ready
+  useEffect(() => {
+    if (activeSections.length > 0 && profile && pantryInStock.length > 0 && !batchLoaded) {
+      setBatchLoaded(true);
+      batchLoadSections(activeSections);
+    }
+  }, [activeSections.length, profile, pantryInStock.length, batchLoaded]);
 
   const handleCraving = async () => {
     if (!craving.trim()) return;
@@ -386,11 +471,13 @@ export function MealsTab() {
           profile,
           filters: { cookTime: filterCookTime, mainProtein: filterProtein, cuisineOverride: filterCuisine, cookingMethod: filterMethod, inStockOnly: filterInStockOnly, quickFilterChip: activeFilter },
           feedback: { likedTags: [], dislikedMeals: Array.from(dislikedMeals) },
+          recentSuggestions: getRecentSuggestions(),
         },
       });
       if (error) throw error;
       if (Array.isArray(data)) {
         setCravingPopup({ meals: data.slice(0, 3), loading: false });
+        trackRecentMeals(data.slice(0, 3));
       }
     } catch {
       toast.error("Something went wrong. Try again.");
