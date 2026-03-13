@@ -689,6 +689,10 @@ export function PantryTab() {
                     );
                   })}
                 </div>
+                  <p className="font-body text-[10px] text-muted-foreground/60 mt-1.5 text-center italic">
+                    Hold an item to select & remove
+                  </p>
+                </>
               )}
             </div>
           ))
