@@ -761,28 +761,28 @@ export function MealsTab() {
       if (missingIngredients.length > 0) {
         const { data: existingItems } = await supabase
           .from("pantry_items")
-          .select("name")
-          .eq("household_id", householdId)
-          .in("name", missingIngredients);
+          .select("name, in_stock")
+          .eq("household_id", householdId);
 
-        const existingNames = new Set((existingItems || []).map(item => item.name.toLowerCase()));
-        const newItems = missingIngredients.filter(name => !existingNames.has(name.toLowerCase()));
+        const allPantryNames = (existingItems || []).map(item => item.name);
 
-        if (newItems.length > 0) {
-          const rows = newItems.map(name => ({
-            household_id: householdId,
-            name,
-            category: "Shopping List",
-            in_stock: false,
-            is_custom: true,
-            is_hidden: false,
-          }));
-          const { error: pantryError } = await supabase.from("pantry_items").insert(rows);
-          if (pantryError) throw pantryError;
+        for (const ingredient of missingIngredients) {
+          const cleanName = extractIngredientName(ingredient);
+          const match = findPantryMatch(cleanName, allPantryNames);
+          if (match) {
+            skippedCount++;
+          } else {
+            const { error } = await supabase.from("pantry_items").insert({
+              household_id: householdId,
+              name: cleanName,
+              category: "Shopping List",
+              in_stock: false,
+              is_custom: true,
+              is_hidden: false,
+            });
+            if (!error) newItemsCount++;
+          }
         }
-
-        newItemsCount = newItems.length;
-        skippedCount = missingIngredients.length - newItems.length;
       }
 
       const { data: existingRecipe, error: existingRecipeError } = await supabase
