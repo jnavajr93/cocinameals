@@ -7,6 +7,7 @@ import { useHousehold } from "@/hooks/useHousehold";
 import { useAuth } from "@/hooks/useAuth";
 import { MEAL_POOLS, MealCard } from "@/data/mealPools";
 import { toast } from "sonner";
+import { getPantryHash, getCachedMeals, setCachedMeals, getRecentSuggestions, addRecentSuggestions } from "@/lib/mealCache";
 
 interface MealCardWithCookTime extends MealCard {
   cookTime?: number;
