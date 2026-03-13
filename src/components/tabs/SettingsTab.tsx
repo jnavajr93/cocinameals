@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { CUISINES, CUISINE_LABELS } from "@/data/cuisines";
 import { EQUIPMENT_CATEGORIES } from "@/data/equipment";
 import { MEAL_SECTIONS, QUICK_FILTERS, DIET_RESTRICTIONS, DEFAULT_SECTION_TIMES } from "@/data/mealSections";
-import { Copy, LogOut, ChevronRight, ChevronDown, Search, Trash2, Plus, GripVertical } from "lucide-react";
+import { Copy, LogOut, ChevronRight, ChevronDown, Search, Trash2, Plus, GripVertical, Heart } from "lucide-react";
 
 const HEALTH_CONDITIONS = [
   "High Blood Pressure", "Type 2 Diabetes", "Pre-Diabetic", "High Cholesterol",
@@ -474,10 +474,28 @@ export function SettingsTab() {
               </div>
               <div>
                 <p className="font-body text-xs text-muted-foreground mb-2">Members (app users)</p>
-                {members.map((m, i) => (
-                  <div key={i} className="flex items-center justify-between py-1.5">
-                    <span className="font-body text-sm text-foreground">{m.user_name}</span>
-                    <span className="font-body text-xs text-muted-foreground">{formatLastSeen(m.last_seen)}</span>
+                {members.map((m) => (
+                  <div key={m.id} className="border-b border-border/50 last:border-0">
+                    <div className="flex items-center justify-between py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-body text-sm text-foreground">{m.user_name}</span>
+                        <span className="font-body text-xs text-muted-foreground">{formatLastSeen(m.last_seen)}</span>
+                      </div>
+                      <button onClick={() => toggle(`health-member-${m.id}`)} className="flex items-center gap-1 text-muted-foreground hover:text-gold transition-colors">
+                        <Heart size={12} className={(m.health_conditions || []).length > 0 ? "text-gold fill-gold/30" : ""} />
+                        {expanded.has(`health-member-${m.id}`) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                      </button>
+                    </div>
+                    {expanded.has(`health-member-${m.id}`) && (
+                      <div className="pb-2.5 pl-1">
+                        <p className="font-body text-[10px] text-muted-foreground mb-1.5">Health conditions</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {HEALTH_CONDITIONS.map(h => (
+                            <button key={h} onClick={() => toggleMemberHealth(m.id, h)} className={`rounded-full border px-2.5 py-0.5 font-body text-[11px] transition-colors ${(m.health_conditions || []).includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -487,9 +505,27 @@ export function SettingsTab() {
                 <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Other household members</p>
                 <p className="font-body text-xs text-muted-foreground mb-2">People who eat with you but don't use the app.</p>
                 {nonAppMembers.map((member, i) => (
-                  <div key={i} className="flex items-center justify-between py-1.5">
-                    <span className="font-body text-sm text-foreground">{member.name}</span>
-                    <button onClick={() => removeNonAppMember(i)} className="text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
+                  <div key={i} className="border-b border-border/50 last:border-0">
+                    <div className="flex items-center justify-between py-2">
+                      <span className="font-body text-sm text-foreground">{member.name}</span>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => toggle(`health-nonapp-${i}`)} className="flex items-center gap-1 text-muted-foreground hover:text-gold transition-colors">
+                          <Heart size={12} className={(member.healthConditions || []).length > 0 ? "text-gold fill-gold/30" : ""} />
+                          {expanded.has(`health-nonapp-${i}`) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                        </button>
+                        <button onClick={() => removeNonAppMember(i)} className="text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
+                      </div>
+                    </div>
+                    {expanded.has(`health-nonapp-${i}`) && (
+                      <div className="pb-2.5 pl-1">
+                        <p className="font-body text-[10px] text-muted-foreground mb-1.5">Health conditions</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {HEALTH_CONDITIONS.map(h => (
+                            <button key={h} onClick={() => toggleNonAppMemberHealth(i, h)} className={`rounded-full border px-2.5 py-0.5 font-body text-[11px] transition-colors ${(member.healthConditions || []).includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
                 {addingNonAppMember ? (
@@ -506,35 +542,35 @@ export function SettingsTab() {
                 )}
               </div>
 
-              {/* Household size */}
-              <div className="mt-2 border-t border-border pt-3">
-                <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Total people in household</p>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
-                    <button
-                      key={n}
-                      onClick={() => updateHouseholdSize(n)}
-                      className={`w-9 h-9 rounded-lg border font-body text-sm font-medium transition-colors ${
-                        householdSize === n ? "border-gold bg-gold/15 text-foreground" : "border-border bg-card text-muted-foreground hover:bg-secondary"
-                      }`}
-                    >
-                      {n}{n === 8 ? "+" : ""}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Children */}
               <div className="mt-2 border-t border-border pt-3">
                 <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Children</p>
                 <p className="font-body text-xs text-muted-foreground mb-2">Child meal schedules auto-appear when you add children.</p>
                 {children.map(c => (
-                  <div key={c.id} className="flex items-center justify-between py-2">
-                    <div>
-                      <span className="font-body text-sm text-foreground">{c.name || "Child"}</span>
-                      <span className="font-body text-xs text-muted-foreground ml-2">{getChildAge(c.date_of_birth)}</span>
+                  <div key={c.id} className="border-b border-border/50 last:border-0">
+                    <div className="flex items-center justify-between py-2">
+                      <div>
+                        <span className="font-body text-sm text-foreground">{c.name || "Child"}</span>
+                        <span className="font-body text-xs text-muted-foreground ml-2">{getChildAge(c.date_of_birth)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => toggle(`health-child-${c.id}`)} className="flex items-center gap-1 text-muted-foreground hover:text-gold transition-colors">
+                          <Heart size={12} className={(c.health_conditions || []).length > 0 ? "text-gold fill-gold/30" : ""} />
+                          {expanded.has(`health-child-${c.id}`) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                        </button>
+                        <button onClick={() => removeChild(c.id)} className="text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
+                      </div>
                     </div>
-                    <button onClick={() => removeChild(c.id)} className="text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
+                    {expanded.has(`health-child-${c.id}`) && (
+                      <div className="pb-2.5 pl-1">
+                        <p className="font-body text-[10px] text-muted-foreground mb-1.5">Health conditions</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {HEALTH_CONDITIONS.map(h => (
+                            <button key={h} onClick={() => toggleChildHealth(c.id, h)} className={`rounded-full border px-2.5 py-0.5 font-body text-[11px] transition-colors ${(c.health_conditions || []).includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
                 {addingChild ? (
@@ -557,53 +593,7 @@ export function SettingsTab() {
           )}
         </section>
 
-        {/* Health Conditions */}
-        <section className="border-b border-border">
-          <button onClick={() => toggle("health")} className="flex items-center justify-between w-full py-3">
-            <div className="flex items-center gap-2">
-              <h2 className="font-display text-base font-bold text-foreground">Health Conditions</h2>
-            </div>
-            {expanded.has("health") ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
-          </button>
-          {expanded.has("health") && (
-            <div className="pb-4 space-y-4">
-              <p className="font-body text-xs text-muted-foreground">Recipes quietly adapt to these conditions. Any household member can update these.</p>
 
-              {members.map(member => (
-                <div key={member.id}>
-                  <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{member.user_name}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {HEALTH_CONDITIONS.map(h => (
-                      <button key={h} onClick={() => toggleMemberHealth(member.id, h)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${(member.health_conditions || []).includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              {children.map(child => (
-                <div key={child.id}>
-                  <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{child.name || "Child"}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {HEALTH_CONDITIONS.map(h => (
-                      <button key={h} onClick={() => toggleChildHealth(child.id, h)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${(child.health_conditions || []).includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              {nonAppMembers.map((member, i) => (
-                <div key={`non-${i}`}>
-                  <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{member.name}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {HEALTH_CONDITIONS.map(h => (
-                      <button key={h} onClick={() => toggleNonAppMemberHealth(i, h)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${(member.healthConditions || []).includes(h) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{h}</button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
 
         {/* Meal Schedule (renamed from Meal Sections) */}
         <section className="border-b border-border">
