@@ -1179,9 +1179,14 @@ export function MealsTab() {
           <div className="p-3">
             <p className="font-body text-sm font-medium text-foreground leading-tight">{card.name}</p>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
+              {card.cookTime && (
+                <span className="flex items-center gap-1 font-body text-xs text-muted-foreground">
+                  <Clock size={10} />
+                  {card.cookTime} min
+                </span>
+              )}
               <span className="font-body text-xs text-muted-foreground">{card.cal} cal</span>
               <span className="font-body text-xs text-muted-foreground">P:{card.protein}g C:{card.carbs}g F:{card.fat}g</span>
-              {card.cookTime && <span className="font-body text-xs text-muted-foreground">{card.cookTime} min</span>}
             </div>
             {cuisineTag && (
               <span className="inline-block mt-1 rounded-full bg-secondary px-2 py-0.5 font-body text-xs text-muted-foreground">{cuisineTag}</span>
