@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { Logo } from "@/components/Logo";
+import { StepLanguage } from "./steps/StepLanguage";
 import { StepName } from "./steps/StepName";
 import { DEFAULT_EQUIPMENT } from "@/data/equipment";
 import { StepHousehold } from "./steps/StepHousehold";
