@@ -659,7 +659,7 @@ export function MealsTab() {
   };
 
   const openRecipe = async (card: MealCardWithCookTime, isBaby = false, sectionId?: string) => {
-    const cacheKey = `recipe_${card.name}`;
+    const cacheKey = getRecipeCacheKey(card.name);
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       try {
@@ -674,59 +674,21 @@ export function MealsTab() {
     setRecipeView({ mealName: card.name, recipeText: "", loading: true, isBaby, sectionId, tags: card.tags, discoverMode: !filterInStockOnly, missingIngredients: card.missingIngredients });
 
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-recipe`;
-      const resp = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          mealName: card.name,
-          pantryItems: pantryInStock,
-          expiringItems,
-          profile,
-          isBaby,
-        }),
+      const localRecipe = buildLocalRecipeText(card, isBaby, sectionId);
+      persistRecipeLocally(card.name, localRecipe);
+      setRecipeView({
+        mealName: card.name,
+        recipeText: localRecipe,
+        loading: false,
+        isBaby,
+        sectionId,
+        tags: card.tags,
+        discoverMode: !filterInStockOnly,
+        missingIngredients: card.missingIngredients,
       });
-
-      if (!resp.ok || !resp.body) throw new Error("Failed to stream");
-
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let textBuffer = "";
-      let fullText = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        textBuffer += decoder.decode(value, { stream: true });
-
-        let newlineIndex: number;
-        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              fullText += content;
-              setRecipeView(prev => prev ? { ...prev, recipeText: fullText } : null);
-            }
-          } catch {}
-        }
-      }
-
-      setRecipeView(prev => prev ? { ...prev, loading: false } : null);
-      localStorage.setItem(cacheKey, JSON.stringify({ text: fullText, ts: Date.now() }));
     } catch {
-      toast.error("Something went wrong. Tap to retry.");
-      setRecipeView(prev => prev ? { ...prev, loading: false, recipeText: "Failed to generate recipe. Please go back and try again." } : null);
+      toast.error("Couldn't open recipe. Try another meal.");
+      setRecipeView(prev => prev ? { ...prev, loading: false, recipeText: "Failed to load local recipe." } : null);
     }
   };
 
