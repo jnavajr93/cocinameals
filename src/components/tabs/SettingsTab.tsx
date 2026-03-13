@@ -593,245 +593,6 @@ export function SettingsTab() {
           )}
         </section>
 
-
-
-        {/* Meal Schedule (renamed from Meal Sections) */}
-        <section className="border-b border-border">
-          <SectionHeader id="sections" title="Meal Schedule" />
-          {expanded.has("sections") && (
-            <div className="flex flex-col gap-1 pb-4">
-              <div className="flex items-center justify-between mb-2">
-                <p className="font-body text-xs text-muted-foreground">Toggle schedules on/off, reorder, and optionally schedule to specific days.</p>
-                <button
-                  onClick={() => {
-                    const defaults = MEAL_SECTIONS.map((s, i) => ({ id: s.id, name: s.name, enabled: s.defaultOn, order: i }));
-                    setMealSections(defaults);
-                    saveHouseholdProfile({ meal_sections: defaults });
-                    saveUserPreferences({ section_order: defaults });
-                    toast.success("Meal schedule reset to defaults");
-                  }}
-                  className="shrink-0 font-body text-xs text-gold hover:underline"
-                >
-                  Reset
-                </button>
-              </div>
-              {sortedSections.map((section, idx) => (
-                <div key={section.id} className="rounded-lg border border-border overflow-hidden mb-1">
-                  <div className={`flex items-center justify-between w-full px-3 py-2.5 text-left transition-colors ${section.enabled ? "bg-primary/5" : "hover:bg-secondary"}`}>
-                    {/* Reorder arrows */}
-                    <div className="flex flex-col mr-2 shrink-0">
-                      <button
-                        onClick={() => moveSection(idx, "up")}
-                        disabled={idx === 0}
-                        className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5"
-                      >
-                        <ChevronRight size={12} className="-rotate-90" />
-                      </button>
-                      <button
-                        onClick={() => moveSection(idx, "down")}
-                        disabled={idx === sortedSections.length - 1}
-                        className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5"
-                      >
-                        <ChevronRight size={12} className="rotate-90" />
-                      </button>
-                    </div>
-                    <button onClick={() => toggleMealSection(section.id)} className="flex items-center justify-between flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-body text-sm font-medium text-foreground">{section.name}</span>
-                        {(section as any).isCustom && (
-                          <span className="rounded-full bg-gold/10 border border-gold/30 px-1.5 py-0.5 font-body text-[10px] text-gold">Custom</span>
-                        )}
-                      </div>
-                      <div className={`h-5 w-9 rounded-full transition-colors relative shrink-0 ${section.enabled ? "bg-gold" : "bg-muted"}`}>
-                        <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-card shadow-sm transition-transform ${section.enabled ? "translate-x-4" : "translate-x-0.5"}`} />
-                      </div>
-                    </button>
-                    {(section as any).isCustom && (
-                      <button onClick={() => removeCustomMealType(section.id)} className="ml-2 text-muted-foreground hover:text-destructive shrink-0">
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-                  {section.enabled && (
-                    <div className="px-3 pb-2.5 pt-1 bg-secondary/30 space-y-2">
-                      <div>
-                        <span className="font-body text-xs text-muted-foreground mb-1.5 block">Default cook time</span>
-                        <div className="flex gap-1.5">
-                          {[10, 15, 20, 25, 30, 45, 60].map(t => {
-                            const current = section.defaultTime ?? DEFAULT_SECTION_TIMES[section.id] ?? 30;
-                            return (
-                              <button
-                                key={t}
-                                onClick={() => updateSectionTime(section.id, t)}
-                                className={`rounded-md border px-2 py-1 font-body text-xs font-medium transition-colors ${
-                                  current === t ? "border-gold bg-gold/15 text-foreground" : "border-border bg-card text-muted-foreground hover:bg-secondary"
-                                }`}
-                              >
-                                {t}m
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="font-body text-xs text-muted-foreground mb-1.5 block">Schedule days (optional)</span>
-                        <div className="flex gap-1.5">
-                          {DAYS.map(d => {
-                            const active = (section.scheduledDays || []).includes(d);
-                            return (
-                              <button
-                                key={d}
-                                onClick={() => toggleSectionDay(section.id, d)}
-                                className={`flex-1 rounded-md border py-1.5 font-body text-xs font-medium transition-colors ${
-                                  active ? "border-gold bg-gold/15 text-foreground" : "border-border bg-card text-muted-foreground hover:bg-secondary"
-                                }`}
-                              >
-                                {d}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {/* Add custom meal type */}
-              {addingCustomMeal ? (
-                <div className="flex gap-2 mt-2">
-                  <input
-                    type="text"
-                    value={newMealName}
-                    onChange={e => setNewMealName(e.target.value)}
-                    onKeyDown={e => e.key === "Enter" && addCustomMealType()}
-                    placeholder='e.g. "Brunch", "Post-Workout", "Lunchbox"'
-                    className="flex-1 rounded-lg border border-border bg-input px-3 py-2 font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold"
-                    autoFocus
-                  />
-                  <button onClick={addCustomMealType} className="rounded-lg bg-primary px-3 py-2 font-body text-sm font-medium text-primary-foreground">Add</button>
-                  <button onClick={() => { setAddingCustomMeal(false); setNewMealName(""); }} className="rounded-lg border border-border px-3 py-2 font-body text-sm text-foreground">Cancel</button>
-                </div>
-              ) : (
-                <button onClick={() => setAddingCustomMeal(true)} className="flex items-center gap-1 mt-2 font-body text-sm text-gold hover:underline">
-                  <Plus size={14} />
-                  Add custom meal type
-                </button>
-              )}
-            </div>
-          )}
-        </section>
-
-
-        {/* Taste Profile */}
-        <section className="border-b border-border">
-          <SectionHeader id="taste" title="My Taste Profile" />
-          {expanded.has("taste") && (
-            <div className="pb-4">
-              <p className="font-body text-xs text-muted-foreground mb-3"><CocinaText /> learns what you love. Liked and disliked meals shape your suggestions.</p>
-              {likedFeedback.length > 0 && (
-                <div className="mb-3">
-                  <p className="font-body text-xs font-semibold text-muted-foreground mb-1">LIKED</p>
-                  {likedFeedback.slice(0, 10).map(f => (
-                    <div key={f.id} className="flex items-center justify-between py-1">
-                      <span className="font-body text-sm text-foreground">{f.meal_name}</span>
-                      <button onClick={() => removeFeedback(f.id)} className="text-muted-foreground hover:text-destructive"><Trash2 size={12} /></button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {dislikedFeedback.length > 0 && (
-                <div className="mb-3">
-                  <p className="font-body text-xs font-semibold text-muted-foreground mb-1">DISLIKED</p>
-                  {dislikedFeedback.slice(0, 10).map(f => (
-                    <div key={f.id} className="flex items-center justify-between py-1">
-                      <span className="font-body text-sm text-foreground">{f.meal_name}</span>
-                      <button onClick={() => removeFeedback(f.id)} className="text-muted-foreground hover:text-destructive"><Trash2 size={12} /></button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {(likedFeedback.length > 0 || dislikedFeedback.length > 0) && (
-                <button onClick={resetTasteProfile} className="font-body text-xs text-destructive hover:underline">Reset my taste profile</button>
-              )}
-              {likedFeedback.length === 0 && dislikedFeedback.length === 0 && (
-                <p className="font-body text-xs text-muted-foreground">No feedback yet. Like or dislike meals on the Meals tab.</p>
-              )}
-            </div>
-          )}
-        </section>
-
-        {/* Cuisine Preferences */}
-        <section className="border-b border-border">
-          <SectionHeader id="cuisine" title="Cuisine Preferences" />
-          {expanded.has("cuisine") && (
-            <div className="flex flex-col gap-4 pb-4">
-              {CUISINES.map(cuisine => (
-                <div key={cuisine}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-body text-sm text-foreground">{cuisine}</span>
-                    <span className="font-body text-xs text-muted-foreground">{CUISINE_LABELS[cuisineSliders[cuisine] ?? 2]}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={4}
-                    step={1}
-                    value={cuisineSliders[cuisine] ?? 2}
-                    onChange={e => updateCuisineSlider(cuisine, Number(e.target.value))}
-                    className="w-full accent-gold h-1.5"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Cooking Style */}
-        <section className="border-b border-border">
-          <SectionHeader id="style" title="Cooking Style" />
-          {expanded.has("style") && (
-            <div className="flex flex-col gap-4 pb-4">
-              <div>
-                <p className="font-body text-xs text-muted-foreground mb-2">Skill level</p>
-                <div className="flex gap-2">
-                  {SKILL_LEVELS.map(s => (
-                    <button key={s} onClick={() => updateSkillLevel(s.toLowerCase())} className={`flex-1 rounded-lg border py-2 font-body text-xs transition-colors ${skillLevel === s.toLowerCase() ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{s}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="font-body text-xs text-muted-foreground mb-2">Spice tolerance</p>
-                <div className="flex gap-2 flex-wrap">
-                  {SPICE_LEVELS.map(s => (
-                    <button key={s} onClick={() => updateSpice(s.toLowerCase())} className={`rounded-lg border px-3 py-2 font-body text-xs transition-colors ${spiceTolerance === s.toLowerCase() ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{s}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="font-body text-xs text-muted-foreground mb-2">Weeknight time</p>
-                <div className="flex gap-2 flex-wrap">
-                  {WEEKNIGHT_TIMES.map(t => {
-                    const val = t === "Under 20 min" ? "under20" : t === "30 min" ? "30min" : t === "45 min" ? "45min" : "norush";
-                    return (
-                      <button key={t} onClick={() => updateWeeknight(val)} className={`rounded-lg border px-3 py-2 font-body text-xs transition-colors ${weeknightTime === val ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{t}</button>
-                    );
-                  })}
-                </div>
-              </div>
-              <div>
-                <p className="font-body text-xs text-muted-foreground mb-2">Diet restrictions</p>
-                <div className="flex flex-wrap gap-2">
-                  {(DIET_RESTRICTIONS as readonly string[]).map(d => (
-                    <button key={d} onClick={() => toggleDiet(d)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${dietRestrictions.includes(d) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{d}</button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </section>
-
-
         {/* Kitchen Equipment */}
         <section className="border-b border-border">
           <SectionHeader id="equipment" title="Kitchen Equipment" />
@@ -862,6 +623,197 @@ export function SettingsTab() {
           )}
         </section>
 
+        {/* Meal Schedule */}
+        <section className="border-b border-border">
+          <SectionHeader id="sections" title="Meal Schedule" />
+          {expanded.has("sections") && (
+            <div className="flex flex-col gap-1 pb-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="font-body text-xs text-muted-foreground">Toggle schedules on/off, reorder, and optionally schedule to specific days.</p>
+                <button
+                  onClick={() => {
+                    const defaults = MEAL_SECTIONS.map((s, i) => ({ id: s.id, name: s.name, enabled: s.defaultOn, order: i }));
+                    setMealSections(defaults);
+                    saveHouseholdProfile({ meal_sections: defaults });
+                    saveUserPreferences({ section_order: defaults });
+                    toast.success("Meal schedule reset to defaults");
+                  }}
+                  className="shrink-0 font-body text-xs text-gold hover:underline"
+                >
+                  Reset
+                </button>
+              </div>
+              {sortedSections.map((section, idx) => (
+                <div key={section.id} className="rounded-lg border border-border overflow-hidden mb-1">
+                  <div className={`flex items-center justify-between w-full px-3 py-2.5 text-left transition-colors ${section.enabled ? "bg-primary/5" : "hover:bg-secondary"}`}>
+                    <div className="flex flex-col mr-2 shrink-0">
+                      <button onClick={() => moveSection(idx, "up")} disabled={idx === 0} className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5"><ChevronRight size={12} className="-rotate-90" /></button>
+                      <button onClick={() => moveSection(idx, "down")} disabled={idx === sortedSections.length - 1} className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5"><ChevronRight size={12} className="rotate-90" /></button>
+                    </div>
+                    <button onClick={() => toggleMealSection(section.id)} className="flex items-center justify-between flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-body text-sm font-medium text-foreground">{section.name}</span>
+                        {(section as any).isCustom && (<span className="rounded-full bg-gold/10 border border-gold/30 px-1.5 py-0.5 font-body text-[10px] text-gold">Custom</span>)}
+                      </div>
+                      <div className={`h-5 w-9 rounded-full transition-colors relative shrink-0 ${section.enabled ? "bg-gold" : "bg-muted"}`}>
+                        <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-card shadow-sm transition-transform ${section.enabled ? "translate-x-4" : "translate-x-0.5"}`} />
+                      </div>
+                    </button>
+                    {(section as any).isCustom && (<button onClick={() => removeCustomMealType(section.id)} className="ml-2 text-muted-foreground hover:text-destructive shrink-0"><Trash2 size={14} /></button>)}
+                  </div>
+                  {section.enabled && (
+                    <div className="px-3 pb-2.5 pt-1 bg-secondary/30 space-y-2">
+                      <div>
+                        <span className="font-body text-xs text-muted-foreground mb-1.5 block">Default cook time</span>
+                        <div className="flex gap-1.5">
+                          {[10, 15, 20, 25, 30, 45, 60].map(t => {
+                            const current = section.defaultTime ?? DEFAULT_SECTION_TIMES[section.id] ?? 30;
+                            return (<button key={t} onClick={() => updateSectionTime(section.id, t)} className={`rounded-md border px-2 py-1 font-body text-xs font-medium transition-colors ${current === t ? "border-gold bg-gold/15 text-foreground" : "border-border bg-card text-muted-foreground hover:bg-secondary"}`}>{t}m</button>);
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="font-body text-xs text-muted-foreground mb-1.5 block">Schedule days (optional)</span>
+                        <div className="flex gap-1.5">
+                          {DAYS.map(d => {
+                            const active = (section.scheduledDays || []).includes(d);
+                            return (<button key={d} onClick={() => toggleSectionDay(section.id, d)} className={`flex-1 rounded-md border py-1.5 font-body text-xs font-medium transition-colors ${active ? "border-gold bg-gold/15 text-foreground" : "border-border bg-card text-muted-foreground hover:bg-secondary"}`}>{d}</button>);
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {addingCustomMeal ? (
+                <div className="flex gap-2 mt-2">
+                  <input type="text" value={newMealName} onChange={e => setNewMealName(e.target.value)} onKeyDown={e => e.key === "Enter" && addCustomMealType()} placeholder='e.g. "Brunch", "Post-Workout", "Lunchbox"' className="flex-1 rounded-lg border border-border bg-input px-3 py-2 font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold" autoFocus />
+                  <button onClick={addCustomMealType} className="rounded-lg bg-primary px-3 py-2 font-body text-sm font-medium text-primary-foreground">Add</button>
+                  <button onClick={() => { setAddingCustomMeal(false); setNewMealName(""); }} className="rounded-lg border border-border px-3 py-2 font-body text-sm text-foreground">Cancel</button>
+                </div>
+              ) : (
+                <button onClick={() => setAddingCustomMeal(true)} className="flex items-center gap-1 mt-2 font-body text-sm text-gold hover:underline"><Plus size={14} />Add custom meal type</button>
+              )}
+            </div>
+          )}
+        </section>
+
+        {/* Cuisine Preferences */}
+        <section className="border-b border-border">
+          <SectionHeader id="cuisine" title="Cuisine Preferences" />
+          {expanded.has("cuisine") && (
+            <div className="flex flex-col gap-4 pb-4">
+              {CUISINES.map(cuisine => (
+                <div key={cuisine}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-body text-sm text-foreground">{cuisine}</span>
+                    <span className="font-body text-xs text-muted-foreground">{CUISINE_LABELS[cuisineSliders[cuisine] ?? 2]}</span>
+                  </div>
+                  <input type="range" min={0} max={4} step={1} value={cuisineSliders[cuisine] ?? 2} onChange={e => updateCuisineSlider(cuisine, Number(e.target.value))} className="w-full accent-gold h-1.5" />
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Taste Profile - opens overlay */}
+        <section className="border-b border-border">
+          <button onClick={() => toggle("tasteOverlay")} className="flex items-center justify-between w-full py-3">
+            <h2 className="font-display text-base font-bold text-foreground">My Taste Profile</h2>
+            <div className="flex items-center gap-2">
+              {(likedFeedback.length > 0 || dislikedFeedback.length > 0) && (
+                <span className="font-body text-xs text-muted-foreground">{likedFeedback.length + dislikedFeedback.length} rated</span>
+              )}
+              <ChevronRight size={16} className="text-muted-foreground" />
+            </div>
+          </button>
+        </section>
+
+        {/* Taste Profile Overlay */}
+        {expanded.has("tasteOverlay") && (
+          <div className="fixed inset-0 z-50 flex flex-col bg-background animate-fade-in">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <h2 className="font-display text-lg font-bold text-foreground">My Taste Profile</h2>
+              <button onClick={() => toggle("tasteOverlay")} className="rounded-lg border border-border px-3 py-1.5 font-body text-sm text-foreground hover:bg-secondary">Done</button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              <p className="font-body text-xs text-muted-foreground mb-4"><CocinaText /> learns what you love. Liked and disliked meals shape your suggestions.</p>
+              {likedFeedback.length > 0 && (
+                <div className="mb-5">
+                  <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">👍 Liked</p>
+                  {likedFeedback.map(f => (
+                    <div key={f.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                      <span className="font-body text-sm text-foreground">{f.meal_name}</span>
+                      <button onClick={() => removeFeedback(f.id)} className="text-muted-foreground hover:text-destructive"><Trash2 size={13} /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {dislikedFeedback.length > 0 && (
+                <div className="mb-5">
+                  <p className="font-body text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">👎 Disliked</p>
+                  {dislikedFeedback.map(f => (
+                    <div key={f.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                      <span className="font-body text-sm text-foreground">{f.meal_name}</span>
+                      <button onClick={() => removeFeedback(f.id)} className="text-muted-foreground hover:text-destructive"><Trash2 size={13} /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {likedFeedback.length === 0 && dislikedFeedback.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <p className="font-body text-sm text-muted-foreground">No feedback yet.</p>
+                  <p className="font-body text-xs text-muted-foreground mt-1">Like or dislike meals on the Meals tab to train your profile.</p>
+                </div>
+              )}
+              {(likedFeedback.length > 0 || dislikedFeedback.length > 0) && (
+                <button onClick={resetTasteProfile} className="mt-4 font-body text-xs text-destructive hover:underline">Reset my taste profile</button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Cooking Style */}
+        <section className="border-b border-border">
+          <SectionHeader id="style" title="Cooking Style" />
+          {expanded.has("style") && (
+            <div className="flex flex-col gap-4 pb-4">
+              <div>
+                <p className="font-body text-xs text-muted-foreground mb-2">Skill level</p>
+                <div className="flex gap-2">
+                  {SKILL_LEVELS.map(s => (
+                    <button key={s} onClick={() => updateSkillLevel(s.toLowerCase())} className={`flex-1 rounded-lg border py-2 font-body text-xs transition-colors ${skillLevel === s.toLowerCase() ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{s}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="font-body text-xs text-muted-foreground mb-2">Spice tolerance</p>
+                <div className="flex gap-2 flex-wrap">
+                  {SPICE_LEVELS.map(s => (
+                    <button key={s} onClick={() => updateSpice(s.toLowerCase())} className={`rounded-lg border px-3 py-2 font-body text-xs transition-colors ${spiceTolerance === s.toLowerCase() ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{s}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="font-body text-xs text-muted-foreground mb-2">Weeknight time</p>
+                <div className="flex gap-2 flex-wrap">
+                  {WEEKNIGHT_TIMES.map(t => {
+                    const val = t === "Under 20 min" ? "under20" : t === "30 min" ? "30min" : t === "45 min" ? "45min" : "norush";
+                    return (<button key={t} onClick={() => updateWeeknight(val)} className={`rounded-lg border px-3 py-2 font-body text-xs transition-colors ${weeknightTime === val ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{t}</button>);
+                  })}
+                </div>
+              </div>
+              <div>
+                <p className="font-body text-xs text-muted-foreground mb-2">Diet restrictions</p>
+                <div className="flex flex-wrap gap-2">
+                  {(DIET_RESTRICTIONS as readonly string[]).map(d => (
+                    <button key={d} onClick={() => toggleDiet(d)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${dietRestrictions.includes(d) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{d}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
 
 
         {/* Save Settings */}
