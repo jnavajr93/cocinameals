@@ -4,7 +4,7 @@ import { CocinaText } from "@/components/CocinaText";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
-import { Mail, ChefHat, Leaf, DollarSign, Clock, Users, TrendingDown, Utensils, ShoppingCart, Heart, Camera, Activity } from "lucide-react";
+import { Mail, Compass, Leaf, DollarSign, Clock, Users, TrendingDown, Utensils, ShoppingCart, Heart, Camera, Activity } from "lucide-react";
 
 type View = "landing" | "signin" | "signup" | "forgot";
 
