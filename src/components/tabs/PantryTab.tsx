@@ -15,6 +15,7 @@ interface PantryItem {
   in_stock: boolean;
   is_custom: boolean;
   is_hidden: boolean;
+  household_id: string;
   updated_by: string | null;
   expires_at: string | null;
   updated_at: string | null;
