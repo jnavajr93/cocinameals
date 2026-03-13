@@ -605,9 +605,11 @@ export function PantryTab() {
                         className={`relative flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left transition-all select-none ${
                           isSelected
                             ? "border-destructive/50 bg-destructive/10 ring-1 ring-destructive/30"
-                            : item.in_stock
-                              ? "border-gold/40 bg-gold/5"
-                              : "border-border bg-card"
+                            : viewMode === "shopping"
+                              ? "border-border bg-card"
+                              : item.in_stock
+                                ? "border-gold/40 bg-gold/5"
+                                : "border-border bg-card"
                         }`}
                       >
                         {selectMode ? (
