@@ -627,11 +627,19 @@ export function PantryTab() {
                             {item.in_stock && <Check size={12} />}
                           </span>
                         )}
-                        <span className={`font-body text-sm leading-tight flex-1 min-w-0 truncate ${
-                          !item.in_stock ? "line-through text-muted-foreground" : "text-foreground"
-                        }`}>
-                          {item.name}
-                        </span>
+                        {viewMode === "shopping" ? (
+                          <>
+                            <span className="font-body text-sm leading-tight flex-1 min-w-0 truncate text-foreground">
+                              {item.name}
+                            </span>
+                          </>
+                        ) : (
+                          <span className={`font-body text-sm leading-tight flex-1 min-w-0 truncate ${
+                            !item.in_stock ? "line-through text-muted-foreground" : "text-foreground"
+                          }`}>
+                            {item.name}
+                          </span>
+                        )}
                         {/* Calendar icon for perishable items */}
                         {item.in_stock && (
                           <Popover>
