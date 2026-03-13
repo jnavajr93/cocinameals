@@ -23,6 +23,10 @@ export default function SharedRecipe() {
         setNotFound(true);
       } else {
         setRecipe(data);
+        // Update page title & meta for link previews
+        document.title = `${data.meal_name} — cocina`;
+        const metaDesc = document.querySelector('meta[name="description"]');
+        if (metaDesc) metaDesc.setAttribute("content", `${data.meal_name} — made with cocina · smart meal planning`);
       }
       setLoading(false);
     })();
