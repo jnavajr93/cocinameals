@@ -432,6 +432,7 @@ export function PantryTab() {
             <button
               onClick={handleReceiptScanClick}
               disabled={scanning}
+              data-tour-id="scan-receipt"
               className="flex items-center gap-1.5 rounded-lg bg-gold px-3 py-1.5 text-gold-foreground font-body text-xs font-medium disabled:opacity-50"
               title="Scan receipt"
             >

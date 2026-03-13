@@ -355,6 +355,22 @@ export function SettingsTab() {
 
   const handleLogout = async () => { await signOut(); };
 
+  const handleDeleteAccount = async () => {
+    if (!user || !householdId) return;
+    try {
+      // Delete user data
+      await Promise.all([
+        supabase.from("user_preferences").delete().eq("user_id", user.id),
+        supabase.from("meal_feedback").delete().eq("user_id", user.id),
+        supabase.from("household_members").delete().eq("user_id", user.id),
+      ]);
+      await signOut();
+      toast.success("Account deleted");
+    } catch {
+      toast.error("Failed to delete account");
+    }
+  };
+
   // Add custom meal type
   const addCustomMealType = () => {
     if (!newMealName.trim()) return;
