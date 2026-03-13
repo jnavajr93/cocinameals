@@ -567,7 +567,6 @@ export function MealsTab() {
       toast.error("Couldn't open recipe. Try another meal.");
       setRecipeView(prev => prev ? { ...prev, loading: false, recipeText: "Failed to load local recipe." } : null);
     }
-    }
   };
 
   const saveRecipe = async () => {
