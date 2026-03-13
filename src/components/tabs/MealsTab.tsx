@@ -532,7 +532,7 @@ export function MealsTab() {
           url: shareUrl,
         });
       } else {
-        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+        await navigator.clipboard.writeText(`${recipeView.mealName} — cocina\n${shareUrl}`);
         toast.success("Share link copied to clipboard!");
       }
     } catch (e: any) {

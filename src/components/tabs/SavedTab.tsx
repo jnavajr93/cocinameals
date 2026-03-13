@@ -246,9 +246,9 @@ export function SavedTab() {
       const siteUrl = "https://cocinameals.lovable.app";
       const shareUrl = `${siteUrl}/recipe/${data.id}`;
       if (navigator.share) {
-        await navigator.share({ title: recipe.meal_name, text: shareText, url: shareUrl });
+        await navigator.share({ title: recipe.meal_name, url: shareUrl });
       } else {
-        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+        await navigator.clipboard.writeText(`${recipe.meal_name} — cocina\n${shareUrl}`);
         toast.success("Link copied to clipboard");
       }
     } catch (e: any) {
