@@ -161,7 +161,7 @@ TAGS TO USE: mexican, asian, southeast_asian, south_asian, mediterranean, italia
         if (response.status === 402) {
           const fallbackResults: Record<string, any[]> = {};
           for (const s of sections) fallbackResults[s] = [];
-          return new Response(JSON.stringify({ results: fallbackResults, fallback: true, reason: "usage_limit" }), {
+          return new Response(JSON.stringify(fallbackResults), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
