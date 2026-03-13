@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useHousehold } from "@/hooks/useHousehold";
 import { useAuth } from "@/hooks/useAuth";
-import { Trash2, BookOpen, ArrowLeft, Search, X, ChevronDown, ChevronRight, Clock, Flame, UtensilsCrossed, Filter, Users, ShoppingCart } from "lucide-react";
+import { Trash2, BookOpen, ArrowLeft, Search, X, ChevronDown, ChevronRight, Clock, Flame, UtensilsCrossed, Filter, Users, ShoppingCart, Send, Star } from "lucide-react";
 import { RecipeDisplay } from "@/components/RecipeDisplay";
 import { toast } from "sonner";
 import { MEAL_SECTIONS } from "@/data/mealSections";
@@ -19,6 +19,19 @@ interface SavedRecipe {
 
 const SECTION_LABEL_MAP: Record<string, string> = {};
 MEAL_SECTIONS.forEach(s => { SECTION_LABEL_MAP[s.id] = s.name; });
+
+function extractPreview(recipeText: string): string {
+  const lines = recipeText.split("\n").map(l => l.trim()).filter(Boolean);
+  // Try to find ingredients section and return first few
+  const ingIdx = lines.findIndex(l => /^INGREDIENT/i.test(l));
+  if (ingIdx >= 0) {
+    const ingredients = lines.slice(ingIdx + 1, ingIdx + 4).map(l => l.replace(/^[-•]\s*/, ""));
+    return ingredients.join(", ") + "…";
+  }
+  // Fallback: first meaningful line
+  const firstLine = lines.find(l => !l.startsWith("ESTIMATED") && !l.startsWith("SERVES") && l.length > 10);
+  return firstLine ? (firstLine.length > 80 ? firstLine.slice(0, 80) + "…" : firstLine) : "";
+}
 
 export function SavedTab() {
   const { householdId } = useHousehold();
@@ -216,6 +229,35 @@ export function SavedTab() {
     ],
   };
 
+  const shareRecipe = async (recipe: SavedRecipe) => {
+    try {
+      toast.info("Creating share link…");
+      const { data, error } = await supabase
+        .from("shared_recipes")
+        .insert({
+          meal_name: recipe.meal_name,
+          recipe_text: recipe.recipe_text,
+          shared_by_name: recipe.saved_by || "Someone",
+          tags: recipe.tags || [],
+        })
+        .select("id")
+        .single();
+      if (error || !data) throw error;
+      const shareUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/og-recipe?id=${data.id}`;
+      const shareText = `🍽️ ${recipe.meal_name} — check out this recipe from cocina!`;
+      if (navigator.share) {
+        await navigator.share({ title: recipe.meal_name, text: shareText, url: shareUrl });
+      } else {
+        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+        toast.success("Link copied to clipboard");
+      }
+    } catch (e: any) {
+      if (e.name !== "AbortError") {
+        toast.error("Couldn't share recipe. Try again.");
+      }
+    }
+  };
+
   // Recipe detail view
   if (viewingRecipe) {
     return (
@@ -225,17 +267,31 @@ export function SavedTab() {
             <ArrowLeft size={20} />
           </button>
           <h1 className="font-display text-lg font-bold text-foreground flex-1 truncate">{viewingRecipe.meal_name}</h1>
+          <button
+            onClick={() => shareRecipe(viewingRecipe)}
+            className="shrink-0 text-muted-foreground hover:text-gold transition-colors"
+            title="Share recipe"
+          >
+            <Send size={16} />
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto px-4 pb-24">
           <RecipeDisplay text={viewingRecipe.recipe_text} />
         </div>
-        <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-4 py-3 flex justify-center pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-4 py-3 flex justify-center gap-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           <button
             onClick={() => { removeRecipe(viewingRecipe.id); setViewingRecipe(null); }}
-            className="flex items-center gap-2 rounded-lg border border-border px-6 py-2.5 font-body text-sm text-muted-foreground"
+            className="flex items-center gap-2 rounded-lg border border-border px-6 py-2.5 font-body text-sm text-muted-foreground hover:text-destructive transition-colors"
           >
             <Trash2 size={14} />
             {viewingRecipe.meal_section === "shopping_cart" ? "Remove from cart" : "Unsave"}
+          </button>
+          <button
+            onClick={() => shareRecipe(viewingRecipe)}
+            className="flex items-center gap-2 rounded-lg bg-gold px-6 py-2.5 font-body text-sm font-medium text-gold-foreground"
+          >
+            <Send size={14} />
+            Share
           </button>
         </div>
       </div>
@@ -420,26 +476,51 @@ export function SavedTab() {
           </div>
         ) : viewMode === "shopping" ? (
           <div className="flex flex-col gap-2 mt-2">
-            {filteredRecipes.map(recipe => (
-              <div key={recipe.id} className="rounded-lg border border-border bg-card p-3 flex items-start justify-between">
-                <button onClick={() => setViewingRecipe(recipe)} className="flex-1 min-w-0 text-left">
-                  <p className="font-body text-sm font-medium text-foreground">{recipe.meal_name}</p>
-                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                    <span className="font-body text-xs text-muted-foreground">
-                      {recipe.saved_by} · {formatDate(recipe.created_at)}
-                    </span>
-                    {recipe.tags.slice(0, 3).map(tag => (
-                      <span key={tag} className="rounded-full bg-secondary px-2 py-0.5 font-body text-[10px] text-muted-foreground">
-                        {tag.replace(/_/g, " ")}
+            {filteredRecipes.map(recipe => {
+              const previewSnippet = extractPreview(recipe.recipe_text);
+              return (
+                <button
+                  key={recipe.id}
+                  onClick={() => setViewingRecipe(recipe)}
+                  className="rounded-xl border border-border bg-card p-4 text-left transition-colors hover:bg-secondary/50 w-full"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-display text-sm font-bold text-foreground">{recipe.meal_name}</p>
+                      {previewSnippet && (
+                        <p className="font-body text-xs text-muted-foreground mt-1 line-clamp-2">{previewSnippet}</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <span className="font-body text-[10px] text-muted-foreground">
+                          {recipe.saved_by} · {formatDate(recipe.created_at)}
+                        </span>
+                        {recipe.tags.slice(0, 3).map(tag => (
+                          <span key={tag} className="rounded-full bg-secondary px-2 py-0.5 font-body text-[10px] text-muted-foreground">
+                            {tag.replace(/_/g, " ")}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span
+                        role="button"
+                        onClick={(e) => { e.stopPropagation(); shareRecipe(recipe); }}
+                        className="p-1.5 rounded-md text-muted-foreground hover:text-gold transition-colors"
+                      >
+                        <Send size={14} />
                       </span>
-                    ))}
+                      <span
+                        role="button"
+                        onClick={(e) => { e.stopPropagation(); removeRecipe(recipe.id); }}
+                        className="p-1.5 rounded-md text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </span>
+                    </div>
                   </div>
                 </button>
-                <button onClick={() => removeRecipe(recipe.id)} className="ml-2 shrink-0 text-muted-foreground hover:text-destructive transition-colors">
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="flex flex-col gap-4 mt-2">
@@ -459,26 +540,51 @@ export function SavedTab() {
                 </button>
                 {!collapsedSections.has(group.id) && (
                   <div className="flex flex-col gap-2">
-                    {group.recipes.map(recipe => (
-                      <div key={recipe.id} className="rounded-lg border border-border bg-card p-3 flex items-start justify-between">
-                        <button onClick={() => setViewingRecipe(recipe)} className="flex-1 min-w-0 text-left">
-                          <p className="font-body text-sm font-medium text-foreground">{recipe.meal_name}</p>
-                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            <span className="font-body text-xs text-muted-foreground">
-                              {recipe.saved_by} · {formatDate(recipe.created_at)}
-                            </span>
-                            {recipe.tags.slice(0, 3).map(tag => (
-                              <span key={tag} className="rounded-full bg-secondary px-2 py-0.5 font-body text-[10px] text-muted-foreground">
-                                {tag.replace(/_/g, " ")}
+                    {group.recipes.map(recipe => {
+                      const previewSnippet = extractPreview(recipe.recipe_text);
+                      return (
+                        <button
+                          key={recipe.id}
+                          onClick={() => setViewingRecipe(recipe)}
+                          className="rounded-xl border border-border bg-card p-4 text-left transition-colors hover:bg-secondary/50 w-full"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-display text-sm font-bold text-foreground">{recipe.meal_name}</p>
+                              {previewSnippet && (
+                                <p className="font-body text-xs text-muted-foreground mt-1 line-clamp-2">{previewSnippet}</p>
+                              )}
+                              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                <span className="font-body text-[10px] text-muted-foreground">
+                                  {recipe.saved_by} · {formatDate(recipe.created_at)}
+                                </span>
+                                {recipe.tags.slice(0, 3).map(tag => (
+                                  <span key={tag} className="rounded-full bg-secondary px-2 py-0.5 font-body text-[10px] text-muted-foreground">
+                                    {tag.replace(/_/g, " ")}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span
+                                role="button"
+                                onClick={(e) => { e.stopPropagation(); shareRecipe(recipe); }}
+                                className="p-1.5 rounded-md text-muted-foreground hover:text-gold transition-colors"
+                              >
+                                <Send size={14} />
                               </span>
-                            ))}
+                              <span
+                                role="button"
+                                onClick={(e) => { e.stopPropagation(); removeRecipe(recipe.id); }}
+                                className="p-1.5 rounded-md text-muted-foreground hover:text-destructive transition-colors"
+                              >
+                                <Trash2 size={14} />
+                              </span>
+                            </div>
                           </div>
                         </button>
-                        <button onClick={() => removeRecipe(recipe.id)} className="ml-2 shrink-0 text-muted-foreground hover:text-destructive transition-colors">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
