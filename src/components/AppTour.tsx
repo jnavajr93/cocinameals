@@ -185,8 +185,13 @@ export function AppTour({ onComplete }: { onComplete: () => void }) {
           </div>
         </div>
 
+        {/* Arrow pointing at specific element (e.g. scan receipt button) */}
+        {current.arrowDirection === "down" && current.arrowTarget && (
+          <ArrowToElement targetId={current.arrowTarget} direction="up" />
+        )}
+
         {/* Arrow pointing down to the tab */}
-        {current.arrowDirection === "down" && tabHighlightStyle && (
+        {current.arrowDirection === "down" && !current.arrowTarget && tabHighlightStyle && (
           <div
             className="absolute bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] animate-bounce"
             style={{ left: tabHighlightStyle.left, width: tabHighlightStyle.width, display: "flex", justifyContent: "center" }}
