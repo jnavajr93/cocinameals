@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 interface MealCardWithCookTime extends MealCard {
   cookTime?: number;
+  missingIngredients?: string[];
 }
 
 interface RecipeViewState {
