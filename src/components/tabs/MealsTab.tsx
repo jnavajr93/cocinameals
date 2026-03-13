@@ -6,10 +6,11 @@ import { extractIngredientName, findPantryMatch } from "@/lib/ingredientMatch";
 import { supabase } from "@/integrations/supabase/client";
 import { useHousehold } from "@/hooks/useHousehold";
 import { useAuth } from "@/hooks/useAuth";
-import { MEAL_POOLS, MealCard } from "@/data/mealPools";
+import { MealCard } from "@/data/mealPools";
 import { DEFAULT_SECTION_TIMES } from "@/data/mealSections";
 import { toast } from "sonner";
-import { getPantryHash, getMealPool, addToMealPool, pickFromPool, getRecentSuggestions, addRecentSuggestions, isAiThrottled, recordAiCall, getPoolLimit } from "@/lib/mealCache";
+import { getRecentSuggestions, addRecentSuggestions } from "@/lib/mealCache";
+import { queryRecipes, sectionToCategory, RecipeResult } from "@/lib/recipeQuery";
 
 interface MealCardWithCookTime extends MealCard {
   cookTime?: number;
