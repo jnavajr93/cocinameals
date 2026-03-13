@@ -244,10 +244,12 @@ export function SavedTab() {
         .single();
       if (error || !data) throw error;
       const shareUrl = `${window.location.origin}/recipe/${data.id}`;
+      const shareText = `🍽️ ${recipe.meal_name} - from Cocina app.\n\nCook restaurant-quality meals with what you already have. Sign up free today!`;
+
       if (navigator.share) {
-        await navigator.share({ title: `🍽️ ${recipe.meal_name} — from Cocina app`, url: shareUrl });
+        await navigator.share({ text: shareText, url: shareUrl });
       } else {
-        await navigator.clipboard.writeText(shareUrl);
+        await navigator.clipboard.writeText(`${shareText}\n\n${shareUrl}`);
         toast.success("Link copied to clipboard");
       }
     } catch (e: any) {
