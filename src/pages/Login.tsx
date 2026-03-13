@@ -30,7 +30,7 @@ const PAIN_POINTS: ContentItem[] = [
   },
   {
     icon: Clock,
-    title: '"What\'s for dinner?" — every single night',
+    title: '"What\'s for dinner?" every single night',
     description: "Decision fatigue is real. cocina delivers personalized meal ideas based on your pantry, skill level, and family preferences.",
   },
   {
@@ -40,8 +40,8 @@ const PAIN_POINTS: ContentItem[] = [
   },
   {
     icon: Users,
-    title: "Picky eaters and dietary needs",
-    description: "Kids, allergies, spice tolerance — everyone's different. cocina factors in your whole household so every meal works for everyone.",
+    title: "Picky eaters, dietary & health needs",
+    description: "Kids, allergies, spice tolerance, diabetes, high blood pressure. cocina factors in every household member's needs so meals are safe and enjoyable for everyone.",
   },
 ];
 
@@ -60,7 +60,7 @@ const FEATURES: ContentItem[] = [
   {
     icon: Sparkles,
     title: "Discover New Meals",
-    description: "Explore restaurant-quality meal ideas personalized to your equipment, cuisine preferences, and cooking skill level — even beyond what's in your pantry.",
+    description: "Explore restaurant-quality meal ideas personalized to your equipment, cuisine preferences, and cooking skill level.",
   },
   {
     icon: Activity,
@@ -70,7 +70,7 @@ const FEATURES: ContentItem[] = [
   {
     icon: Leaf,
     title: "Reduce Food Waste To Near Zero",
-    description: "Prioritizes ingredients that are about to expire and builds meals around what needs to be used first.",
+    description: "Builds meals around what you already have so nothing goes to waste. Cook smarter, buy less, save more.",
   },
   {
     icon: Heart,
@@ -82,23 +82,18 @@ const FEATURES: ContentItem[] = [
 const TESTIMONIALS = [
   {
     quote: "We went from eating out 4 nights a week to maybe once. Our grocery bill dropped by $400/month.",
-    name: "Sarah M.",
-    detail: "Family of 4, Austin TX",
+    name: "Isaias G.",
+    detail: "Family of 4, Phoenix AZ",
+  },
+  {
+    quote: "My kids are picky and my wife has celiac. cocina is the first app that actually accounts for all of us.",
+    name: "Ricardo M.",
+    detail: "Family of 5, Tucson AZ",
   },
   {
     quote: "I used to throw away so much produce. Now I just check my pantry in the app and it tells me exactly what to make.",
-    name: "James R.",
-    detail: "Home cook, Chicago IL",
-  },
-  {
-    quote: "My kids are picky and my husband has celiac. cocina is the first app that actually accounts for all of us.",
-    name: "Maria L.",
-    detail: "Family of 5, Miami FL",
-  },
-  {
-    quote: "I'm not a great cook but the recipes are clear and use equipment I actually own. Game changer.",
-    name: "David K.",
-    detail: "Beginner cook, Seattle WA",
+    name: "Maria D.",
+    detail: "Home cook, Atlanta GA",
   },
 ];
 
@@ -252,11 +247,13 @@ export default function Login() {
         <div className="flex flex-col items-center gap-6 animate-fade-in w-full max-w-lg">
           <Logo size="lg" />
           <div className="flex flex-col items-center gap-3 max-w-md">
-            <h1 className="text-center font-display text-3xl md:text-4xl font-bold text-foreground leading-tight">
+            <h1 className="text-center font-display text-3xl md:text-4xl font-bold text-foreground leading-tight whitespace-nowrap">
               Cook what you have.<br />Eat like a chef.
             </h1>
-            <p className="text-center font-body text-base text-muted-foreground leading-relaxed">
-              Turn your pantry into restaurant-quality meals. Waste less, eat better, save more.
+            <p className="text-center font-body text-base text-muted-foreground leading-relaxed max-w-xs mx-auto">
+              Turn your pantry into restaurant-quality meals.
+              <br className="hidden xs:block" />
+              Waste less, eat better, save more.
             </p>
             <div className="rounded-full bg-gold/15 px-4 py-1.5 font-body text-xs font-semibold text-gold tracking-wide uppercase">
               ✨ Join the early wave
@@ -364,9 +361,9 @@ export default function Login() {
             Early users are loving it
           </h2>
           <p className="font-body text-muted-foreground text-center mb-12 max-w-md mx-auto">
-            Real households, real results — from our founding members.
+            Real households, real results from our founding members.
           </p>
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-3 gap-6">
             {TESTIMONIALS.map((t) => (
               <div key={t.name} className="rounded-2xl border border-border bg-card p-6 flex flex-col gap-4">
                 <p className="font-body text-sm text-foreground leading-relaxed italic">
@@ -386,10 +383,10 @@ export default function Login() {
       <section className="px-6 py-20 bg-primary">
         <div className="max-w-lg mx-auto flex flex-col items-center gap-6 text-center">
           <div className="rounded-full bg-gold/20 px-4 py-1.5 font-body text-xs font-semibold text-gold tracking-wide uppercase">
-            🚀 Early Access — Limited Spots
+            🚀 Early Access, Limited Spots
           </div>
-          <h2 className="font-display text-2xl md:text-3xl font-bold text-primary-foreground">
-            Stop wasting food. Start cooking smarter.
+          <h2 className="font-display text-2xl md:text-3xl font-bold text-primary-foreground whitespace-nowrap">
+            Stop wasting food.<br />Start cooking smarter.
           </h2>
           <p className="font-body text-sm text-primary-foreground/70 max-w-sm">
             We're opening up to a small group of early users. Get in now and help us build the smartest kitchen assistant ever made.
@@ -399,7 +396,7 @@ export default function Login() {
               onClick={() => setView("signup")}
               className="w-full rounded-lg bg-gold px-6 py-3.5 font-body font-semibold text-gold-foreground transition-colors hover:opacity-90"
             >
-              Claim your early access — it's free
+              Claim your early access, it's free
             </button>
             <p className="font-body text-xs text-primary-foreground/50">
               Already a member?{" "}
