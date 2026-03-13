@@ -821,16 +821,18 @@ export function SettingsTab() {
                 </div>
               )}
               {(likedFeedback.length > 0 || dislikedFeedback.length > 0) && (
-                <button onClick={resetTasteProfile} className="mt-4 font-body text-xs text-destructive hover:underline">Reset my taste profile</button>
-                {showResetVariety ? (
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="font-body text-xs text-muted-foreground">Reset meal variety?</span>
-                    <button onClick={resetMealVariety} className="font-body text-xs text-destructive hover:underline">Yes, reset</button>
-                    <button onClick={() => setShowResetVariety(false)} className="font-body text-xs text-muted-foreground hover:underline">Cancel</button>
-                  </div>
-                ) : (
-                  <button onClick={() => setShowResetVariety(true)} className="mt-2 font-body text-xs text-muted-foreground hover:text-foreground hover:underline block">Reset meal variety</button>
-                )}
+                <>
+                  <button onClick={resetTasteProfile} className="mt-4 font-body text-xs text-destructive hover:underline">Reset my taste profile</button>
+                  {showResetVariety ? (
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="font-body text-xs text-muted-foreground">Reset meal variety?</span>
+                      <button onClick={resetMealVariety} className="font-body text-xs text-destructive hover:underline">Yes, reset</button>
+                      <button onClick={() => setShowResetVariety(false)} className="font-body text-xs text-muted-foreground hover:underline">Cancel</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setShowResetVariety(true)} className="mt-2 font-body text-xs text-muted-foreground hover:text-foreground hover:underline block">Reset meal variety</button>
+                  )}
+                </>
               )}
             </div>
           </div>
