@@ -543,6 +543,47 @@ export function MealsTab() {
           >
             <Send size={16} />
           </button>
+          {!filterInStockOnly && recipeView.tags && (
+            <button
+              onClick={async () => {
+                if (!householdId) return;
+                // Get missing ingredients from the cached card data
+                const cardKey = recipeView.mealName;
+                const card = Object.values(aiCards).flat().find(c => c.name === cardKey);
+                if (!card?.missingIngredients?.length) {
+                  toast("No missing ingredients for this meal");
+                  return;
+                }
+                const { data: existing } = await supabase
+                  .from("pantry_items")
+                  .select("name")
+                  .eq("household_id", householdId)
+                  .in("name", card.missingIngredients);
+                const existingNames = new Set((existing || []).map(e => e.name.toLowerCase()));
+                const newItems = card.missingIngredients.filter(name => !existingNames.has(name.toLowerCase()));
+                if (newItems.length > 0) {
+                  const rows = newItems.map(name => ({
+                    household_id: householdId,
+                    name,
+                    category: "Shopping List",
+                    in_stock: false,
+                    is_custom: true,
+                    is_hidden: false,
+                  }));
+                  await supabase.from("pantry_items").insert(rows);
+                }
+                const skipped = card.missingIngredients.length - newItems.length;
+                const msg = newItems.length > 0
+                  ? `${newItems.length} item${newItems.length > 1 ? "s" : ""} added to shopping list${skipped > 0 ? ` (${skipped} already there)` : ""}`
+                  : "All items already in your list";
+                toast.success(msg);
+              }}
+              className="shrink-0 text-muted-foreground hover:text-gold transition-colors"
+              title="Add to shopping list"
+            >
+              <ShoppingCart size={16} />
+            </button>
+          )}
           <button
             onClick={() => {
               handleFeedback({ name: recipeView.mealName, tags: [], cal: 0, protein: 0, carbs: 0, fat: 0 } as MealCardWithCookTime, "liked");
