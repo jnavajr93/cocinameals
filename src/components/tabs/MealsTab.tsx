@@ -798,10 +798,10 @@ export function MealsTab() {
           <button
             onClick={() => setFilterInStockOnly(!filterInStockOnly)}
             className={`shrink-0 flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-body text-xs transition-colors ${
-              filterInStockOnly ? "border-gold bg-gold/10 text-foreground" : "border-border bg-card text-muted-foreground"
+              filterInStockOnly ? "border-gold bg-gold/10 text-foreground" : "border-primary bg-primary/10 text-primary font-medium"
             }`}
           >
-            In-Stock Only
+            {filterInStockOnly ? "In-Stock Only" : "✨ Discover"}
           </button>
         </div>
 
