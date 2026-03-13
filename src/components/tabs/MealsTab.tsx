@@ -1075,15 +1075,13 @@ export function MealsTab() {
           </div>
         )}
         <div className="flex items-center justify-end gap-3 px-3 pb-2">
-          {hasMissing && (
-            <button
-              onClick={addMissingToList}
-              className="text-muted-foreground hover:text-gold transition-colors"
-              title="Add to shopping list"
-            >
-              <ShoppingCart size={16} />
-            </button>
-          )}
+          <button
+            onClick={addToShoppingCart}
+            className="text-muted-foreground hover:text-gold transition-colors"
+            title="Add to shopping cart"
+          >
+            <ShoppingCart size={16} />
+          </button>
           <button
             onClick={() => handleFeedback(card, "liked")}
             className={`transition-colors ${isLiked ? "text-gold" : "text-muted-foreground hover:text-gold"}`}
