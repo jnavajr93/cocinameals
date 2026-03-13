@@ -7,6 +7,8 @@ interface Props {
   profile: OnboardingProfile;
   update: (p: Partial<OnboardingProfile>) => void;
   onNext: () => void;
+  isLast?: boolean;
+  saving?: boolean;
 }
 
 export function StepIngredients({ profile, update, onNext }: Props) {
