@@ -3,13 +3,14 @@
 const POOL_PREFIX = "cocina_pool_";
 const CACHE_EXPIRY_MS = 12 * 60 * 60 * 1000; // 12 hours per individual entry
 const RECENT_KEY = "cocina_recent_suggestions";
-const MAX_RECENT = 20;
+const MAX_RECENT = 60;
 
 // AI call throttle keys
 const AI_CALL_COUNT_KEY = "cocina_ai_shuffle_count";
 const AI_THROTTLE_UNTIL_KEY = "cocina_ai_throttle_until";
 const AI_CALL_LIMIT = 6;
 const AI_THROTTLE_MS = 4 * 60 * 60 * 1000; // 4 hours
+const POOL_CURSOR_PREFIX = "cocina_pool_cursor_";
 
 // Pool size limits per section category — increased 40% from original
 const POOL_LIMITS: Record<string, number> = {
