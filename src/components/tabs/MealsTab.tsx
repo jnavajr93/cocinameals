@@ -299,7 +299,7 @@ export function MealsTab() {
       setSavedMealNames(prev => { const n = new Set(prev); n.delete(card.name); return n; });
       toast.success("Removed from saved");
     } else {
-      const cacheKey = `recipe_${card.name.replace(/\s+/g, "_").toLowerCase()}`;
+      const cacheKey = getRecipeCacheKey(card.name);
       let recipeText = "";
       try {
         const cached = localStorage.getItem(cacheKey);
@@ -309,10 +309,15 @@ export function MealsTab() {
         }
       } catch {}
 
+      if (!recipeText) {
+        recipeText = buildLocalRecipeText(card, false, sectionId);
+        persistRecipeLocally(card.name, recipeText);
+      }
+
       const { error } = await supabase.from("saved_recipes").insert({
         household_id: householdId,
         meal_name: card.name,
-        recipe_text: recipeText || `Recipe for ${card.name} — generate from Meals tab to see full instructions.`,
+        recipe_text: recipeText,
         saved_by: userName,
         meal_section: sectionId || null,
         tags: card.tags || [],
