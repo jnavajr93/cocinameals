@@ -126,7 +126,7 @@ export default function SharedRecipe() {
       <footer className="max-w-lg mx-auto px-4 py-6 text-center">
         <Logo size="sm" />
         <p className="text-muted-foreground font-body text-xs mt-2">
-          Smart meal planning for real households
+        Smart meal planning for real households
         </p>
       </footer>
     </div>

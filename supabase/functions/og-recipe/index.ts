@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
   <meta property="og:description" content="${escapeHtml(description)}" />
   <meta property="og:image" content="${ogImage}" />
   <meta property="og:url" content="${redirectUrl}" />
-  <meta property="og:site_name" content="cocina" />
+  <meta property="og:site_name" content="Cocina" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${escapeHtml(title)}" />
   <meta name="twitter:description" content="${escapeHtml(description)}" />
