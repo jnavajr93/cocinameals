@@ -3,31 +3,79 @@
 const POOL_PREFIX = "cocina_pool_";
 const CACHE_EXPIRY_MS = 12 * 60 * 60 * 1000; // 12 hours per individual entry
 const RECENT_KEY = "cocina_recent_suggestions";
-const MAX_RECENT = 15;
+const MAX_RECENT = 20;
 
-// Pool size limits per section category
+// AI call throttle keys
+const AI_CALL_COUNT_KEY = "cocina_ai_shuffle_count";
+const AI_THROTTLE_UNTIL_KEY = "cocina_ai_throttle_until";
+const AI_CALL_LIMIT = 6;
+const AI_THROTTLE_MS = 4 * 60 * 60 * 1000; // 4 hours
+
+// Pool size limits per section category — increased 40% from original
 const POOL_LIMITS: Record<string, number> = {
-  breakfast: 100,
-  child_breakfast: 100,
-  baby_breakfast: 100,
-  brunch: 100,
-  lunch: 80,
-  child_lunch: 80,
-  quick_lunch: 80,
-  sit_down_lunch: 80,
-  snack: 70,
-  child_snack: 70,
-  afternoon_snack: 70,
-  dinner: 100,
-  child_dinner: 100,
-  light_dinner: 100,
-  full_dinner: 100,
-  date_night: 100,
-  meal_prep: 100,
-  crowd_feed: 50,
+  breakfast: 140,
+  child_breakfast: 140,
+  baby_breakfast: 140,
+  brunch: 140,
+  lunch: 112,
+  child_lunch: 112,
+  quick_lunch: 112,
+  sit_down_lunch: 112,
+  snack: 98,
+  child_snack: 98,
+  afternoon_snack: 98,
+  dinner: 140,
+  child_dinner: 140,
+  light_dinner: 140,
+  full_dinner: 140,
+  date_night: 140,
+  meal_prep: 140,
+  crowd_feed: 70,
 };
 
-const DEFAULT_POOL_LIMIT = 80;
+const DEFAULT_POOL_LIMIT = 112;
+
+/** Check if AI calls are throttled */
+export function isAiThrottled(): boolean {
+  try {
+    const until = localStorage.getItem(AI_THROTTLE_UNTIL_KEY);
+    if (until && Date.now() < parseInt(until, 10)) return true;
+    // Clear expired throttle
+    if (until) {
+      localStorage.removeItem(AI_THROTTLE_UNTIL_KEY);
+      localStorage.removeItem(AI_CALL_COUNT_KEY);
+    }
+    return false;
+  } catch { return false; }
+}
+
+/** Record an AI shuffle call. Returns true if still allowed, false if now throttled. */
+export function recordAiCall(): boolean {
+  try {
+    if (isAiThrottled()) return false;
+    const count = parseInt(localStorage.getItem(AI_CALL_COUNT_KEY) || "0", 10) + 1;
+    localStorage.setItem(AI_CALL_COUNT_KEY, String(count));
+    if (count >= AI_CALL_LIMIT) {
+      localStorage.setItem(AI_THROTTLE_UNTIL_KEY, String(Date.now() + AI_THROTTLE_MS));
+      return false;
+    }
+    return true;
+  } catch { return false; }
+}
+
+/** Get remaining AI calls before throttle */
+export function getRemainingAiCalls(): number {
+  if (isAiThrottled()) return 0;
+  try {
+    const count = parseInt(localStorage.getItem(AI_CALL_COUNT_KEY) || "0", 10);
+    return Math.max(0, AI_CALL_LIMIT - count);
+  } catch { return 0; }
+}
+
+export function clearAiThrottle(): void {
+  localStorage.removeItem(AI_CALL_COUNT_KEY);
+  localStorage.removeItem(AI_THROTTLE_UNTIL_KEY);
+}
 
 export function getPoolLimit(sectionId: string): number {
   // Check exact match first, then check if section starts with a known key
