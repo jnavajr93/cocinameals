@@ -236,16 +236,24 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
 
   // In-stock pantry filter
   if (inStockOnly && pantryInStock.length > 0) {
-    const stockSet = new Set(pantryInStock.map(i => i.toLowerCase()));
+    const { extractIngredientName, findPantryMatch } = await import("./ingredientMatch");
+    const stockNames = pantryInStock.map(i => i.toLowerCase());
     results = results.filter((r: any) => {
       const ingredients: string[] = r.ingredients || [];
       if (ingredients.length === 0) return true; // No ingredient data = allow
-      const matchCount = ingredients.filter((ing: string) =>
-        stockSet.has(ing.toLowerCase()) ||
-        [...stockSet].some(s => ing.toLowerCase().includes(s) || s.includes(ing.toLowerCase()))
-      ).length;
-      // Require at least 50% ingredient overlap
-      return matchCount >= ingredients.length * 0.5;
+      // Skip common staples when counting total
+      const staples = new Set(["salt", "pepper", "black pepper", "water", "oil", "olive oil", "cooking spray", "ice"]);
+      const nonStaple = ingredients.filter(ing => {
+        const cleaned = extractIngredientName(ing).toLowerCase();
+        return !staples.has(cleaned);
+      });
+      if (nonStaple.length === 0) return true;
+      const matchCount = nonStaple.filter((ing: string) => {
+        const cleaned = extractIngredientName(ing).toLowerCase();
+        return findPantryMatch(cleaned, stockNames) !== null;
+      }).length;
+      // Require at least 30% ingredient overlap
+      return matchCount >= nonStaple.length * 0.3;
     });
   }
 
