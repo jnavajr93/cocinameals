@@ -228,11 +228,8 @@ export function MealsTab() {
   useEffect(() => {
     if (prevFiltersRef.current !== filtersSignature && activeSections.length > 0 && profile) {
       prevFiltersRef.current = filtersSignature;
-      // Clear local cards so AI re-generates with new filters
       setAiCards({});
-      for (const section of activeSections) {
-        shuffleSection(section.id);
-      }
+      setBatchLoaded(false);
     }
   }, [filtersSignature, activeSections.length, profile]);
 
