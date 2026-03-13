@@ -55,7 +55,7 @@ export default function SharedRecipe() {
           to="/"
           className="mt-4 inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-full font-body text-sm font-medium hover:opacity-90 transition-opacity"
         >
-          Try cocina free <ArrowRight className="w-4 h-4" />
+          Try Cocina free <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
     );
