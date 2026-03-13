@@ -26,7 +26,7 @@ const PAIN_POINTS: ContentItem[] = [
   {
     icon: ShoppingCart,
     title: "Groceries go bad before you use them",
-    description: "You buy with good intentions, but by Thursday half the fridge is forgotten. cocina builds meals around what you actually have.",
+    description: "You buy with good intentions, but by Thursday half the fridge is forgotten. Cocina builds meals around what you actually have.",
   },
   {
     icon: Clock,
