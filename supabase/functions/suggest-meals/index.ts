@@ -249,7 +249,7 @@ TAGS TO USE: mexican, asian, southeast_asian, south_asian, mediterranean, italia
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ meals: [], fallback: true, reason: "usage_limit" }), {
+        return new Response(JSON.stringify([]), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
