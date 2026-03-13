@@ -44,7 +44,7 @@ const STEPS: TourStep[] = [
   },
   {
     title: "Rate & Save",
-    description: "👍 Like meals to see more like them. 👎 Dislike to hide them. ⭐ Star to save to your cookbook. cocina learns your taste over time.",
+    description: "👍 Like meals to see more like them. 👎 Dislike to hide them. ⭐ Star to save to your cookbook. Cocina learns your taste over time.",
     icon: <ThumbsUp size={28} className="text-gold" />,
   },
   {
@@ -60,13 +60,13 @@ const STEPS: TourStep[] = [
   },
   {
     title: "Settings",
-    description: "Set your skill level, diet, allergies, equipment & cuisines. cocina adapts every recipe to you.",
+    description: "Set your skill level, diet, allergies, equipment & cuisines. Cocina adapts every recipe to you.",
     icon: <Settings size={28} className="text-gold" />,
     arrowTarget: "tab-settings",
   },
   {
     title: "You're all set!",
-    description: "Start by checking your ingredients, then head to Meals and let cocina do the rest. Happy cooking! 🍳",
+    description: "Start by checking your ingredients, then head to Meals and let Cocina do the rest. Happy cooking! 🍳",
     icon: null,
     useLogo: true,
   },

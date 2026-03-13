@@ -26,22 +26,22 @@ const PAIN_POINTS: ContentItem[] = [
   {
     icon: ShoppingCart,
     title: "Groceries go bad before you use them",
-    description: "You buy with good intentions, but by Thursday half the fridge is forgotten. cocina builds meals around what you actually have.",
+    description: "You buy with good intentions, but by Thursday half the fridge is forgotten. Cocina builds meals around what you actually have.",
   },
   {
     icon: Clock,
     title: '"What\'s for dinner?" every single night',
-    description: "Decision fatigue is real. cocina delivers personalized meal ideas based on your pantry, skill level, and family preferences.",
+    description: "Decision fatigue is real. Cocina delivers personalized meal ideas based on your pantry, skill level, and family preferences.",
   },
   {
     icon: DollarSign,
     title: "Eating out is draining your budget",
-    description: "When cooking feels like a chore, takeout wins. cocina makes home cooking effortless with meals matched to what you own.",
+    description: "When cooking feels like a chore, takeout wins. Cocina makes home cooking effortless with meals matched to what you own.",
   },
   {
     icon: Users,
     title: "Picky eaters, dietary & health needs",
-    description: "Kids, allergies, spice tolerance, diabetes, high blood pressure. cocina factors in every household member's needs so meals are safe and enjoyable for everyone.",
+    description: "Kids, allergies, spice tolerance, diabetes, high blood pressure. Cocina factors in every household member's needs so meals are safe and enjoyable for everyone.",
   },
 ];
 
@@ -75,7 +75,7 @@ const FEATURES: ContentItem[] = [
   {
     icon: Heart,
     title: "Save Favorites & Rate Meals",
-    description: "Build your household cookbook over time. Rate meals so cocina learns what your family actually enjoys.",
+    description: "Build your household cookbook over time. Rate meals so Cocina learns what your family actually enjoys.",
   },
 ];
 
@@ -86,7 +86,7 @@ const TESTIMONIALS = [
     detail: "Family of 4, Phoenix AZ",
   },
   {
-    quote: "My kids are picky and my wife has celiac. cocina is the first app that actually accounts for all of us.",
+    quote: "My kids are picky and my wife has celiac. Cocina is the first app that actually accounts for all of us.",
     name: "Ricardo M.",
     detail: "Family of 5, Tucson AZ",
   },
@@ -413,7 +413,7 @@ export default function Login() {
         <div className="max-w-4xl mx-auto flex flex-col items-center gap-2">
           <Logo size="sm" />
           <p className="font-body text-xs text-muted-foreground">
-            © {new Date().getFullYear()} cocina. All rights reserved.
+            © {new Date().getFullYear()} Cocina. All rights reserved.
           </p>
         </div>
       </footer>

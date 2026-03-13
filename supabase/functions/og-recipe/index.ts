@@ -22,8 +22,8 @@ Deno.serve(async (req) => {
   const mealName = recipe?.meal_name || "A delicious recipe";
   const sharedBy = recipe?.shared_by_name ? ` by ${recipe.shared_by_name}` : "";
   const tags = Array.isArray(recipe?.tags) ? (recipe.tags as string[]).slice(0, 4).join(", ") : "";
-  const description = `${mealName}${sharedBy} — made with cocina.${tags ? ` ${tags}` : ""}`;
-  const title = `${mealName} — cocina`;
+  const description = `${mealName}${sharedBy} — made with Cocina.${tags ? ` ${tags}` : ""}`;
+  const title = `${mealName} — Cocina`;
   const siteUrl = Deno.env.get("SITE_URL") || "https://cocinameals.lovable.app";
   const redirectUrl = `${siteUrl}/recipe/${id}`;
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
   <meta property="og:description" content="${escapeHtml(description)}" />
   <meta property="og:image" content="${ogImage}" />
   <meta property="og:url" content="${redirectUrl}" />
-  <meta property="og:site_name" content="cocina" />
+  <meta property="og:site_name" content="Cocina" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${escapeHtml(title)}" />
   <meta name="twitter:description" content="${escapeHtml(description)}" />

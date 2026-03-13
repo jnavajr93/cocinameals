@@ -24,9 +24,9 @@ export default function SharedRecipe() {
       } else {
         setRecipe(data);
         // Update page title & meta for link previews
-        document.title = `${data.meal_name} — cocina`;
+        document.title = `${data.meal_name} — from Cocina app`;
         const metaDesc = document.querySelector('meta[name="description"]');
-        if (metaDesc) metaDesc.setAttribute("content", `${data.meal_name} — made with cocina · smart meal planning`);
+        if (metaDesc) metaDesc.setAttribute("content", `${data.meal_name} — Cook restaurant-quality meals with what you already have.`);
       }
       setLoading(false);
     })();
@@ -55,7 +55,7 @@ export default function SharedRecipe() {
           to="/"
           className="mt-4 inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-full font-body text-sm font-medium hover:opacity-90 transition-opacity"
         >
-          Try cocina free <ArrowRight className="w-4 h-4" />
+          Try Cocina free <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
     );
@@ -71,7 +71,7 @@ export default function SharedRecipe() {
             to="/"
             className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-1.5 rounded-full font-body text-xs font-medium hover:opacity-90 transition-opacity"
           >
-            Try cocina <ArrowRight className="w-3 h-3" />
+            Try Cocina <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
       </header>
@@ -111,7 +111,7 @@ export default function SharedRecipe() {
             Want meals like this every day?
           </p>
           <p className="text-muted-foreground font-body text-sm mb-4">
-            cocina plans meals based on what's in your pantry. Less waste, better meals.
+            Cocina plans meals based on what's in your pantry. Less waste, better meals.
           </p>
           <Link
             to="/"
@@ -126,7 +126,7 @@ export default function SharedRecipe() {
       <footer className="max-w-lg mx-auto px-4 py-6 text-center">
         <Logo size="sm" />
         <p className="text-muted-foreground font-body text-xs mt-2">
-          Smart meal planning for real households
+        Smart meal planning for real households
         </p>
       </footer>
     </div>
