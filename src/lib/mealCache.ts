@@ -13,27 +13,27 @@ const AI_THROTTLE_MS = 4 * 60 * 60 * 1000; // 4 hours
 
 // Pool size limits per section category — increased 40% from original
 const POOL_LIMITS: Record<string, number> = {
-  breakfast: 140,
-  child_breakfast: 140,
-  baby_breakfast: 140,
-  brunch: 140,
-  lunch: 112,
-  child_lunch: 112,
-  quick_lunch: 112,
-  sit_down_lunch: 112,
-  snack: 98,
-  child_snack: 98,
-  afternoon_snack: 98,
-  dinner: 140,
-  child_dinner: 140,
-  light_dinner: 140,
-  full_dinner: 140,
-  date_night: 140,
-  meal_prep: 140,
-  crowd_feed: 70,
+  breakfast: 182,
+  child_breakfast: 182,
+  baby_breakfast: 182,
+  brunch: 182,
+  lunch: 146,
+  child_lunch: 146,
+  quick_lunch: 146,
+  sit_down_lunch: 146,
+  snack: 128,
+  child_snack: 128,
+  afternoon_snack: 128,
+  dinner: 182,
+  child_dinner: 182,
+  light_dinner: 182,
+  full_dinner: 182,
+  date_night: 182,
+  meal_prep: 182,
+  crowd_feed: 91,
 };
 
-const DEFAULT_POOL_LIMIT = 112;
+const DEFAULT_POOL_LIMIT = 146;
 
 /** Check if AI calls are throttled */
 export function isAiThrottled(): boolean {
