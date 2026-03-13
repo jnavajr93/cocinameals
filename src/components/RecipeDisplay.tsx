@@ -1,8 +1,13 @@
-import { Lightbulb, Clock } from "lucide-react";
+import { Lightbulb, Clock, ShoppingCart } from "lucide-react";
+import { extractIngredientName, isIngredientInStock } from "@/lib/ingredientMatch";
 
 interface RecipeDisplayProps {
   text: string;
   loading?: boolean;
+  pantryInStock?: string[];
+  discoverMode?: boolean;
+  onAddMissingToShoppingList?: (missingIngredients: string[]) => void;
+  addedMissing?: "idle" | "added" | "all_in_stock";
 }
 
 interface ParsedRecipe {
@@ -35,7 +40,6 @@ function parseRecipe(text: string): ParsedRecipe {
 
     const upper = trimmed.toUpperCase();
 
-    // Detect section headers
     if (upper === "INGREDIENT LIST" || upper === "INGREDIENTS") {
       section = "ingredients";
       continue;
@@ -67,7 +71,6 @@ function parseRecipe(text: string): ParsedRecipe {
       continue;
     }
 
-    // Add to appropriate section
     switch (section) {
       case "ingredients":
         result.ingredients.push(trimmed.replace(/^[-•]\s*/, ""));
@@ -103,13 +106,12 @@ function extractServes(servesLine: string) {
   return { people, time };
 }
 
-export function RecipeDisplay({ text, loading }: RecipeDisplayProps) {
+export function RecipeDisplay({ text, loading, pantryInStock, discoverMode, onAddMissingToShoppingList, addedMissing }: RecipeDisplayProps) {
   if (!text && loading) return null;
 
   const parsed = parseRecipe(text);
   const hasParsedContent = parsed.ingredients.length > 0 || parsed.prepSteps.length > 0 || parsed.cookingSteps.length > 0;
 
-  // If we can't parse it (streaming or weird format), fall back to plain text
   if (!hasParsedContent) {
     return (
       <pre className="font-body text-sm text-foreground whitespace-pre-wrap leading-relaxed mt-2">
@@ -122,9 +124,19 @@ export function RecipeDisplay({ text, loading }: RecipeDisplayProps) {
   const macros = parsed.macroLine ? extractMacros(parsed.macroLine) : null;
   const serves = parsed.servesLine ? extractServes(parsed.servesLine) : null;
 
+  // Determine which ingredients are missing (not in pantry)
+  const inStock = pantryInStock || [];
+  const missingIngredients: string[] = [];
+  const ingredientStatuses = parsed.ingredients.map(item => {
+    const name = extractIngredientName(item);
+    const have = isIngredientInStock(name, inStock);
+    if (!have) missingIngredients.push(name);
+    return { raw: item, name, have };
+  });
+
   return (
     <div className="flex flex-col gap-6 mt-2">
-      {/* Macros & Serves Card — top */}
+      {/* Macros & Serves Card */}
       {(macros || serves) && (
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center gap-4 flex-wrap">
@@ -170,19 +182,52 @@ export function RecipeDisplay({ text, loading }: RecipeDisplayProps) {
         </div>
       )}
 
-      {/* Ingredients */}
+      {/* Ingredients — with stock status coloring */}
       {parsed.ingredients.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
             <h3 className="font-display text-base font-bold text-foreground">Ingredients</h3>
+            {missingIngredients.length > 0 && (
+              <span className="font-body text-xs text-destructive">
+                ({missingIngredients.length} needed)
+              </span>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-            {parsed.ingredients.map((item, i) => (
-              <span key={i} className="font-body text-sm text-foreground leading-relaxed">
-                • {item}
+            {ingredientStatuses.map((item, i) => (
+              <span
+                key={i}
+                className={`font-body text-sm leading-relaxed ${
+                  item.have ? "text-foreground" : "text-destructive"
+                }`}
+              >
+                • {item.raw}
               </span>
             ))}
           </div>
+
+          {/* Add missing ingredients button */}
+          {missingIngredients.length > 0 && onAddMissingToShoppingList && (
+            <div className="mt-4">
+              {addedMissing === "idle" && (
+                <button
+                  onClick={() => onAddMissingToShoppingList(missingIngredients)}
+                  className="w-full rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 font-body text-sm font-medium text-foreground transition-colors hover:bg-gold/20 flex items-center justify-center gap-2"
+                >
+                  <ShoppingCart size={16} className="text-gold" />
+                  Add {missingIngredients.length} missing ingredient{missingIngredients.length > 1 ? "s" : ""} to shopping list
+                </button>
+              )}
+              {addedMissing === "added" && (
+                <div className="w-full rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 flex items-center justify-center gap-2">
+                  <span className="font-body text-sm font-medium text-foreground">✓ Added to shopping list</span>
+                </div>
+              )}
+            </div>
+          )}
+          {missingIngredients.length === 0 && inStock.length > 0 && (
+            <p className="mt-2 font-body text-xs text-muted-foreground">✓ You have everything for this recipe</p>
+          )}
         </div>
       )}
 
