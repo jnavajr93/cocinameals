@@ -5,7 +5,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { Trash2, BookOpen, ArrowLeft, Search, X, ChevronDown, ChevronRight, Clock, Flame, UtensilsCrossed, Filter, Users, ShoppingCart, Send, Star } from "lucide-react";
 import { RecipeDisplay } from "@/components/RecipeDisplay";
 import { toast } from "sonner";
-import { toast } from "sonner";
 import { MEAL_SECTIONS } from "@/data/mealSections";
 
 interface SavedRecipe {
