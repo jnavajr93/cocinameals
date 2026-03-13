@@ -406,7 +406,7 @@ export function MealsTab() {
       "",
       "PREP FIRST",
       "1. Wash, peel, and chop all produce before heat is on.",
-      `2. Measure seasonings and prep ${proteinHint} so cooking stays smooth.",
+      `2. Measure seasonings and prep ${proteinHint} so cooking stays smooth.`,
       "",
       "COOKING STEPS",
       "Step 1 — pan: medium heat.",
@@ -414,11 +414,11 @@ export function MealsTab() {
       "  - Use 1 portion olive oil and 1 portion onion",
       "  - Done when: onions are translucent and smell sweet.",
       "Step 2 — pan: medium-high heat.",
-      `Add ${proteinHint} and sear, stirring as needed for even browning.",
-      `  - Use 1 portion ${proteinHint}",
+      `Add ${proteinHint} and sear, stirring as needed for even browning.`,
+      `  - Use 1 portion ${proteinHint}`,
       "  - Done when: protein is cooked through and lightly caramelized.",
       "Step 3 — pan: medium-low heat.",
-      `Add remaining ingredients and simmer 4-6 minutes; adjust texture for ${card.name}.",
+      `Add remaining ingredients and simmer 4-6 minutes; adjust texture for ${card.name}.`,
       "  - Use remaining prepared ingredients",
       "  - Done when: sauce lightly coats the spoon and flavors are balanced.",
       "",
@@ -459,6 +459,8 @@ export function MealsTab() {
   const persistRecipeLocally = useCallback((mealName: string, recipeText: string) => {
     localStorage.setItem(getRecipeCacheKey(mealName), JSON.stringify({ text: recipeText, ts: Date.now() }));
   }, [getRecipeCacheKey]);
+
+  const shuffleSection = async (sectionId: string) => {
     if (shuffleCooldowns[sectionId]) return;
 
     // Start cooldown
