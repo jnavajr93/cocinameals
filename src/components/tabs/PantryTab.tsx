@@ -197,7 +197,7 @@ export function PantryTab() {
   const filtered = useMemo(() => {
     let list = items.filter(i => !i.is_hidden);
     if (viewMode === "shopping") {
-      list = list.filter(i => i.category === "Shopping List" || (!i.in_stock));
+      list = list.filter(i => i.category === "Shopping List");
     } else {
       list = list.filter(i => i.category !== "Shopping List");
     }

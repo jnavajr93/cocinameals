@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { CUISINES, CUISINE_LABELS } from "@/data/cuisines";
 import { EQUIPMENT_CATEGORIES } from "@/data/equipment";
 import { MEAL_SECTIONS, QUICK_FILTERS, DIET_RESTRICTIONS, DEFAULT_SECTION_TIMES } from "@/data/mealSections";
-import { Copy, LogOut, ChevronRight, ChevronDown, Lock, Search, Trash2, Plus, GripVertical } from "lucide-react";
+import { Copy, LogOut, ChevronRight, ChevronDown, Search, Trash2, Plus, GripVertical } from "lucide-react";
 
 const HEALTH_CONDITIONS = [
   "High Blood Pressure", "Type 2 Diabetes", "Pre-Diabetic", "High Cholesterol",
@@ -544,7 +544,6 @@ export function SettingsTab() {
         <section className="border-b border-border">
           <button onClick={() => toggle("health")} className="flex items-center justify-between w-full py-3">
             <div className="flex items-center gap-2">
-              <Lock size={14} className="text-muted-foreground" />
               <h2 className="font-display text-base font-bold text-foreground">Health Conditions</h2>
             </div>
             {expanded.has("health") ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}

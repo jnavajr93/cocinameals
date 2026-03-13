@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useHousehold } from "@/hooks/useHousehold";
 import { useAuth } from "@/hooks/useAuth";
-import { Trash2, BookOpen, ArrowLeft, Search, X, ChevronDown, ChevronRight } from "lucide-react";
+import { Trash2, BookOpen, ArrowLeft, Search, X, ChevronDown, ChevronRight, Clock, Flame, UtensilsCrossed, Filter, Users, ShoppingCart } from "lucide-react";
 import { RecipeDisplay } from "@/components/RecipeDisplay";
 import { toast } from "sonner";
 import { MEAL_SECTIONS } from "@/data/mealSections";
@@ -17,12 +17,6 @@ interface SavedRecipe {
   tags: string[];
 }
 
-const FILTER_CHIPS = [
-  "High Protein", "Under 20 Min", "Low Carb", "Vegetarian", "Vegan",
-  "Gluten-Free", "Dairy-Free", "Kid-Friendly", "Comfort Food", "Light & Fresh",
-  "Chicken", "Beef", "Seafood", "Spicy",
-] as const;
-
 const SECTION_LABEL_MAP: Record<string, string> = {};
 MEAL_SECTIONS.forEach(s => { SECTION_LABEL_MAP[s.id] = s.name; });
 
@@ -32,9 +26,17 @@ export function SavedTab() {
   const [recipes, setRecipes] = useState<SavedRecipe[]>([]);
   const [viewingRecipe, setViewingRecipe] = useState<SavedRecipe | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"saved" | "shopping">("saved");
+
+  // Filter states matching meals tab
+  const [filterCookTime, setFilterCookTime] = useState<string | null>(null);
+  const [filterProtein, setFilterProtein] = useState<string | null>(null);
+  const [filterMethod, setFilterMethod] = useState<string | null>(null);
+  const [filterPeople, setFilterPeople] = useState<string | null>(null);
+  const [filterCuisine, setFilterCuisine] = useState<string | null>(null);
+  const [showFilterSheet, setShowFilterSheet] = useState<string | null>(null);
 
   useEffect(() => {
     if (!householdId) return;
@@ -52,7 +54,6 @@ export function SavedTab() {
     };
     load();
 
-    // Realtime sync
     const channel = supabase
       .channel(`saved-sync-${householdId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'saved_recipes', filter: `household_id=eq.${householdId}` }, () => load())
@@ -80,32 +81,38 @@ export function SavedTab() {
     });
   };
 
-  // Filter recipes
-  const filteredRecipes = useMemo(() => {
-    let filtered = recipes;
+  // Separate shopping cart meals from saved recipes
+  const shoppingCartMeals = useMemo(() => recipes.filter(r => r.meal_section === "shopping_cart"), [recipes]);
+  const savedRecipes = useMemo(() => recipes.filter(r => r.meal_section !== "shopping_cart"), [recipes]);
 
-    // Search
+  // Filter saved recipes
+  const filteredRecipes = useMemo(() => {
+    let filtered = viewMode === "shopping" ? shoppingCartMeals : savedRecipes;
+
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter(r => r.meal_name.toLowerCase().includes(q));
     }
 
-    // Quick filter by tag
-    if (activeFilter) {
-      const filterTag = activeFilter.toLowerCase().replace(/[^a-z0-9]/g, "_");
-      filtered = filtered.filter(r =>
-        r.tags.some(t => t.includes(filterTag) || t.includes(filterTag.replace(/_/g, ""))) ||
-        r.meal_name.toLowerCase().includes(activeFilter.toLowerCase())
-      );
-    }
+    // Tag-based filtering for cook time, protein, method, cuisine
+    const tagFilter = (tag: string) => {
+      const t = tag.toLowerCase().replace(/[^a-z0-9]/g, "_");
+      return (r: SavedRecipe) =>
+        r.tags.some(rt => rt.includes(t) || rt.includes(t.replace(/_/g, ""))) ||
+        r.meal_name.toLowerCase().includes(tag.toLowerCase());
+    };
 
-    // Category filter
+    if (filterCookTime) filtered = filtered.filter(tagFilter(filterCookTime));
+    if (filterProtein) filtered = filtered.filter(tagFilter(filterProtein));
+    if (filterMethod) filtered = filtered.filter(tagFilter(filterMethod));
+    if (filterCuisine) filtered = filtered.filter(tagFilter(filterCuisine));
+
     if (activeCategoryFilter) {
       filtered = filtered.filter(r => r.meal_section === activeCategoryFilter);
     }
 
     return filtered;
-  }, [recipes, searchQuery, activeFilter, activeCategoryFilter]);
+  }, [savedRecipes, shoppingCartMeals, viewMode, searchQuery, filterCookTime, filterProtein, filterMethod, filterCuisine, activeCategoryFilter]);
 
   // Group by meal section
   const groupedRecipes = useMemo(() => {
@@ -113,7 +120,7 @@ export function SavedTab() {
     const uncategorized: SavedRecipe[] = [];
 
     filteredRecipes.forEach(r => {
-      if (r.meal_section) {
+      if (r.meal_section && r.meal_section !== "shopping_cart") {
         if (!groups[r.meal_section]) groups[r.meal_section] = [];
         groups[r.meal_section].push(r);
       } else {
@@ -121,7 +128,6 @@ export function SavedTab() {
       }
     });
 
-    // Sort sections by MEAL_SECTIONS order
     const orderedSections = MEAL_SECTIONS
       .filter(s => groups[s.id])
       .map(s => ({ id: s.id, name: s.name, recipes: groups[s.id] }));
@@ -136,9 +142,79 @@ export function SavedTab() {
   // Available categories for filter
   const availableCategories = useMemo(() => {
     const cats = new Set<string>();
-    recipes.forEach(r => { if (r.meal_section) cats.add(r.meal_section); });
+    savedRecipes.forEach(r => { if (r.meal_section && r.meal_section !== "shopping_cart") cats.add(r.meal_section); });
     return MEAL_SECTIONS.filter(s => cats.has(s.id));
-  }, [recipes]);
+  }, [savedRecipes]);
+
+  const activeFiltersList = useMemo(() => {
+    const list: { key: string; label: string }[] = [];
+    if (filterCookTime) list.push({ key: "cookTime", label: filterCookTime });
+    if (filterMethod) list.push({ key: "method", label: filterMethod });
+    if (filterProtein) list.push({ key: "protein", label: filterProtein });
+    if (filterPeople) list.push({ key: "people", label: filterPeople });
+    if (filterCuisine) list.push({ key: "cuisine", label: filterCuisine });
+    return list;
+  }, [filterCookTime, filterProtein, filterMethod, filterPeople, filterCuisine]);
+
+  const clearFilter = (key: string) => {
+    if (key === "cookTime") setFilterCookTime(null);
+    if (key === "protein") setFilterProtein(null);
+    if (key === "people") setFilterPeople(null);
+    if (key === "cuisine") setFilterCuisine(null);
+    if (key === "method") setFilterMethod(null);
+  };
+
+  // Filter sheet options (same as meals tab)
+  const filterOptions: Record<string, { label: string; value: string }[]> = {
+    cookTime: [
+      { label: "Any", value: "" },
+      { label: "No Cook", value: "No Cook" },
+      { label: "Under 15 min", value: "Under 15 min" },
+      { label: "Under 30 min", value: "Under 30 min" },
+      { label: "Under 60 min", value: "Under 60 min" },
+    ],
+    protein: [
+      { label: "Any", value: "" },
+      { label: "Chicken Breast", value: "Chicken Breast" },
+      { label: "Chicken Thigh", value: "Chicken Thigh" },
+      { label: "Chicken Drumsticks", value: "Chicken Drumsticks" },
+      { label: "Steaks", value: "Steaks" },
+      { label: "Ground Beef", value: "Ground Beef" },
+      { label: "Pork", value: "Pork" },
+      { label: "Salmon", value: "Salmon" },
+      { label: "Shrimp", value: "Shrimp" },
+      { label: "Tuna", value: "Tuna" },
+      { label: "Tilapia", value: "Tilapia" },
+      { label: "Eggs", value: "Eggs" },
+      { label: "Plant Based", value: "Plant Based" },
+    ],
+    cuisine: [
+      { label: "Any", value: "" },
+      { label: "Mexican", value: "Mexican" },
+      { label: "Asian", value: "Asian" },
+      { label: "Mediterranean", value: "Mediterranean" },
+      { label: "Italian", value: "Italian" },
+      { label: "American", value: "American" },
+      { label: "Indian", value: "Indian" },
+      { label: "French", value: "French" },
+    ],
+    people: [
+      { label: "Any", value: "" },
+      { label: "1 person", value: "1 person" },
+      { label: "2 people", value: "2 people" },
+      { label: "3-4 people", value: "3-4 people" },
+      { label: "5-6 people", value: "5-6 people" },
+      { label: "7+ people", value: "7+ people" },
+    ],
+    method: [
+      { label: "Any", value: "" },
+      { label: "Air Fryer Only", value: "Air Fryer Only" },
+      { label: "One Pan", value: "One Pan" },
+      { label: "Oven Only", value: "Oven Only" },
+      { label: "Grill", value: "Grill" },
+      { label: "Griddle", value: "Griddle" },
+    ],
+  };
 
   // Recipe detail view
   if (viewingRecipe) {
@@ -159,17 +235,79 @@ export function SavedTab() {
             className="flex items-center gap-2 rounded-lg border border-border px-6 py-2.5 font-body text-sm text-muted-foreground"
           >
             <Trash2 size={14} />
-            Unsave
+            {viewingRecipe.meal_section === "shopping_cart" ? "Remove from cart" : "Unsave"}
           </button>
         </div>
       </div>
     );
   }
 
+  const renderFilterSheet = () => {
+    if (!showFilterSheet) return null;
+    const items = filterOptions[showFilterSheet] || [];
+    const setter = showFilterSheet === "cookTime" ? setFilterCookTime
+      : showFilterSheet === "protein" ? setFilterProtein
+      : showFilterSheet === "people" ? setFilterPeople
+      : showFilterSheet === "cuisine" ? setFilterCuisine
+      : setFilterMethod;
+    const current = showFilterSheet === "cookTime" ? filterCookTime
+      : showFilterSheet === "protein" ? filterProtein
+      : showFilterSheet === "people" ? filterPeople
+      : showFilterSheet === "cuisine" ? filterCuisine
+      : filterMethod;
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-end bg-foreground/30" onClick={() => setShowFilterSheet(null)}>
+        <div className="w-full rounded-t-2xl bg-background p-6 animate-slide-in" onClick={e => e.stopPropagation()}>
+          <h3 className="font-display text-lg font-bold text-foreground mb-4">
+            {showFilterSheet === "cookTime" ? "Cook Time" : showFilterSheet === "protein" ? "Main Protein" : showFilterSheet === "people" ? "Number of People" : showFilterSheet === "cuisine" ? "Cuisine" : "Cooking Method"}
+          </h3>
+          <div className="flex flex-col gap-1">
+            {items.map(opt => (
+              <button
+                key={opt.label}
+                onClick={() => { setter(opt.value || null); setShowFilterSheet(null); }}
+                className={`rounded-lg px-4 py-3 text-left font-body text-sm transition-colors ${
+                  current === opt.value || (!current && !opt.value) ? "bg-gold/10 text-foreground font-medium" : "text-muted-foreground hover:bg-secondary"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="px-4 pt-4 pb-2">
         <h1 className="font-display text-xl font-bold text-foreground mb-3">Saved Recipes</h1>
+
+        {/* Saved / Shopping Cart toggle */}
+        <div className="flex items-center rounded-full bg-secondary p-0.5 mb-3 w-fit">
+          <button
+            onClick={() => setViewMode("saved")}
+            className={`rounded-full px-4 py-1.5 font-body text-xs font-medium transition-colors ${
+              viewMode === "saved" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+            }`}
+          >
+            ⭐ Saved
+          </button>
+          <button
+            onClick={() => setViewMode("shopping")}
+            className={`rounded-full px-4 py-1.5 font-body text-xs font-medium transition-colors flex items-center gap-1 ${
+              viewMode === "shopping" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+            }`}
+          >
+            <ShoppingCart size={12} />
+            Shopping Cart
+            {shoppingCartMeals.length > 0 && (
+              <span className="ml-1 rounded-full bg-gold/20 px-1.5 text-[10px] font-medium text-gold">{shoppingCartMeals.length}</span>
+            )}
+          </button>
+        </div>
 
         {/* Search bar */}
         <div className="relative mb-3">
@@ -188,59 +326,120 @@ export function SavedTab() {
           )}
         </div>
 
-        {/* Category filter pills */}
-        {availableCategories.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            <button
-              onClick={() => setActiveCategoryFilter(null)}
-              className={`shrink-0 rounded-full border px-3 py-1 font-body text-xs transition-colors ${
-                !activeCategoryFilter ? "border-gold bg-gold/10 text-foreground" : "border-border bg-card text-muted-foreground"
-              }`}
-            >
-              All
-            </button>
-            {availableCategories.map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategoryFilter(activeCategoryFilter === cat.id ? null : cat.id)}
-                className={`shrink-0 rounded-full border px-3 py-1 font-body text-xs transition-colors ${
-                  activeCategoryFilter === cat.id ? "border-gold bg-gold/10 text-foreground" : "border-border bg-card text-muted-foreground"
-                }`}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
-        )}
+        {viewMode === "saved" && (
+          <>
+            {/* Category filter pills */}
+            {availableCategories.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                <button
+                  onClick={() => setActiveCategoryFilter(null)}
+                  className={`shrink-0 rounded-full border px-3 py-1 font-body text-xs transition-colors ${
+                    !activeCategoryFilter ? "border-gold bg-gold/10 text-foreground" : "border-border bg-card text-muted-foreground"
+                  }`}
+                >
+                  All
+                </button>
+                {availableCategories.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setActiveCategoryFilter(activeCategoryFilter === cat.id ? null : cat.id)}
+                    className={`shrink-0 rounded-full border px-3 py-1 font-body text-xs transition-colors ${
+                      activeCategoryFilter === cat.id ? "border-gold bg-gold/10 text-foreground" : "border-border bg-card text-muted-foreground"
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            )}
 
-        {/* Quick filters */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {FILTER_CHIPS.map(f => (
-            <button
-              key={f}
-              onClick={() => setActiveFilter(activeFilter === f ? null : f)}
-              className={`shrink-0 rounded-full border px-3 py-1 font-body text-xs transition-colors ${
-                activeFilter === f ? "border-gold bg-gold/10 text-foreground" : "border-border bg-card text-muted-foreground"
-              }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
+            {/* Filter buttons matching meals tab */}
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {[
+                { key: "cookTime", label: "Cook Time", icon: Clock, active: !!filterCookTime },
+                { key: "method", label: "Method", icon: UtensilsCrossed, active: !!filterMethod },
+                { key: "protein", label: "Protein", icon: Flame, active: !!filterProtein },
+                { key: "people", label: "People", icon: Users, active: !!filterPeople },
+                { key: "cuisine", label: "Cuisine", icon: Filter, active: !!filterCuisine },
+              ].map(f => (
+                <button
+                  key={f.key}
+                  onClick={() => setShowFilterSheet(f.key)}
+                  className={`shrink-0 flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-body text-xs transition-colors ${
+                    f.active ? "border-gold bg-gold/10 text-foreground" : "border-border bg-card text-muted-foreground"
+                  }`}
+                >
+                  <f.icon size={12} />
+                  {f.label}
+                  <ChevronDown size={10} />
+                </button>
+              ))}
+            </div>
+
+            {/* Active filter summary */}
+            {activeFiltersList.length > 0 && (
+              <div className="flex items-center gap-2 mb-2 overflow-x-auto scrollbar-hide">
+                {activeFiltersList.map(f => (
+                  <button
+                    key={f.key}
+                    onClick={() => clearFilter(f.key)}
+                    className="shrink-0 flex items-center gap-1 rounded-full bg-gold/10 border border-gold/30 px-2.5 py-1 font-body text-xs text-foreground"
+                  >
+                    {f.label}
+                    <X size={10} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 pb-24">
         {filteredRecipes.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center">
-            <BookOpen size={32} className="text-muted-foreground mb-3" />
-            {recipes.length === 0 ? (
+            {viewMode === "shopping" ? (
               <>
-                <p className="font-body text-sm text-muted-foreground">No saved recipes yet.</p>
-                <p className="font-body text-xs text-muted-foreground mt-1">Star a recipe from the Meals tab to save it here.</p>
+                <ShoppingCart size={32} className="text-muted-foreground mb-3" />
+                <p className="font-body text-sm text-muted-foreground">No meals in shopping cart.</p>
+                <p className="font-body text-xs text-muted-foreground mt-1">Tap the 🛒 icon on a Discover meal to add it here.</p>
               </>
             ) : (
-              <p className="font-body text-sm text-muted-foreground">No recipes match your filters.</p>
+              <>
+                <BookOpen size={32} className="text-muted-foreground mb-3" />
+                {savedRecipes.length === 0 ? (
+                  <>
+                    <p className="font-body text-sm text-muted-foreground">No saved recipes yet.</p>
+                    <p className="font-body text-xs text-muted-foreground mt-1">Star a recipe from the Meals tab to save it here.</p>
+                  </>
+                ) : (
+                  <p className="font-body text-sm text-muted-foreground">No recipes match your filters.</p>
+                )}
+              </>
             )}
+          </div>
+        ) : viewMode === "shopping" ? (
+          <div className="flex flex-col gap-2 mt-2">
+            {filteredRecipes.map(recipe => (
+              <div key={recipe.id} className="rounded-lg border border-border bg-card p-3 flex items-start justify-between">
+                <button onClick={() => setViewingRecipe(recipe)} className="flex-1 min-w-0 text-left">
+                  <p className="font-body text-sm font-medium text-foreground">{recipe.meal_name}</p>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    <span className="font-body text-xs text-muted-foreground">
+                      {recipe.saved_by} · {formatDate(recipe.created_at)}
+                    </span>
+                    {recipe.tags.slice(0, 3).map(tag => (
+                      <span key={tag} className="rounded-full bg-secondary px-2 py-0.5 font-body text-[10px] text-muted-foreground">
+                        {tag.replace(/_/g, " ")}
+                      </span>
+                    ))}
+                  </div>
+                </button>
+                <button onClick={() => removeRecipe(recipe.id)} className="ml-2 shrink-0 text-muted-foreground hover:text-destructive transition-colors">
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="flex flex-col gap-4 mt-2">
@@ -287,6 +486,8 @@ export function SavedTab() {
           </div>
         )}
       </div>
+
+      {renderFilterSheet()}
     </div>
   );
 }

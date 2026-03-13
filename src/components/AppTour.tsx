@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { UtensilsCrossed, ShoppingCart, BookOpen, Settings, ChevronRight, Sparkles, ChefHat } from "lucide-react";
+import { ShoppingCart, UtensilsCrossed, BookOpen, Settings, ChevronRight, Camera, Sparkles, ThumbsUp, Star, Send, Lightbulb, ShoppingBag } from "lucide-react";
 import { Logo } from "@/components/Logo";
-import { CocinaText } from "@/components/CocinaText";
 
 const TOUR_SEEN_KEY = "cocina_app_tour_seen";
 
@@ -25,21 +24,49 @@ const STEPS: TourStep[] = [
   },
   {
     title: "Ingredients",
-    description: "Track what you have at home. Scan a receipt to add items instantly — we'll even track expiration dates for you.",
+    description: "Track what you have at home. Toggle items in and out of stock with a tap.",
     icon: <ShoppingCart size={28} className="text-gold" />,
     tabHighlight: "pantry",
     arrowDirection: "down",
   },
   {
+    title: "📸 Scan Receipts (Beta)",
+    description: "Snap a photo of your grocery receipt and we'll auto-add items with expiration dates. Still in beta — getting smarter every day!",
+    icon: <Camera size={28} className="text-gold" />,
+    tabHighlight: "pantry",
+    arrowDirection: "none",
+  },
+  {
     title: "Meals",
-    description: "Get AI-powered meal suggestions based on what's in your kitchen. Toggle Discover mode to explore beyond your pantry.",
+    description: "Get AI-powered meal suggestions based on your ingredients. Use the \"I'm craving...\" box to get instant recipe ideas for anything.",
     icon: <UtensilsCrossed size={28} className="text-gold" />,
     tabHighlight: "meals",
     arrowDirection: "down",
   },
   {
+    title: "✨ Discover Mode",
+    description: "Toggle to Discover to explore meals beyond your pantry. Missing ingredients are listed on each card — tap the 🛒 icon to add them to your shopping list.",
+    icon: <Sparkles size={28} className="text-gold" />,
+    tabHighlight: "meals",
+    arrowDirection: "none",
+  },
+  {
+    title: "Rate & Save",
+    description: "👍 Like meals to see more like them. 👎 Dislike to hide them. ⭐ Star to save to your cookbook. cocina learns your taste over time.",
+    icon: <ThumbsUp size={28} className="text-gold" />,
+    tabHighlight: "meals",
+    arrowDirection: "none",
+  },
+  {
+    title: "🔥 Next Level Tips",
+    description: "Every recipe includes a \"Next Level Tip\" — a chef secret to elevate your dish from good to unforgettable.",
+    icon: <Lightbulb size={28} className="text-gold" />,
+    tabHighlight: null,
+    arrowDirection: "none",
+  },
+  {
     title: "Saved",
-    description: "Star any recipe to save it here. Build your household cookbook over time — every great meal, one tap away.",
+    description: "Your starred recipes and shopping cart meals live here. Build your household cookbook over time — every great meal, one tap away.",
     icon: <BookOpen size={28} className="text-gold" />,
     tabHighlight: "saved",
     arrowDirection: "down",
@@ -61,7 +88,6 @@ const STEPS: TourStep[] = [
   },
 ];
 
-// Tab positions (index based, 4 tabs evenly spaced)
 const TAB_INDEX: Record<string, number> = { pantry: 0, meals: 1, saved: 2, settings: 3 };
 
 export function AppTour({ onComplete }: { onComplete: () => void }) {
@@ -86,7 +112,6 @@ export function AppTour({ onComplete }: { onComplete: () => void }) {
     setTimeout(onComplete, 300);
   };
 
-  // Calculate the highlight position for the tab bar
   const tabHighlightStyle = current.tabHighlight
     ? {
         left: `${(TAB_INDEX[current.tabHighlight] / 4) * 100 + 12.5}%`,
@@ -100,10 +125,8 @@ export function AppTour({ onComplete }: { onComplete: () => void }) {
         exiting ? "opacity-0" : "opacity-100"
       }`}
     >
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-foreground/60 backdrop-blur-sm" />
 
-      {/* Content card */}
       <div className="relative flex-1 flex flex-col items-center justify-center px-8">
         <div
           key={step}
@@ -198,7 +221,6 @@ export function useAppTour() {
   useEffect(() => {
     const seen = localStorage.getItem(TOUR_SEEN_KEY);
     if (!seen) {
-      // Small delay so the app renders first
       const timer = setTimeout(() => setShowTour(true), 800);
       return () => clearTimeout(timer);
     }

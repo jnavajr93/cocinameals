@@ -628,20 +628,25 @@ export function MealsTab() {
     const options: Record<string, { label: string; value: string }[]> = {
       cookTime: [
         { label: "Any", value: "" },
+        { label: "No Cook", value: "No Cook" },
         { label: "Under 15 min", value: "Under 15 min" },
         { label: "Under 30 min", value: "Under 30 min" },
-        { label: "Under 45 min", value: "Under 45 min" },
-        { label: "1 hr+", value: "1 hr+" },
+        { label: "Under 60 min", value: "Under 60 min" },
       ],
       protein: [
         { label: "Any", value: "" },
-        { label: "Chicken", value: "Chicken" },
-        { label: "Beef", value: "Beef" },
+        { label: "Chicken Breast", value: "Chicken Breast" },
+        { label: "Chicken Thigh", value: "Chicken Thigh" },
+        { label: "Chicken Drumsticks", value: "Chicken Drumsticks" },
+        { label: "Steaks", value: "Steaks" },
+        { label: "Ground Beef", value: "Ground Beef" },
         { label: "Pork", value: "Pork" },
-        { label: "Seafood", value: "Seafood" },
+        { label: "Salmon", value: "Salmon" },
+        { label: "Shrimp", value: "Shrimp" },
+        { label: "Tuna", value: "Tuna" },
+        { label: "Tilapia", value: "Tilapia" },
         { label: "Eggs", value: "Eggs" },
-        { label: "Plant-Based", value: "Plant-Based" },
-        { label: "Use What's Expiring", value: "Use What's Expiring" },
+        { label: "Plant Based", value: "Plant Based" },
       ],
       cuisine: [
         { label: "My Profile", value: "" },
@@ -667,9 +672,8 @@ export function MealsTab() {
         { label: "Air Fryer Only", value: "Air Fryer Only" },
         { label: "One Pan", value: "One Pan" },
         { label: "Oven Only", value: "Oven Only" },
-        { label: "Stovetop Only", value: "Stovetop Only" },
         { label: "Grill", value: "Grill" },
-        { label: "No Cook", value: "No Cook" },
+        { label: "Griddle", value: "Griddle" },
       ],
     };
 
@@ -968,6 +972,30 @@ export function MealsTab() {
         const { error } = await supabase.from("pantry_items").insert(rows);
         if (error) { toast.error("Couldn't add items"); return; }
       }
+      // Also save meal to saved_recipes as shopping_cart
+      const { data: existingRecipe } = await supabase
+        .from("saved_recipes")
+        .select("id")
+        .eq("household_id", householdId)
+        .eq("meal_name", card.name)
+        .eq("meal_section", "shopping_cart")
+        .maybeSingle();
+      if (!existingRecipe) {
+        const cacheKey = `recipe_${card.name.replace(/\s+/g, "_").toLowerCase()}`;
+        let recipeText = "";
+        try {
+          const cached = localStorage.getItem(cacheKey);
+          if (cached) recipeText = JSON.parse(cached).text || "";
+        } catch {}
+        await supabase.from("saved_recipes").insert({
+          household_id: householdId,
+          meal_name: card.name,
+          recipe_text: recipeText || `Recipe for ${card.name}`,
+          saved_by: userName,
+          meal_section: "shopping_cart",
+          tags: card.tags || [],
+        } as any);
+      }
       const skipped = card.missingIngredients.length - newItems.length;
       const msg = newItems.length > 0
         ? `${newItems.length} item${newItems.length > 1 ? "s" : ""} added to your list${skipped > 0 ? ` (${skipped} already there)` : ""}`
@@ -994,23 +1022,22 @@ export function MealsTab() {
           </div>
         </button>
         {hasMissing && (
-          <div className="px-3 pb-2">
-            <div className="flex items-start gap-1.5 mb-2">
-              <ShoppingCart size={12} className="text-gold mt-0.5 shrink-0" />
-              <p className="font-body text-xs text-muted-foreground leading-snug">
-                Need: {card.missingIngredients!.join(", ")}
-              </p>
-            </div>
-            <button
-              onClick={addMissingToList}
-              className="flex items-center gap-1.5 rounded-md bg-gold/10 border border-gold/30 px-3 py-1.5 text-foreground hover:bg-gold/20 transition-colors"
-            >
-              <Plus size={12} className="text-gold" />
-              <span className="font-body text-xs font-medium">Add to shopping list</span>
-            </button>
+          <div className="px-3 pb-1">
+            <p className="font-body text-xs text-muted-foreground leading-snug">
+              Need: {card.missingIngredients!.join(", ")}
+            </p>
           </div>
         )}
         <div className="flex items-center justify-end gap-3 px-3 pb-2">
+          {hasMissing && (
+            <button
+              onClick={addMissingToList}
+              className="text-muted-foreground hover:text-gold transition-colors"
+              title="Add to shopping list"
+            >
+              <ShoppingCart size={16} />
+            </button>
+          )}
           <button
             onClick={() => handleFeedback(card, "liked")}
             className={`transition-colors ${isLiked ? "text-gold" : "text-muted-foreground hover:text-gold"}`}
