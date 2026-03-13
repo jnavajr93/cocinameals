@@ -36,7 +36,7 @@ const PAIN_POINTS: ContentItem[] = [
   {
     icon: DollarSign,
     title: "Eating out is draining your budget",
-    description: "When cooking feels like a chore, takeout wins. cocina makes home cooking effortless with meals matched to what you own.",
+    description: "When cooking feels like a chore, takeout wins. Cocina makes home cooking effortless with meals matched to what you own.",
   },
   {
     icon: Users,
