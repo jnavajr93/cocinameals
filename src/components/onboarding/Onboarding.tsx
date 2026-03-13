@@ -184,7 +184,7 @@ export function Onboarding({ onComplete, previewMode }: OnboardingProps) {
             household_id: householdId,
             name,
             category: cat.name,
-            in_stock: false,
+            in_stock: profile.selectedIngredients.includes(name),
             is_custom: false,
             is_hidden: false,
           }))
