@@ -129,9 +129,10 @@ export function StepIngredients({ profile, update, onNext, isLast, saving }: Pro
         </p>
         <button
           onClick={onNext}
-          className="w-full rounded-lg bg-primary px-6 py-3.5 font-body font-semibold text-primary-foreground transition-colors hover:opacity-90"
+          disabled={saving}
+          className="w-full rounded-lg bg-primary px-6 py-3.5 font-body font-semibold text-primary-foreground transition-colors hover:opacity-90 disabled:opacity-40"
         >
-          Continue
+          {saving ? "Setting up..." : isLast ? "Finish setup" : "Continue"}
         </button>
       </div>
     </div>
