@@ -466,20 +466,33 @@ export function MealsTab() {
   }, [getRecipeCacheKey]);
 
   const shuffleSection = async (sectionId: string) => {
-    if (shuffleCooldowns[sectionId]) return;
-
-    // Start cooldown
-    setShuffleCooldowns(prev => ({ ...prev, [sectionId]: true }));
-    setTimeout(() => {
-      setShuffleCooldowns(prev => ({ ...prev, [sectionId]: false }));
-    }, 8000);
-
+    // Always try local pool first — instant, no cooldown
     const seededPool = ensureSectionPool(sectionId);
     const poolMeals = pickFromPool(sectionId, currentPantryHash, filterInStockOnly, 3) as MealCardWithCookTime[];
 
     if (poolMeals.length >= 3) {
       setAiCards(prev => ({ ...prev, [sectionId]: poolMeals }));
       trackRecentMeals(poolMeals);
+
+      // Background AI fill if pool is small and AI not throttled
+      if (seededPool.length < 20 && !isAiThrottled()) {
+        recordAiCall();
+        supabase.functions.invoke("suggest-meals", {
+          body: {
+            section: sectionId,
+            pantryItems: pantryInStock,
+            expiringItems,
+            profile,
+            filters: { cookTime: filterCookTime, mainProtein: filterProtein, cuisineOverride: filterCuisine, cookingMethod: filterMethod, inStockOnly: filterInStockOnly, mustInclude: filterMustInclude, quickFilterChip: activeFilter },
+            feedback: { likedTags: [], dislikedMeals: Array.from(dislikedMeals) },
+            recentSuggestions: getRecentSuggestions(),
+          },
+        }).then(({ data }) => {
+          if (Array.isArray(data) && data.length > 0) {
+            addToMealPool(sectionId, currentPantryHash, filterInStockOnly, data);
+          }
+        }).catch(() => {});
+      }
       return;
     }
 
@@ -490,7 +503,20 @@ export function MealsTab() {
       return;
     }
 
+    // Only call AI if not throttled
+    if (isAiThrottled()) {
+      const localSeeds = getSectionSeedMeals(sectionId).slice(0, 3);
+      if (localSeeds.length > 0) {
+        setAiCards(prev => ({ ...prev, [sectionId]: localSeeds }));
+        trackRecentMeals(localSeeds);
+      } else {
+        setShuffleKey(k => k + 1);
+      }
+      return;
+    }
+
     setAiLoading(prev => ({ ...prev, [sectionId]: true }));
+    recordAiCall();
     try {
       const { data, error } = await supabase.functions.invoke("suggest-meals", {
         body: {
@@ -522,7 +548,6 @@ export function MealsTab() {
       } else {
         setShuffleKey(k => k + 1);
       }
-      toast.error("Showing local meal pool");
     }
     setAiLoading(prev => ({ ...prev, [sectionId]: false }));
   };
