@@ -907,17 +907,31 @@ export function MealsTab() {
     const addMissingToList = async (e: React.MouseEvent) => {
       e.stopPropagation();
       if (!householdId || !card.missingIngredients?.length) return;
-      const items = card.missingIngredients.map(name => ({
-        household_id: householdId,
-        name,
-        category: "Shopping List",
-        in_stock: false,
-        is_custom: true,
-        is_hidden: false,
-      }));
-      const { error } = await supabase.from("pantry_items").upsert(items, { onConflict: "household_id,name", ignoreDuplicates: true });
-      if (error) toast.error("Couldn't add items");
-      else toast.success(`${card.missingIngredients!.length} items added to your list`);
+      // Check which items already exist
+      const { data: existing } = await supabase
+        .from("pantry_items")
+        .select("name")
+        .eq("household_id", householdId)
+        .in("name", card.missingIngredients);
+      const existingNames = new Set((existing || []).map(e => e.name.toLowerCase()));
+      const newItems = card.missingIngredients.filter(name => !existingNames.has(name.toLowerCase()));
+      if (newItems.length > 0) {
+        const rows = newItems.map(name => ({
+          household_id: householdId,
+          name,
+          category: "Shopping List",
+          in_stock: false,
+          is_custom: true,
+          is_hidden: false,
+        }));
+        const { error } = await supabase.from("pantry_items").insert(rows);
+        if (error) { toast.error("Couldn't add items"); return; }
+      }
+      const skipped = card.missingIngredients.length - newItems.length;
+      const msg = newItems.length > 0
+        ? `${newItems.length} item${newItems.length > 1 ? "s" : ""} added to your list${skipped > 0 ? ` (${skipped} already there)` : ""}`
+        : "All items already in your list";
+      toast.success(msg);
     };
 
     return (
