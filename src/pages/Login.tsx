@@ -31,7 +31,7 @@ const PAIN_POINTS: ContentItem[] = [
   {
     icon: Clock,
     title: '"What\'s for dinner?" — every single night',
-    description: "Decision fatigue is real. cocina generates personalized meal ideas based on your pantry, skill level, and family preferences.",
+    description: "Decision fatigue is real. cocina delivers personalized meal ideas based on your pantry, skill level, and family preferences.",
   },
   {
     icon: DollarSign,
