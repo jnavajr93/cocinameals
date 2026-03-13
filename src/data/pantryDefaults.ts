@@ -35,7 +35,8 @@ export const DEFAULT_PANTRY: PantryCategory[] = [
       "Salmon", "Tilapia", "Cod", "Halibut", "Sea Bass",
       "Tuna", "Shrimp", "Scallops", "Crab Meat", "Lobster",
       "Clams", "Mussels", "Smoked Salmon",
-      "Eggs", "Tofu", "Tempeh", "Edamame",
+      "Steaks (Ribeye)", "Steaks (NY Strip)", "Steaks (Sirloin)", "Steaks (Filet Mignon)", "Steaks (Flank)", "Steaks (Skirt)",
+      "Eggs", "Tofu", "Tempeh",
     ],
   },
   {

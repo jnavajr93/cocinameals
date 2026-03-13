@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Search, Check, Plus, ChevronDown, ChevronRight, Copy, Camera, Loader2, X, Trash2, Info, CalendarDays, ShoppingCart } from "lucide-react";
+import { Search, Check, Plus, ChevronDown, ChevronRight, Camera, Loader2, X, Trash2, Info, CalendarDays, ShoppingCart } from "lucide-react";
 import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -421,20 +421,6 @@ export function PantryTab() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {inviteCode && (
-              <button
-                onClick={() => { navigator.clipboard.writeText(inviteCode); toast.success("Invite code copied"); }}
-                className="flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 font-body text-xs text-muted-foreground hover:bg-secondary"
-              >
-                <span>{inviteCode}</span>
-                <Copy size={10} />
-              </button>
-            )}
-            {memberCount > 0 && (
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 font-body text-xs text-primary">
-                {memberCount}
-              </span>
-            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -446,6 +432,7 @@ export function PantryTab() {
             <button
               onClick={handleReceiptScanClick}
               disabled={scanning}
+              data-tour-id="scan-receipt"
               className="flex items-center gap-1.5 rounded-lg bg-gold px-3 py-1.5 text-gold-foreground font-body text-xs font-medium disabled:opacity-50"
               title="Scan receipt"
             >

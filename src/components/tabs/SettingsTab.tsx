@@ -40,6 +40,7 @@ export function SettingsTab() {
   const [addingNonAppMember, setAddingNonAppMember] = useState(false);
   const [newMemberName, setNewMemberName] = useState("");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Expandable sections
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -353,6 +354,22 @@ export function SettingsTab() {
   };
 
   const handleLogout = async () => { await signOut(); };
+
+  const handleDeleteAccount = async () => {
+    if (!user || !householdId) return;
+    try {
+      // Delete user data
+      await Promise.all([
+        supabase.from("user_preferences").delete().eq("user_id", user.id),
+        supabase.from("meal_feedback").delete().eq("user_id", user.id),
+        supabase.from("household_members").delete().eq("user_id", user.id),
+      ]);
+      await signOut();
+      toast.success("Account deleted");
+    } catch {
+      toast.error("Failed to delete account");
+    }
+  };
 
   // Add custom meal type
   const addCustomMealType = () => {
@@ -901,7 +918,7 @@ export function SettingsTab() {
         </section>
 
         {/* Logout */}
-        <section className="pt-4 pb-8">
+        <section className="pt-4 pb-4">
           {showLogoutConfirm ? (
             <div className="flex flex-col gap-2">
               <p className="font-body text-sm text-foreground">Log out of <CocinaText />?</p>
@@ -914,6 +931,23 @@ export function SettingsTab() {
             <button onClick={() => setShowLogoutConfirm(true)} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
               <LogOut size={16} />
               <span className="font-body text-sm">Log out</span>
+            </button>
+          )}
+        </section>
+
+        {/* Delete Account */}
+        <section className="pb-12">
+          {showDeleteConfirm ? (
+            <div className="flex flex-col gap-2">
+              <p className="font-body text-xs text-destructive">This will permanently delete your account and all your data. This cannot be undone.</p>
+              <div className="flex gap-2">
+                <button onClick={handleDeleteAccount} className="flex-1 rounded-lg bg-destructive px-4 py-1.5 font-body text-xs font-medium text-destructive-foreground">Delete permanently</button>
+                <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 rounded-lg border border-border px-4 py-1.5 font-body text-xs text-foreground">Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setShowDeleteConfirm(true)} className="font-body text-[11px] text-muted-foreground/50 hover:text-destructive/70 transition-colors">
+              Delete account
             </button>
           )}
         </section>

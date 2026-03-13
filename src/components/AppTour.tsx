@@ -10,6 +10,7 @@ interface TourStep {
   icon: React.ReactNode;
   tabHighlight: string | null;
   arrowDirection: "down" | "none";
+  arrowTarget?: string;
   useLogo?: boolean;
 }
 
@@ -34,7 +35,8 @@ const STEPS: TourStep[] = [
     description: "Snap a photo of your grocery receipt and we'll auto-add items with expiration dates. Still in beta — getting smarter every day!",
     icon: <Camera size={28} className="text-gold" />,
     tabHighlight: "pantry",
-    arrowDirection: "none",
+    arrowDirection: "down",
+    arrowTarget: "scan-receipt",
   },
   {
     title: "Meals",
@@ -65,8 +67,8 @@ const STEPS: TourStep[] = [
     arrowDirection: "none",
   },
   {
-    title: "Saved",
-    description: "Your starred recipes and shopping cart meals live here. Build your household cookbook over time — every great meal, one tap away.",
+    title: "Saved & Shopping Cart",
+    description: "⭐ Starred recipes go to your cookbook. 🛒 Add meals to your shopping cart to plan what to buy — missing ingredients are listed so you know exactly what to grab at the store.",
     icon: <BookOpen size={28} className="text-gold" />,
     tabHighlight: "saved",
     arrowDirection: "down",
@@ -89,6 +91,33 @@ const STEPS: TourStep[] = [
 ];
 
 const TAB_INDEX: Record<string, number> = { pantry: 0, meals: 1, saved: 2, settings: 3 };
+
+function ArrowToElement({ targetId, direction }: { targetId: string; direction: "up" | "down" }) {
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    const el = document.querySelector(`[data-tour-id="${targetId}"]`);
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      setPos({ x: rect.left + rect.width / 2, y: direction === "up" ? rect.top - 8 : rect.bottom + 8 });
+    }
+  }, [targetId, direction]);
+
+  if (!pos) return null;
+
+  const rotation = direction === "up" ? "rotate(180deg)" : "";
+
+  return (
+    <div
+      className="fixed animate-bounce z-[101]"
+      style={{ left: pos.x - 12, top: direction === "up" ? pos.y - 24 : pos.y }}
+    >
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-gold" style={{ transform: rotation }}>
+        <path d="M12 4L12 20M12 20L6 14M12 20L18 14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </div>
+  );
+}
 
 export function AppTour({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState(0);
@@ -183,8 +212,13 @@ export function AppTour({ onComplete }: { onComplete: () => void }) {
           </div>
         </div>
 
+        {/* Arrow pointing at specific element (e.g. scan receipt button) */}
+        {current.arrowDirection === "down" && current.arrowTarget && (
+          <ArrowToElement targetId={current.arrowTarget} direction="up" />
+        )}
+
         {/* Arrow pointing down to the tab */}
-        {current.arrowDirection === "down" && tabHighlightStyle && (
+        {current.arrowDirection === "down" && !current.arrowTarget && tabHighlightStyle && (
           <div
             className="absolute bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] animate-bounce"
             style={{ left: tabHighlightStyle.left, width: tabHighlightStyle.width, display: "flex", justifyContent: "center" }}
