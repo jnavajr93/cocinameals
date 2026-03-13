@@ -1212,8 +1212,10 @@ export function MealsTab() {
                   <h2 className="font-display text-base font-bold text-foreground">{section.name}</h2>
                   <button
                     onClick={() => shuffleSection(section.id)}
-                    disabled={isLoading}
-                    className="flex items-center gap-1 text-muted-foreground hover:text-gold transition-colors disabled:opacity-50"
+                    disabled={isLoading || shuffleCooldowns[section.id]}
+                    className={`flex items-center gap-1 transition-colors disabled:opacity-40 ${
+                      shuffleCooldowns[section.id] ? "text-muted-foreground/40" : "text-muted-foreground hover:text-gold"
+                    }`}
                   >
                     <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
                     <span className="font-body text-xs">Shuffle</span>
