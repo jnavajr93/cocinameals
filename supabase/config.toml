@@ -1,1 +1,4 @@
 project_id = "ixgckhpjjppgystpkvsv"
+
+[functions.og-recipe]
+verify_jwt = false
