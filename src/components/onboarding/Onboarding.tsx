@@ -305,13 +305,14 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       </div>
 
       <div className="flex-1 px-6 py-6 animate-fade-in">
-        {step === 1 && <StepName profile={profile} update={update} onNext={next} />}
-        {step === 2 && <StepHousehold profile={profile} update={update} onNext={next} />}
-        {step === 3 && <StepChildren profile={profile} update={update} onNext={next} />}
-        {step === 4 && <StepCookingStyle profile={profile} update={update} onNext={next} />}
-        {step === 5 && <StepEquipment profile={profile} update={update} onNext={next} />}
-        {step === 6 && <StepMealRhythm profile={profile} update={update} onNext={next} />}
-        {step === 7 && (
+        {step === 1 && <StepLanguage selectedLanguage={selectedLanguage} onSelect={setSelectedLanguage} onNext={next} />}
+        {step === 2 && <StepName profile={profile} update={update} onNext={next} />}
+        {step === 3 && <StepHousehold profile={profile} update={update} onNext={next} />}
+        {step === 4 && <StepChildren profile={profile} update={update} onNext={next} />}
+        {step === 5 && <StepCookingStyle profile={profile} update={update} onNext={next} />}
+        {step === 6 && <StepEquipment profile={profile} update={update} onNext={next} />}
+        {step === 7 && <StepMealRhythm profile={profile} update={update} onNext={next} />}
+        {step === 8 && (
           <StepCuisine
             profile={profile}
             update={update}
