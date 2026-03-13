@@ -70,7 +70,7 @@ const FEATURES: ContentItem[] = [
   {
     icon: Leaf,
     title: "Reduce Food Waste To Near Zero",
-    description: "Prioritizes ingredients that are about to expire and builds meals around what needs to be used first.",
+    description: "Builds meals around what you already have so nothing goes to waste. Cook smarter, buy less, save more.",
   },
   {
     icon: Heart,
