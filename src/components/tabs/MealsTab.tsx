@@ -261,36 +261,7 @@ export function MealsTab() {
 
   const getCardsForSection = (sectionId: string): MealCardWithCookTime[] => {
     if (aiCards[sectionId]?.length) return aiCards[sectionId];
-
-    const pool = MEAL_POOLS[sectionId] || [];
-    let cards: MealCardWithCookTime[] = pool.map(c => ({ ...c }));
-
-    if (activeFilter) {
-      const filterTag = activeFilter.toLowerCase().replace(/[^a-z0-9]/g, "_");
-      cards = cards.filter(c =>
-        c.tags.includes(filterTag) ||
-        c.tags.some(t => t.includes(filterTag.replace(/_/g, ""))) ||
-        c.name.toLowerCase().includes(activeFilter.toLowerCase())
-      );
-    }
-
-    cards = cards.filter(c => !dislikedMeals.has(c.name));
-
-    // Apply diet restriction filters to local pool
-    const diets = profile?.dietRestrictions || [];
-    if (diets.length > 0 && !diets.includes("None")) {
-      cards = cards.filter(c => {
-        if ((diets.includes("Vegan") || diets.includes("Plant-Based Whole Foods")) && !c.tags.includes("vegan")) return false;
-        if (diets.includes("Vegetarian") && !c.tags.includes("vegetarian") && !c.tags.includes("vegan")) return false;
-        return true;
-      });
-    }
-
-    const seed = shuffleKey + sectionId.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-    cards.sort((a, b) => Math.sin(seed * 9301 + cards.indexOf(a) * 49297) - Math.sin(seed * 9301 + cards.indexOf(b) * 49297));
-
-    const limit = ["afternoon_snack", "baby_breakfast", "baby_dinner"].includes(sectionId) ? 2 : 3;
-    return cards.slice(0, limit);
+    return [];
   };
 
   const saveMeal = async (card: MealCardWithCookTime, sectionId?: string) => {
