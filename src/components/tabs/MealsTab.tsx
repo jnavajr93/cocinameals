@@ -993,7 +993,7 @@ export function MealsTab() {
             value={craving}
             onChange={e => setCraving(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleCraving()}
-            placeholder="I'm craving..."
+            placeholder={filterInStockOnly ? "I'm craving..." : "I'm craving... (beyond your pantry)"}
             className="w-full rounded-lg border border-border bg-input pl-4 pr-10 py-2.5 font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold"
           />
           <button
