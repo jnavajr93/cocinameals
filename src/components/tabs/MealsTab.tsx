@@ -729,7 +729,7 @@ export function MealsTab() {
   };
 
   const getCachedRecipeText = (mealName: string) => {
-    const cacheKey = `recipe_${mealName.replace(/\s+/g, "_").toLowerCase()}`;
+    const cacheKey = getRecipeCacheKey(mealName);
     try {
       const cached = localStorage.getItem(cacheKey);
       if (!cached) return "";
