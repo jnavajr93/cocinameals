@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useHousehold } from "@/hooks/useHousehold";
 import { useAuth } from "@/hooks/useAuth";
-import { Trash2, BookOpen, ArrowLeft, Search, X, ChevronDown, ChevronRight, Clock, Flame, UtensilsCrossed, Filter, Users, ShoppingCart } from "lucide-react";
+import { Trash2, BookOpen, ArrowLeft, Search, X, ChevronDown, ChevronRight, Clock, Flame, UtensilsCrossed, Filter, Users, ShoppingCart, Send, Star } from "lucide-react";
 import { RecipeDisplay } from "@/components/RecipeDisplay";
+import { toast } from "sonner";
 import { toast } from "sonner";
 import { MEAL_SECTIONS } from "@/data/mealSections";
 
