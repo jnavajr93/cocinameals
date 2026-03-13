@@ -421,20 +421,6 @@ export function PantryTab() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {inviteCode && (
-              <button
-                onClick={() => { navigator.clipboard.writeText(inviteCode); toast.success("Invite code copied"); }}
-                className="flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 font-body text-xs text-muted-foreground hover:bg-secondary"
-              >
-                <span>{inviteCode}</span>
-                <Copy size={10} />
-              </button>
-            )}
-            {memberCount > 0 && (
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 font-body text-xs text-primary">
-                {memberCount}
-              </span>
-            )}
             <input
               ref={fileInputRef}
               type="file"

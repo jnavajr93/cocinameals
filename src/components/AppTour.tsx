@@ -10,6 +10,7 @@ interface TourStep {
   icon: React.ReactNode;
   tabHighlight: string | null;
   arrowDirection: "down" | "none";
+  arrowTarget?: string;
   useLogo?: boolean;
 }
 
