@@ -1222,7 +1222,7 @@ export function MealsTab() {
           activeSections.map(section => {
             const isLoading = aiLoading[section.id];
             const cards = getCardsForSection(section.id);
-            if (cards.length === 0 && !isLoading) return null;
+            const hasCards = cards.length > 0;
             return (
               <div key={section.id} className="mb-6">
                 <div className="flex items-center justify-between mb-2">
@@ -1236,7 +1236,7 @@ export function MealsTab() {
                     <span className="font-body text-xs">Shuffle</span>
                   </button>
                 </div>
-                {isLoading && cards.length === 0 ? (
+                {isLoading && !hasCards ? (
                   <div className="flex flex-col gap-2">
                     {[1, 2, 3].map(i => (
                       <div key={i} className="rounded-lg border border-border bg-card p-3 animate-pulse">
@@ -1245,9 +1245,13 @@ export function MealsTab() {
                       </div>
                     ))}
                   </div>
-                ) : (
+                ) : hasCards ? (
                   <div className="flex flex-col gap-2">
                     {cards.map(card => renderMealCard(card, section.id.startsWith("baby_"), section.id))}
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-border bg-card/50 px-3 py-2">
+                    <p className="font-body text-xs text-muted-foreground">No matches for current filters yet—tap Shuffle or loosen a filter.</p>
                   </div>
                 )}
               </div>

@@ -258,8 +258,8 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
     });
   }
 
-  // Weighted random selection based on cuisine preferences
-  const pick3WithVariety = selectWithVariety(results, cuisineSliders, 3, !!filterProtein, !!filterCuisine);
+  // Weighted random selection based on cuisine preference + recent de-prioritization
+  const pick3WithVariety = selectWithVariety(results, cuisineSliders, 3, !!filterProtein, !!filterCuisine, recentSet);
 
   return pick3WithVariety.map((r: any) => ({
     name: r.name,
@@ -297,6 +297,7 @@ function selectWithVariety(
   count: number,
   proteinFilterActive: boolean,
   cuisineFilterActive: boolean,
+  recentSet: Set<string>,
 ): any[] {
   if (pool.length === 0) return [];
   if (pool.length <= count) return pool;
@@ -316,7 +317,9 @@ function selectWithVariety(
       cuisineVal === 2 ? 25 :
       cuisineVal === 3 ? 50 :
       cuisineVal === 4 ? 100 : 50;
-    return { ...r, _weight: weight + Math.random() * weight };
+    const recencyBias = recentSet.has(r.name) ? 0.35 : 1;
+    const adjustedWeight = weight * recencyBias;
+    return { ...r, _weight: adjustedWeight + Math.random() * Math.max(adjustedWeight, 1) };
   });
 
   // Sort by weight descending (randomized)
