@@ -54,9 +54,10 @@ const STEPS: TourStep[] = [
   {
     title: "You're all set!",
     description: "Start by checking your ingredients, then head to Meals and let cocina do the rest. Happy cooking! 🍳",
-    icon: <Sparkles size={32} className="text-gold" />,
+    icon: null,
     tabHighlight: null,
     arrowDirection: "none",
+    useLogo: true,
   },
 ];
 
