@@ -343,7 +343,17 @@ export function SettingsTab() {
     await supabase.from("meal_feedback").delete().eq("user_id", user.id);
     setLikedFeedback([]);
     setDislikedFeedback([]);
+    clearRecentSuggestions();
+    clearAllMealCaches();
     toast.success("Taste profile reset");
+  };
+
+  const [showResetVariety, setShowResetVariety] = useState(false);
+  const resetMealVariety = () => {
+    clearRecentSuggestions();
+    clearAllMealCaches();
+    setShowResetVariety(false);
+    toast.success("Meal variety reset — you'll see fresh suggestions");
   };
 
   const getChildAge = (dob: string) => {
