@@ -593,6 +593,48 @@ export function SettingsTab() {
           )}
         </section>
 
+        {/* Cooking Style */}
+        <section className="border-b border-border">
+          <SectionHeader id="style" title="Cooking Style" />
+          {expanded.has("style") && (
+            <div className="flex flex-col gap-4 pb-4">
+              <div>
+                <p className="font-body text-xs text-muted-foreground mb-2">Skill level</p>
+                <div className="flex gap-2">
+                  {SKILL_LEVELS.map(s => (
+                    <button key={s} onClick={() => updateSkillLevel(s.toLowerCase())} className={`flex-1 rounded-lg border py-2 font-body text-xs transition-colors ${skillLevel === s.toLowerCase() ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{s}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="font-body text-xs text-muted-foreground mb-2">Spice tolerance</p>
+                <div className="flex gap-2 flex-wrap">
+                  {SPICE_LEVELS.map(s => (
+                    <button key={s} onClick={() => updateSpice(s.toLowerCase())} className={`rounded-lg border px-3 py-2 font-body text-xs transition-colors ${spiceTolerance === s.toLowerCase() ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{s}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="font-body text-xs text-muted-foreground mb-2">Weeknight time</p>
+                <div className="flex gap-2 flex-wrap">
+                  {WEEKNIGHT_TIMES.map(t => {
+                    const val = t === "Under 20 min" ? "under20" : t === "30 min" ? "30min" : t === "45 min" ? "45min" : "norush";
+                    return (<button key={t} onClick={() => updateWeeknight(val)} className={`rounded-lg border px-3 py-2 font-body text-xs transition-colors ${weeknightTime === val ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{t}</button>);
+                  })}
+                </div>
+              </div>
+              <div>
+                <p className="font-body text-xs text-muted-foreground mb-2">Diet restrictions</p>
+                <div className="flex flex-wrap gap-2">
+                  {(DIET_RESTRICTIONS as readonly string[]).map(d => (
+                    <button key={d} onClick={() => toggleDiet(d)} className={`rounded-full border px-3 py-1 font-body text-xs transition-colors ${dietRestrictions.includes(d) ? "border-gold bg-gold/10 text-foreground" : "border-border text-muted-foreground"}`}>{d}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
         {/* Kitchen Equipment */}
         <section className="border-b border-border">
           <SectionHeader id="equipment" title="Kitchen Equipment" />
