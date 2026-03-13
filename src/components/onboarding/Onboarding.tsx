@@ -123,6 +123,10 @@ export function Onboarding({ onComplete, previewMode }: OnboardingProps) {
   };
 
   const finish = async () => {
+    if (previewMode) {
+      onComplete();
+      return;
+    }
     if (!user) return;
     setSaving(true);
 
