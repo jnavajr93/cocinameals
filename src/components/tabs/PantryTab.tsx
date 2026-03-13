@@ -15,6 +15,7 @@ interface PantryItem {
   in_stock: boolean;
   is_custom: boolean;
   is_hidden: boolean;
+  household_id: string;
   updated_by: string | null;
   expires_at: string | null;
   updated_at: string | null;
@@ -118,6 +119,36 @@ export function PantryTab() {
     }
     const item = items.find(i => i.id === id);
     if (!item) return;
+
+    // Shopping list item: "check" means purchased → add to ingredients as in-stock
+    if (item.category === "Shopping List") {
+      // Check if an ingredient with the same name already exists
+      const existingIngredient = items.find(
+        i => i.id !== id && i.name.toLowerCase() === item.name.toLowerCase() && i.category !== "Shopping List"
+      );
+      if (existingIngredient) {
+        // Mark existing ingredient as in-stock
+        setItems(prev => prev.map(i => i.id === existingIngredient.id ? { ...i, in_stock: true, updated_by: userName } : i));
+        await supabase.from("pantry_items").update({ in_stock: true, updated_by: userName }).eq("id", existingIngredient.id);
+      } else {
+        // Create new ingredient in "Custom" category
+        const { data: newItem } = await supabase.from("pantry_items").insert({
+          household_id: item.household_id,
+          name: item.name,
+          category: "Custom",
+          in_stock: true,
+          is_custom: true,
+          updated_by: userName,
+        }).select().single();
+        if (newItem) setItems(prev => [...prev, newItem]);
+      }
+      // Remove from shopping list
+      await supabase.from("pantry_items").delete().eq("id", id);
+      setItems(prev => prev.filter(i => i.id !== id));
+      toast.success(`${item.name} purchased — added to ingredients`);
+      return;
+    }
+
     const newStock = !item.in_stock;
     setItems(prev => prev.map(i => i.id === id ? { ...i, in_stock: newStock, updated_by: userName } : i));
     await supabase.from("pantry_items").update({
@@ -478,7 +509,7 @@ export function PantryTab() {
           >
             <ShoppingCart size={12} />
             Shopping List
-            {(() => { const count = items.filter(i => !i.is_hidden && (i.category === "Shopping List" || !i.in_stock)).length; return count > 0 ? <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">{count}</span> : null; })()}
+            {(() => { const count = items.filter(i => !i.is_hidden && i.category === "Shopping List").length; return count > 0 ? <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">{count}</span> : null; })()}
           </button>
         </div>
 
@@ -526,10 +557,13 @@ export function PantryTab() {
       <div className="flex-1 overflow-y-auto px-4 pb-24">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center">
+            <ShoppingCart size={32} className="text-muted-foreground/30 mb-3" />
             <p className="font-body text-sm text-muted-foreground">
               {search
                 ? "No items match your search."
-                : "No ingredients yet. Tap + to add items."}
+                : viewMode === "shopping"
+                  ? "Your shopping list is empty. Add items from recipe cards using the cart icon."
+                  : "No ingredients yet. Tap + to add items."}
             </p>
           </div>
         ) : (
@@ -574,9 +608,11 @@ export function PantryTab() {
                         className={`relative flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left transition-all select-none ${
                           isSelected
                             ? "border-destructive/50 bg-destructive/10 ring-1 ring-destructive/30"
-                            : item.in_stock
-                              ? "border-gold/40 bg-gold/5"
-                              : "border-border bg-card"
+                            : viewMode === "shopping"
+                              ? "border-border bg-card"
+                              : item.in_stock
+                                ? "border-gold/40 bg-gold/5"
+                                : "border-border bg-card"
                         }`}
                       >
                         {selectMode ? (
@@ -587,6 +623,9 @@ export function PantryTab() {
                           >
                             {isSelected && <Check size={12} />}
                           </span>
+                        ) : viewMode === "shopping" ? (
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-gold/40 bg-background transition-colors">
+                          </span>
                         ) : (
                           <span
                             className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
@@ -596,13 +635,21 @@ export function PantryTab() {
                             {item.in_stock && <Check size={12} />}
                           </span>
                         )}
-                        <span className={`font-body text-sm leading-tight flex-1 min-w-0 truncate ${
-                          !item.in_stock ? "line-through text-muted-foreground" : "text-foreground"
-                        }`}>
-                          {item.name}
-                        </span>
-                        {/* Calendar icon for perishable items */}
-                        {item.in_stock && (
+                        {viewMode === "shopping" ? (
+                          <>
+                            <span className="font-body text-sm leading-tight flex-1 min-w-0 truncate text-foreground">
+                              {item.name}
+                            </span>
+                          </>
+                        ) : (
+                          <span className={`font-body text-sm leading-tight flex-1 min-w-0 truncate ${
+                            !item.in_stock ? "line-through text-muted-foreground" : "text-foreground"
+                          }`}>
+                            {item.name}
+                          </span>
+                        )}
+                        {/* Calendar icon for perishable items — not for shopping list */}
+                        {item.in_stock && viewMode !== "shopping" && (
                           <Popover>
                             <PopoverTrigger asChild>
                               <span
