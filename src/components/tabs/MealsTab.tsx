@@ -394,7 +394,7 @@ export function MealsTab() {
     return [];
   }, []);
 
-
+  const buildQueryParams = useCallback((sectionId: string) => {
     const { category, isBaby } = sectionToCategory(sectionId);
     return {
       category,
