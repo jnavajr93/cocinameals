@@ -9,18 +9,23 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { section, craving, pantryItems, expiringItems, profile, filters, feedback, childAgeMonths } = await req.json();
+    const { sections, section, craving, pantryItems, expiringItems, profile, filters, feedback, childAgeMonths, recentSuggestions } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const inStockOnly = filters?.inStockOnly ?? true;
 
-    const systemPrompt = `You are a meal suggestion engine for Cocina, a household meal planning app.
+    const varietyRules = `
+VARIETY RULES (apply to every batch of 3):
+- CUISINE VARIETY: Each of the 3 suggested meals must represent a different cuisine. No two meals in the same batch of 3 can share the same cuisine tag. If a cuisine override filter is active, still vary the sub-style or dish type as much as possible within that cuisine.
+- PROTEIN VARIETY: No 3 meals in the same batch of 3 can share the same primary protein. For example, do not suggest three chicken dishes or three beef dishes in the same batch. EXCEPTION: If the mainProtein filter is explicitly set by the user, all 3 meals may use that protein. The filter overrides this rule.`;
+
+    const recentRule = (recentSuggestions && recentSuggestions.length > 0)
+      ? `\n- Never suggest any meal whose name appears in recentSuggestions[]. These meals were recently shown to this user. Suggest something different.`
+      : "";
+
+    const baseSystemPrompt = `You are a meal suggestion engine for Cocina, a household meal planning app.
 Mission: help people cook restaurant-quality meals at home using what they already have — cutting food waste and the need to eat out.
-
-Suggest exactly 3 meals. Return ONLY a valid JSON array. No preamble. No markdown.
-
-Each meal object: { "name": string, "cal": number, "protein": number, "carbs": number, "fat": number, "cookTime": number, "tags": string[]${!inStockOnly ? ', "missingIngredients": string[]' : ''} }
 
 ${!inStockOnly ? 'DISCOVERY MODE: The user wants to explore meals beyond their current pantry. Suggest creative, inspiring meals. For each meal, include "missingIngredients" — a short list (max 6) of key ingredients the user would need to buy that are NOT in their current pantry. Only list important ingredients they likely need to purchase (skip common staples like salt, pepper, oil, water). Keep ingredient names short and grocery-friendly (e.g. "chicken thighs" not "boneless skinless chicken thighs").' : ''}
 
@@ -44,6 +49,8 @@ ${inStockOnly ? '- If inStockOnly is true: every ingredient must be currently in
 - Upweight styles matching likedTags[].
 - Prioritize expiringItems[] when culinarily appropriate. Never mention to the user that items are expiring.
 - For baby sections: soft, age-appropriate foods only. No honey, no added salt, no added sugar, no choking hazards.
+${recentRule}
+${varietyRules}
 
 HEALTH CONDITION SILENT ADJUSTMENTS (never mention in output):
   High Blood Pressure → reduce sodium-heavy dishes
@@ -58,24 +65,6 @@ HEALTH CONDITION SILENT ADJUSTMENTS (never mention in output):
   Obesity / Weight Loss → favor high satiety, high protein, lower calorie density
 
 TAGS TO USE: mexican, asian, southeast_asian, south_asian, mediterranean, italian, american, latin_american, caribbean, african, french, seafood, high_protein, low_carb, quick, vegetarian, vegan, kid_friendly, comfort, light, spicy, mild, one_pan, grill, air_fryer, date_night, crowd`;
-
-    const userPrompt = JSON.stringify({
-      section: section || "full_dinner",
-      craving: craving || null,
-      pantryInStock: (pantryItems || []).slice(0, 100),
-      expiringItems: expiringItems || [],
-      equipment: profile?.equipment || [],
-      cuisineSliders: profile?.cuisineSliders || {},
-      skillLevel: profile?.skillLevel || "intermediate",
-      spiceTolerance: profile?.spiceTolerance || "medium",
-      dietRestrictions: profile?.dietRestrictions || [],
-      healthConditions: profile?.healthConditions || [],
-      weeknightTime: profile?.weeknightTime || "30min",
-      filters: filters || {},
-      likedTags: feedback?.likedTags || [],
-      dislikedMeals: feedback?.dislikedMeals || [],
-      childAgeMonths: childAgeMonths || null,
-    });
 
     const mealSchema: Record<string, any> = {
       type: "object",
@@ -95,6 +84,126 @@ TAGS TO USE: mexican, asian, southeast_asian, south_asian, mediterranean, italia
       mealSchema.properties.missingIngredients = { type: "array", items: { type: "string" } };
       mealSchema.required.push("missingIngredients");
     }
+
+    // BATCH MODE: multiple sections in one call
+    if (sections && Array.isArray(sections) && sections.length > 0) {
+      const systemPrompt = baseSystemPrompt + `\n\nYou must suggest meals for multiple sections at once. Return a JSON object with one key per section, each containing exactly 3 meal suggestions.\n\nEach meal object: { "name": string, "cal": number, "protein": number, "carbs": number, "fat": number, "cookTime": number, "tags": string[]${!inStockOnly ? ', "missingIngredients": string[]' : ''} }`;
+
+      const sectionResultSchema: Record<string, any> = {
+        type: "object",
+        properties: {},
+        required: sections,
+      };
+      for (const s of sections) {
+        sectionResultSchema.properties[s] = {
+          type: "array",
+          items: mealSchema,
+        };
+      }
+
+      const userPrompt = JSON.stringify({
+        sections,
+        craving: craving || null,
+        pantryInStock: (pantryItems || []).slice(0, 100),
+        expiringItems: expiringItems || [],
+        equipment: profile?.equipment || [],
+        cuisineSliders: profile?.cuisineSliders || {},
+        skillLevel: profile?.skillLevel || "intermediate",
+        spiceTolerance: profile?.spiceTolerance || "medium",
+        dietRestrictions: profile?.dietRestrictions || [],
+        healthConditions: profile?.healthConditions || [],
+        weeknightTime: profile?.weeknightTime || "30min",
+        filters: filters || {},
+        likedTags: feedback?.likedTags || [],
+        dislikedMeals: feedback?.dislikedMeals || [],
+        recentSuggestions: recentSuggestions || [],
+        childAgeMonths: childAgeMonths || null,
+      });
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "suggest_meals_batch",
+                description: "Return meal suggestions for multiple sections",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    results: sectionResultSchema,
+                  },
+                  required: ["results"],
+                },
+              },
+            },
+          ],
+          tool_choice: { type: "function", function: { name: "suggest_meals_batch" } },
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later." }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (response.status === 402) {
+          return new Response(JSON.stringify({ error: "Usage limit reached." }), {
+            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const t = await response.text();
+        console.error("AI gateway error:", response.status, t);
+        throw new Error("AI gateway error");
+      }
+
+      const data = await response.json();
+      const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+      if (toolCall) {
+        const parsed = JSON.parse(toolCall.function.arguments);
+        return new Response(JSON.stringify(parsed.results), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const content = data.choices?.[0]?.message?.content || "{}";
+      return new Response(content, {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // SINGLE SECTION MODE (shuffle, craving, etc.)
+    const systemPrompt = baseSystemPrompt + `\n\nSuggest exactly 3 meals. Return ONLY a valid JSON array. No preamble. No markdown.\n\nEach meal object: { "name": string, "cal": number, "protein": number, "carbs": number, "fat": number, "cookTime": number, "tags": string[]${!inStockOnly ? ', "missingIngredients": string[]' : ''} }`;
+
+    const userPrompt = JSON.stringify({
+      section: section || "full_dinner",
+      craving: craving || null,
+      pantryInStock: (pantryItems || []).slice(0, 100),
+      expiringItems: expiringItems || [],
+      equipment: profile?.equipment || [],
+      cuisineSliders: profile?.cuisineSliders || {},
+      skillLevel: profile?.skillLevel || "intermediate",
+      spiceTolerance: profile?.spiceTolerance || "medium",
+      dietRestrictions: profile?.dietRestrictions || [],
+      healthConditions: profile?.healthConditions || [],
+      weeknightTime: profile?.weeknightTime || "30min",
+      filters: filters || {},
+      likedTags: feedback?.likedTags || [],
+      dislikedMeals: feedback?.dislikedMeals || [],
+      recentSuggestions: recentSuggestions || [],
+      childAgeMonths: childAgeMonths || null,
+    });
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

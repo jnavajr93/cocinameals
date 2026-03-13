@@ -1,6 +1,16 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send } from "lucide-react";
+import { X, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+
+// Chef hat SVG icon component
+function ChefHatIcon({ size = 22, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z" />
+      <line x1="6" y1="17" x2="18" y2="17" />
+    </svg>
+  );
+}
 
 interface Message {
   role: "user" | "assistant";
@@ -58,14 +68,14 @@ export function CookingAssistantChat({ recipeName, recipeText, equipment, skillL
 
   return (
     <>
-      {/* Floating button */}
+      {/* Floating button — chef hat icon */}
       {!open && (
         <button
           onClick={() => setOpen(true)}
           className="fixed bottom-20 right-4 z-40 h-12 w-12 rounded-full shadow-lg flex items-center justify-center transition-transform active:scale-95"
           style={{ backgroundColor: "#C8892A" }}
         >
-          <MessageCircle size={22} className="text-white" />
+          <ChefHatIcon size={22} className="text-white" />
         </button>
       )}
 
@@ -114,14 +124,15 @@ export function CookingAssistantChat({ recipeName, recipeText, equipment, skillL
                 </div>
               )}
             </div>
-            {/* Input */}
+            {/* Input — disabled during loading */}
             <div className="p-3 border-t border-border flex gap-2">
               <input
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && sendMessage()}
-                placeholder="Ask anything about this recipe..."
-                className="flex-1 rounded-lg border border-border bg-input px-3 py-2 font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold"
+                placeholder={loading ? "Thinking..." : "Ask anything about this recipe..."}
+                disabled={loading}
+                className="flex-1 rounded-lg border border-border bg-input px-3 py-2 font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold disabled:opacity-60"
               />
               <button
                 onClick={sendMessage}

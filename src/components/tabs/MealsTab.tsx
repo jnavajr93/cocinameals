@@ -7,6 +7,7 @@ import { useHousehold } from "@/hooks/useHousehold";
 import { useAuth } from "@/hooks/useAuth";
 import { MEAL_POOLS, MealCard } from "@/data/mealPools";
 import { toast } from "sonner";
+import { getPantryHash, getCachedMeals, setCachedMeals, getRecentSuggestions, addRecentSuggestions } from "@/lib/mealCache";
 
 interface MealCardWithCookTime extends MealCard {
   cookTime?: number;
@@ -35,6 +36,8 @@ export function MealsTab() {
   const [mealSections, setMealSections] = useState<{ id: string; name: string; enabled: boolean; order: number }[]>([]);
   const [aiCards, setAiCards] = useState<Record<string, MealCardWithCookTime[]>>({});
   const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
+  const [shuffleCooldowns, setShuffleCooldowns] = useState<Record<string, boolean>>({});
+  const [batchLoaded, setBatchLoaded] = useState(false);
   const [savedMealNames, setSavedMealNames] = useState<Set<string>>(new Set());
   const [likedMeals, setLikedMeals] = useState<Set<string>>(new Set());
   const [dislikedMeals, setDislikedMeals] = useState<Set<string>>(new Set());
@@ -128,8 +131,8 @@ export function MealsTab() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pantry_items', filter: `household_id=eq.${householdId}` }, () => loadMealsData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_preferences', filter: `user_id=eq.${user?.id}` }, () => {
         loadMealsData();
-        // Clear AI cards so sections re-generate with updated diet restrictions
         setAiCards({});
+        setBatchLoaded(false);
         setShuffleKey(k => k + 1);
       })
       .subscribe();
@@ -169,11 +172,9 @@ export function MealsTab() {
       setPullRefreshing(true);
       setPullDistance(50);
       setAiCards({});
+      setBatchLoaded(false);
       setShuffleKey(k => k + 1);
       await loadMealsData();
-      for (const section of activeSectionsRef.current) {
-        shuffleSection(section.id);
-      }
       setPullRefreshing(false);
     }
     setPullDistance(0);
@@ -227,11 +228,8 @@ export function MealsTab() {
   useEffect(() => {
     if (prevFiltersRef.current !== filtersSignature && activeSections.length > 0 && profile) {
       prevFiltersRef.current = filtersSignature;
-      // Clear local cards so AI re-generates with new filters
       setAiCards({});
-      for (const section of activeSections) {
-        shuffleSection(section.id);
-      }
+      setBatchLoaded(false);
     }
   }, [filtersSignature, activeSections.length, profile]);
 
@@ -346,7 +344,21 @@ export function MealsTab() {
     }
   };
 
+  const currentPantryHash = useMemo(() => getPantryHash(pantryInStock), [pantryInStock]);
+
+  const trackRecentMeals = useCallback((meals: MealCardWithCookTime[]) => {
+    addRecentSuggestions(meals.map(m => m.name));
+  }, []);
+
   const shuffleSection = async (sectionId: string) => {
+    if (shuffleCooldowns[sectionId]) return;
+
+    // Start cooldown
+    setShuffleCooldowns(prev => ({ ...prev, [sectionId]: true }));
+    setTimeout(() => {
+      setShuffleCooldowns(prev => ({ ...prev, [sectionId]: false }));
+    }, 8000);
+
     setAiLoading(prev => ({ ...prev, [sectionId]: true }));
     try {
       const { data, error } = await supabase.functions.invoke("suggest-meals", {
@@ -357,11 +369,14 @@ export function MealsTab() {
           profile,
           filters: { cookTime: filterCookTime, mainProtein: filterProtein, cuisineOverride: filterCuisine, cookingMethod: filterMethod, inStockOnly: filterInStockOnly, mustInclude: filterMustInclude, quickFilterChip: activeFilter },
           feedback: { likedTags: [], dislikedMeals: Array.from(dislikedMeals) },
+          recentSuggestions: getRecentSuggestions(),
         },
       });
       if (error) throw error;
       if (Array.isArray(data)) {
         setAiCards(prev => ({ ...prev, [sectionId]: data }));
+        setCachedMeals(sectionId, currentPantryHash, filterInStockOnly, data);
+        trackRecentMeals(data);
       }
     } catch (e) {
       setShuffleKey(k => k + 1);
@@ -369,6 +384,74 @@ export function MealsTab() {
     }
     setAiLoading(prev => ({ ...prev, [sectionId]: false }));
   };
+
+  // Batch load all active sections at once
+  const batchLoadSections = async (sections: { id: string; name: string }[]) => {
+    // Check cache first, collect uncached sections
+    const uncached: string[] = [];
+    const fromCache: Record<string, MealCardWithCookTime[]> = {};
+
+    for (const section of sections) {
+      const cached = getCachedMeals(section.id, currentPantryHash, filterInStockOnly);
+      if (cached) {
+        fromCache[section.id] = cached;
+      } else {
+        uncached.push(section.id);
+      }
+    }
+
+    // Apply cached results immediately
+    if (Object.keys(fromCache).length > 0) {
+      setAiCards(prev => ({ ...prev, ...fromCache }));
+    }
+
+    if (uncached.length === 0) return;
+
+    // Set loading for uncached sections
+    const loadingUpdate: Record<string, boolean> = {};
+    uncached.forEach(id => { loadingUpdate[id] = true; });
+    setAiLoading(prev => ({ ...prev, ...loadingUpdate }));
+
+    try {
+      const { data, error } = await supabase.functions.invoke("suggest-meals", {
+        body: {
+          sections: uncached,
+          pantryItems: pantryInStock,
+          expiringItems,
+          profile,
+          filters: { cookTime: filterCookTime, mainProtein: filterProtein, cuisineOverride: filterCuisine, cookingMethod: filterMethod, inStockOnly: filterInStockOnly, mustInclude: filterMustInclude, quickFilterChip: activeFilter },
+          feedback: { likedTags: [], dislikedMeals: Array.from(dislikedMeals) },
+          recentSuggestions: getRecentSuggestions(),
+        },
+      });
+      if (error) throw error;
+      if (data && typeof data === "object" && !Array.isArray(data)) {
+        const newCards: Record<string, MealCardWithCookTime[]> = {};
+        for (const [sectionId, meals] of Object.entries(data)) {
+          if (Array.isArray(meals)) {
+            newCards[sectionId] = meals as MealCardWithCookTime[];
+            setCachedMeals(sectionId, currentPantryHash, filterInStockOnly, meals as MealCardWithCookTime[]);
+            trackRecentMeals(meals as MealCardWithCookTime[]);
+          }
+        }
+        setAiCards(prev => ({ ...prev, ...newCards }));
+      }
+    } catch {
+      toast.error("AI unavailable, showing local suggestions");
+    }
+
+    const loadingClear: Record<string, boolean> = {};
+    uncached.forEach(id => { loadingClear[id] = false; });
+    setAiLoading(prev => ({ ...prev, ...loadingClear }));
+  };
+
+  // Trigger batch load when active sections and profile are ready
+  useEffect(() => {
+    if (activeSections.length > 0 && profile && pantryInStock.length > 0 && !batchLoaded) {
+      setBatchLoaded(true);
+      batchLoadSections(activeSections);
+    }
+  }, [activeSections.length, profile, pantryInStock.length, batchLoaded]);
 
   const handleCraving = async () => {
     if (!craving.trim()) return;
@@ -383,11 +466,13 @@ export function MealsTab() {
           profile,
           filters: { cookTime: filterCookTime, mainProtein: filterProtein, cuisineOverride: filterCuisine, cookingMethod: filterMethod, inStockOnly: filterInStockOnly, quickFilterChip: activeFilter },
           feedback: { likedTags: [], dislikedMeals: Array.from(dislikedMeals) },
+          recentSuggestions: getRecentSuggestions(),
         },
       });
       if (error) throw error;
       if (Array.isArray(data)) {
         setCravingPopup({ meals: data.slice(0, 3), loading: false });
+        trackRecentMeals(data.slice(0, 3));
       }
     } catch {
       toast.error("Something went wrong. Try again.");
@@ -1127,8 +1212,10 @@ export function MealsTab() {
                   <h2 className="font-display text-base font-bold text-foreground">{section.name}</h2>
                   <button
                     onClick={() => shuffleSection(section.id)}
-                    disabled={isLoading}
-                    className="flex items-center gap-1 text-muted-foreground hover:text-gold transition-colors disabled:opacity-50"
+                    disabled={isLoading || shuffleCooldowns[section.id]}
+                    className={`flex items-center gap-1 transition-colors disabled:opacity-40 ${
+                      shuffleCooldowns[section.id] ? "text-muted-foreground/40" : "text-muted-foreground hover:text-gold"
+                    }`}
                   >
                     <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
                     <span className="font-body text-xs">Shuffle</span>

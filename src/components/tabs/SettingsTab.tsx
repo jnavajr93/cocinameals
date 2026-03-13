@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { clearRecentSuggestions, clearAllMealCaches } from "@/lib/mealCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useHousehold } from "@/hooks/useHousehold";
@@ -342,7 +343,17 @@ export function SettingsTab() {
     await supabase.from("meal_feedback").delete().eq("user_id", user.id);
     setLikedFeedback([]);
     setDislikedFeedback([]);
+    clearRecentSuggestions();
+    clearAllMealCaches();
     toast.success("Taste profile reset");
+  };
+
+  const [showResetVariety, setShowResetVariety] = useState(false);
+  const resetMealVariety = () => {
+    clearRecentSuggestions();
+    clearAllMealCaches();
+    setShowResetVariety(false);
+    toast.success("Meal variety reset — you'll see fresh suggestions");
   };
 
   const getChildAge = (dob: string) => {
@@ -810,7 +821,18 @@ export function SettingsTab() {
                 </div>
               )}
               {(likedFeedback.length > 0 || dislikedFeedback.length > 0) && (
-                <button onClick={resetTasteProfile} className="mt-4 font-body text-xs text-destructive hover:underline">Reset my taste profile</button>
+                <>
+                  <button onClick={resetTasteProfile} className="mt-4 font-body text-xs text-destructive hover:underline">Reset my taste profile</button>
+                  {showResetVariety ? (
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="font-body text-xs text-muted-foreground">Reset meal variety?</span>
+                      <button onClick={resetMealVariety} className="font-body text-xs text-destructive hover:underline">Yes, reset</button>
+                      <button onClick={() => setShowResetVariety(false)} className="font-body text-xs text-muted-foreground hover:underline">Cancel</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setShowResetVariety(true)} className="mt-2 font-body text-xs text-muted-foreground hover:text-foreground hover:underline block">Reset meal variety</button>
+                  )}
+                </>
               )}
             </div>
           </div>
