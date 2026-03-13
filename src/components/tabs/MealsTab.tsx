@@ -834,6 +834,17 @@ export function MealsTab() {
                       )}
                     </button>
                     <div className="flex items-center justify-end gap-3 mt-2">
+                      <button
+                        onClick={() => addMealToShoppingCart({
+                          name: card.name,
+                          tags: card.tags,
+                          missingIngredients: card.missingIngredients,
+                        })}
+                        className="transition-colors text-muted-foreground hover:text-gold"
+                        title="Add to shopping cart"
+                      >
+                        <ShoppingCart size={16} />
+                      </button>
                       <button onClick={() => handleFeedback(card, "liked")} className={`transition-colors ${isLiked ? "text-gold" : "text-muted-foreground hover:text-gold"}`}>
                         <ThumbsUp size={16} />
                       </button>
