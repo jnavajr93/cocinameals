@@ -1040,58 +1040,13 @@ export function MealsTab() {
     const isSaved = savedMealNames.has(card.name);
     const hasMissing = !filterInStockOnly && card.missingIngredients && card.missingIngredients.length > 0;
 
-    const addMissingToList = async (e: React.MouseEvent) => {
+    const addToShoppingCart = async (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (!householdId || !card.missingIngredients?.length) return;
-      // Check which items already exist
-      const { data: existing } = await supabase
-        .from("pantry_items")
-        .select("name")
-        .eq("household_id", householdId)
-        .in("name", card.missingIngredients);
-      const existingNames = new Set((existing || []).map(e => e.name.toLowerCase()));
-      const newItems = card.missingIngredients.filter(name => !existingNames.has(name.toLowerCase()));
-      if (newItems.length > 0) {
-        const rows = newItems.map(name => ({
-          household_id: householdId,
-          name,
-          category: "Shopping List",
-          in_stock: false,
-          is_custom: true,
-          is_hidden: false,
-        }));
-        const { error } = await supabase.from("pantry_items").insert(rows);
-        if (error) { toast.error("Couldn't add items"); return; }
-      }
-      // Also save meal to saved_recipes as shopping_cart
-      const { data: existingRecipe } = await supabase
-        .from("saved_recipes")
-        .select("id")
-        .eq("household_id", householdId)
-        .eq("meal_name", card.name)
-        .eq("meal_section", "shopping_cart")
-        .maybeSingle();
-      if (!existingRecipe) {
-        const cacheKey = `recipe_${card.name.replace(/\s+/g, "_").toLowerCase()}`;
-        let recipeText = "";
-        try {
-          const cached = localStorage.getItem(cacheKey);
-          if (cached) recipeText = JSON.parse(cached).text || "";
-        } catch {}
-        await supabase.from("saved_recipes").insert({
-          household_id: householdId,
-          meal_name: card.name,
-          recipe_text: recipeText || `Recipe for ${card.name}`,
-          saved_by: userName,
-          meal_section: "shopping_cart",
-          tags: card.tags || [],
-        } as any);
-      }
-      const skipped = card.missingIngredients.length - newItems.length;
-      const msg = newItems.length > 0
-        ? `${newItems.length} item${newItems.length > 1 ? "s" : ""} added to your list${skipped > 0 ? ` (${skipped} already there)` : ""}`
-        : "All items already in your list";
-      toast.success(msg);
+      await addMealToShoppingCart({
+        name: card.name,
+        tags: card.tags,
+        missingIngredients: card.missingIngredients,
+      });
     };
 
     return (
