@@ -92,6 +92,33 @@ const STEPS: TourStep[] = [
 
 const TAB_INDEX: Record<string, number> = { pantry: 0, meals: 1, saved: 2, settings: 3 };
 
+function ArrowToElement({ targetId, direction }: { targetId: string; direction: "up" | "down" }) {
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    const el = document.querySelector(`[data-tour-id="${targetId}"]`);
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      setPos({ x: rect.left + rect.width / 2, y: direction === "up" ? rect.top - 8 : rect.bottom + 8 });
+    }
+  }, [targetId, direction]);
+
+  if (!pos) return null;
+
+  const rotation = direction === "up" ? "rotate(180deg)" : "";
+
+  return (
+    <div
+      className="fixed animate-bounce z-[101]"
+      style={{ left: pos.x - 12, top: direction === "up" ? pos.y - 24 : pos.y }}
+    >
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-gold" style={{ transform: rotation }}>
+        <path d="M12 4L12 20M12 20L6 14M12 20L18 14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </div>
+  );
+}
+
 export function AppTour({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState(0);
   const [exiting, setExiting] = useState(false);
