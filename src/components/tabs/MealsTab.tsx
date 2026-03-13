@@ -416,7 +416,7 @@ export function MealsTab() {
       "COOKING STEPS",
       "Step 1 — pan: medium heat.",
       "Add oil and aromatics; cook 2-3 minutes until fragrant.",
-      "  - Use 1 portion olive oil and 1 portion onion",
+      "  - Use olive oil and onion",
       "  - Done when: onions are translucent and smell sweet.",
       "Step 2 — pan: medium-high heat.",
       `Add ${proteinHint} and sear, stirring as needed for even browning.`,
