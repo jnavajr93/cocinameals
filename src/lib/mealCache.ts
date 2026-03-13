@@ -3,13 +3,14 @@
 const POOL_PREFIX = "cocina_pool_";
 const CACHE_EXPIRY_MS = 12 * 60 * 60 * 1000; // 12 hours per individual entry
 const RECENT_KEY = "cocina_recent_suggestions";
-const MAX_RECENT = 20;
+const MAX_RECENT = 60;
 
 // AI call throttle keys
 const AI_CALL_COUNT_KEY = "cocina_ai_shuffle_count";
 const AI_THROTTLE_UNTIL_KEY = "cocina_ai_throttle_until";
 const AI_CALL_LIMIT = 6;
 const AI_THROTTLE_MS = 4 * 60 * 60 * 1000; // 4 hours
+const POOL_CURSOR_PREFIX = "cocina_pool_cursor_";
 
 // Pool size limits per section category — increased 40% from original
 const POOL_LIMITS: Record<string, number> = {
@@ -49,18 +50,23 @@ export function isAiThrottled(): boolean {
   } catch { return false; }
 }
 
-/** Record an AI shuffle call. Returns true if still allowed, false if now throttled. */
+/** Record an AI shuffle call. Returns true if this call is allowed. */
 export function recordAiCall(): boolean {
   try {
     if (isAiThrottled()) return false;
+
     const count = parseInt(localStorage.getItem(AI_CALL_COUNT_KEY) || "0", 10) + 1;
     localStorage.setItem(AI_CALL_COUNT_KEY, String(count));
+
+    // Allow this call, but throttle subsequent calls for 4 hours once limit is reached
     if (count >= AI_CALL_LIMIT) {
       localStorage.setItem(AI_THROTTLE_UNTIL_KEY, String(Date.now() + AI_THROTTLE_MS));
-      return false;
     }
+
     return true;
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 }
 
 /** Get remaining AI calls before throttle */
@@ -163,28 +169,44 @@ export function isPoolFull(sectionId: string, pantryHash: string, inStockOnly: b
   return getPoolSize(sectionId, pantryHash, inStockOnly) >= getPoolLimit(sectionId);
 }
 
-/** Pick n random meals from the pool, avoiding recently shown */
+/** Pick n meals from the pool with rotation to avoid repeats */
 export function pickFromPool(sectionId: string, pantryHash: string, inStockOnly: boolean, count: number): any[] {
   const pool = getMealPool(sectionId, pantryHash, inStockOnly);
-  if (pool.length === 0) return [];
-  
-  const recent = getRecentSuggestions();
-  const recentSet = new Set(recent);
-  
-  // Prefer meals not recently shown
-  const fresh = pool.filter((m: any) => !recentSet.has(m.name));
+  if (pool.length === 0 || count <= 0) return [];
+
+  const recent = new Set(getRecentSuggestions());
+  const fresh = pool.filter((m: any) => !recent.has(m.name));
   const source = fresh.length >= count ? fresh : pool;
-  
-  // Shuffle and pick
-  const shuffled = [...source].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
+
+  // Stable ordering + rotating cursor gives variety without constant repetition
+  const ordered = [...source].sort((a: any, b: any) => String(a.name).localeCompare(String(b.name)));
+  const cursorKey = `${POOL_CURSOR_PREFIX}${sectionId}_${pantryHash}_${inStockOnly ? "stock" : "discover"}`;
+
+  let cursor = 0;
+  try {
+    cursor = parseInt(localStorage.getItem(cursorKey) || "0", 10);
+    if (!Number.isFinite(cursor) || cursor < 0) cursor = 0;
+  } catch {
+    cursor = 0;
+  }
+
+  const result: any[] = [];
+  for (let i = 0; i < Math.min(count, ordered.length); i++) {
+    result.push(ordered[(cursor + i) % ordered.length]);
+  }
+
+  try {
+    localStorage.setItem(cursorKey, String((cursor + result.length) % ordered.length));
+  } catch {}
+
+  return result;
 }
 
 export function clearAllMealCaches(): void {
   const keysToRemove: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key?.startsWith(POOL_PREFIX)) keysToRemove.push(key);
+    if (key?.startsWith(POOL_PREFIX) || key?.startsWith(POOL_CURSOR_PREFIX)) keysToRemove.push(key);
   }
   keysToRemove.forEach(k => localStorage.removeItem(k));
 }
