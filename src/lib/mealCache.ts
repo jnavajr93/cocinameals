@@ -169,21 +169,37 @@ export function isPoolFull(sectionId: string, pantryHash: string, inStockOnly: b
   return getPoolSize(sectionId, pantryHash, inStockOnly) >= getPoolLimit(sectionId);
 }
 
-/** Pick n random meals from the pool, avoiding recently shown */
+/** Pick n meals from the pool with rotation to avoid repeats */
 export function pickFromPool(sectionId: string, pantryHash: string, inStockOnly: boolean, count: number): any[] {
   const pool = getMealPool(sectionId, pantryHash, inStockOnly);
-  if (pool.length === 0) return [];
-  
-  const recent = getRecentSuggestions();
-  const recentSet = new Set(recent);
-  
-  // Prefer meals not recently shown
-  const fresh = pool.filter((m: any) => !recentSet.has(m.name));
+  if (pool.length === 0 || count <= 0) return [];
+
+  const recent = new Set(getRecentSuggestions());
+  const fresh = pool.filter((m: any) => !recent.has(m.name));
   const source = fresh.length >= count ? fresh : pool;
-  
-  // Shuffle and pick
-  const shuffled = [...source].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
+
+  // Stable ordering + rotating cursor gives variety without constant repetition
+  const ordered = [...source].sort((a: any, b: any) => String(a.name).localeCompare(String(b.name)));
+  const cursorKey = `${POOL_CURSOR_PREFIX}${sectionId}_${pantryHash}_${inStockOnly ? "stock" : "discover"}`;
+
+  let cursor = 0;
+  try {
+    cursor = parseInt(localStorage.getItem(cursorKey) || "0", 10);
+    if (!Number.isFinite(cursor) || cursor < 0) cursor = 0;
+  } catch {
+    cursor = 0;
+  }
+
+  const result: any[] = [];
+  for (let i = 0; i < Math.min(count, ordered.length); i++) {
+    result.push(ordered[(cursor + i) % ordered.length]);
+  }
+
+  try {
+    localStorage.setItem(cursorKey, String((cursor + result.length) % ordered.length));
+  } catch {}
+
+  return result;
 }
 
 export function clearAllMealCaches(): void {
