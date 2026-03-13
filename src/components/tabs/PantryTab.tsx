@@ -118,6 +118,36 @@ export function PantryTab() {
     }
     const item = items.find(i => i.id === id);
     if (!item) return;
+
+    // Shopping list item: "check" means purchased → add to ingredients as in-stock
+    if (item.category === "Shopping List") {
+      // Check if an ingredient with the same name already exists
+      const existingIngredient = items.find(
+        i => i.id !== id && i.name.toLowerCase() === item.name.toLowerCase() && i.category !== "Shopping List"
+      );
+      if (existingIngredient) {
+        // Mark existing ingredient as in-stock
+        setItems(prev => prev.map(i => i.id === existingIngredient.id ? { ...i, in_stock: true, updated_by: userName } : i));
+        await supabase.from("pantry_items").update({ in_stock: true, updated_by: userName }).eq("id", existingIngredient.id);
+      } else {
+        // Create new ingredient in "Custom" category
+        const { data: newItem } = await supabase.from("pantry_items").insert({
+          household_id: item.household_id,
+          name: item.name,
+          category: "Custom",
+          in_stock: true,
+          is_custom: true,
+          updated_by: userName,
+        }).select().single();
+        if (newItem) setItems(prev => [...prev, newItem]);
+      }
+      // Remove from shopping list
+      await supabase.from("pantry_items").delete().eq("id", id);
+      setItems(prev => prev.filter(i => i.id !== id));
+      toast.success(`${item.name} purchased — added to ingredients`);
+      return;
+    }
+
     const newStock = !item.in_stock;
     setItems(prev => prev.map(i => i.id === id ? { ...i, in_stock: newStock, updated_by: userName } : i));
     await supabase.from("pantry_items").update({
