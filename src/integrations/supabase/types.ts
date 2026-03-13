@@ -243,6 +243,69 @@ export type Database = {
           },
         ]
       }
+      recipes: {
+        Row: {
+          calories: number | null
+          carbs: number | null
+          category: string
+          cook_time: number | null
+          created_at: string | null
+          cuisine: string
+          equipment: Json | null
+          fat: number | null
+          id: string
+          ingredients: Json | null
+          is_baby: boolean | null
+          name: string
+          primary_protein: string | null
+          protein: number | null
+          recipe_text: string | null
+          skill_level: string | null
+          spice_level: string | null
+          tags: Json | null
+        }
+        Insert: {
+          calories?: number | null
+          carbs?: number | null
+          category: string
+          cook_time?: number | null
+          created_at?: string | null
+          cuisine: string
+          equipment?: Json | null
+          fat?: number | null
+          id?: string
+          ingredients?: Json | null
+          is_baby?: boolean | null
+          name: string
+          primary_protein?: string | null
+          protein?: number | null
+          recipe_text?: string | null
+          skill_level?: string | null
+          spice_level?: string | null
+          tags?: Json | null
+        }
+        Update: {
+          calories?: number | null
+          carbs?: number | null
+          category?: string
+          cook_time?: number | null
+          created_at?: string | null
+          cuisine?: string
+          equipment?: Json | null
+          fat?: number | null
+          id?: string
+          ingredients?: Json | null
+          is_baby?: boolean | null
+          name?: string
+          primary_protein?: string | null
+          protein?: number | null
+          recipe_text?: string | null
+          skill_level?: string | null
+          spice_level?: string | null
+          tags?: Json | null
+        }
+        Relationships: []
+      }
       saved_meals: {
         Row: {
           calories: number | null
