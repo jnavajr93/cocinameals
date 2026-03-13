@@ -75,7 +75,7 @@ const FEATURES: ContentItem[] = [
   {
     icon: Heart,
     title: "Save Favorites & Rate Meals",
-    description: "Build your household cookbook over time. Rate meals so cocina learns what your family actually enjoys.",
+    description: "Build your household cookbook over time. Rate meals so Cocina learns what your family actually enjoys.",
   },
 ];
 
