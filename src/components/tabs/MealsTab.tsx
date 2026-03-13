@@ -123,6 +123,12 @@ export function MealsTab() {
       .channel(`meals-sync-${householdId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'household_profile', filter: `household_id=eq.${householdId}` }, () => loadMealsData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pantry_items', filter: `household_id=eq.${householdId}` }, () => loadMealsData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_preferences', filter: `user_id=eq.${user?.id}` }, () => {
+        loadMealsData();
+        // Clear AI cards so sections re-generate with updated diet restrictions
+        setAiCards({});
+        setShuffleKey(k => k + 1);
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
