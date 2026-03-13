@@ -20,6 +20,19 @@ interface SavedRecipe {
 const SECTION_LABEL_MAP: Record<string, string> = {};
 MEAL_SECTIONS.forEach(s => { SECTION_LABEL_MAP[s.id] = s.name; });
 
+function extractPreview(recipeText: string): string {
+  const lines = recipeText.split("\n").map(l => l.trim()).filter(Boolean);
+  // Try to find ingredients section and return first few
+  const ingIdx = lines.findIndex(l => /^INGREDIENT/i.test(l));
+  if (ingIdx >= 0) {
+    const ingredients = lines.slice(ingIdx + 1, ingIdx + 4).map(l => l.replace(/^[-•]\s*/, ""));
+    return ingredients.join(", ") + "…";
+  }
+  // Fallback: first meaningful line
+  const firstLine = lines.find(l => !l.startsWith("ESTIMATED") && !l.startsWith("SERVES") && l.length > 10);
+  return firstLine ? (firstLine.length > 80 ? firstLine.slice(0, 80) + "…" : firstLine) : "";
+}
+
 export function SavedTab() {
   const { householdId } = useHousehold();
   const { user } = useAuth();
