@@ -243,8 +243,7 @@ export function SavedTab() {
         .select("id")
         .single();
       if (error || !data) throw error;
-      const siteUrl = window.location.origin;
-      const shareUrl = `${siteUrl}/recipe/${data.id}`;
+      const shareUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/og-recipe?id=${data.id}`;
       const shareText = `${recipe.meal_name} — cocina`;
       if (navigator.share) {
         await navigator.share({ title: recipe.meal_name, text: shareText, url: shareUrl });
