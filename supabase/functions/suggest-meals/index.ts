@@ -27,6 +27,7 @@ ${!inStockOnly ? 'DISCOVERY MODE: The user wants to explore meals beyond their c
 HARD RULES:
 - Only suggest meals the user's equipment can make.
 - Never suggest meals that violate diet restrictions.
+- Adapt meal complexity to skillLevel: "beginner" → simple comfort food, minimal techniques; "intermediate" → balanced techniques and layered flavors; "confident" → ambitious restaurant-quality dishes with advanced techniques. Higher skill = more rewarding and challenging meals.
 ${inStockOnly ? '- If inStockOnly is true: every ingredient must be currently in-stock. Zero exceptions.' : '- Suggest meals freely — they do NOT need to use only in-stock items. Be creative and inspiring.'}
 - If mustInclude is set: that ingredient must be central to at least 2 of 3 meals.
 - If mainProtein is set: that protein must star in all 3 meals.

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Search, Check, Plus, ChevronDown, ChevronRight, Copy, Camera, Loader2, X, Trash2, Info, CalendarDays } from "lucide-react";
+import { Search, Check, Plus, ChevronDown, ChevronRight, Copy, Camera, Loader2, X, Trash2, Info, CalendarDays, ShoppingCart } from "lucide-react";
 import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -27,6 +27,7 @@ export function PantryTab() {
   const [items, setItems] = useState<PantryItem[]>([]);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"ingredients" | "shopping">("ingredients");
   const [addMode, setAddMode] = useState(false);
   const [addCategoryTarget, setAddCategoryTarget] = useState<string | null>(null);
   const [addSearch, setAddSearch] = useState("");
@@ -195,11 +196,16 @@ export function PantryTab() {
   const q = search.toLowerCase();
   const filtered = useMemo(() => {
     let list = items.filter(i => !i.is_hidden);
+    if (viewMode === "shopping") {
+      list = list.filter(i => i.category === "Shopping List" || (!i.in_stock));
+    } else {
+      list = list.filter(i => i.category !== "Shopping List");
+    }
     if (q) list = list.filter(i => i.name.toLowerCase().includes(q));
     if (activeCategory) list = list.filter(i => i.category === activeCategory);
     list.sort((a, b) => a.name.localeCompare(b.name));
     return list;
-  }, [items, q, activeCategory]);
+  }, [items, q, activeCategory, viewMode]);
 
   const inStockCount = items.filter(i => i.in_stock && !i.is_hidden).length;
   const outOfStockCount = items.filter(i => !i.in_stock && !i.is_hidden).length;
@@ -452,6 +458,28 @@ export function PantryTab() {
             placeholder="Search ingredients..."
             className="w-full rounded-lg border border-border bg-input pl-8 pr-4 py-2 font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold"
           />
+        </div>
+
+        {/* Ingredients / Shopping List toggle */}
+        <div className="flex items-center rounded-full bg-secondary p-0.5 mb-3 w-fit">
+          <button
+            onClick={() => { setViewMode("ingredients"); setActiveCategory(null); }}
+            className={`rounded-full px-4 py-1.5 font-body text-xs font-medium transition-colors ${
+              viewMode === "ingredients" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+            }`}
+          >
+            Ingredients
+          </button>
+          <button
+            onClick={() => { setViewMode("shopping"); setActiveCategory(null); }}
+            className={`rounded-full px-4 py-1.5 font-body text-xs font-medium transition-colors flex items-center gap-1.5 ${
+              !( viewMode === "shopping") ? "text-muted-foreground" : "bg-card text-foreground shadow-sm"
+            }`}
+          >
+            <ShoppingCart size={12} />
+            Shopping List
+            {(() => { const count = items.filter(i => !i.is_hidden && (i.category === "Shopping List" || !i.in_stock)).length; return count > 0 ? <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">{count}</span> : null; })()}
+          </button>
         </div>
 
         {/* Category pills */}
