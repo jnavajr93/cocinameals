@@ -334,6 +334,33 @@ export type Database = {
           },
         ]
       }
+      shared_recipes: {
+        Row: {
+          created_at: string | null
+          id: string
+          meal_name: string
+          recipe_text: string
+          shared_by_name: string | null
+          tags: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          meal_name: string
+          recipe_text: string
+          shared_by_name?: string | null
+          tags?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          meal_name?: string
+          recipe_text?: string
+          shared_by_name?: string | null
+          tags?: Json | null
+        }
+        Relationships: []
+      }
       user_preferences: {
         Row: {
           allergies: Json | null
