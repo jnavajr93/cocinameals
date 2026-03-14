@@ -5,3 +5,12 @@ verify_jwt = false
 
 [functions.og-image]
 verify_jwt = false
+
+[functions.bulk-seed-recipes]
+verify_jwt = false
+
+[functions.import-mealdb]
+verify_jwt = false
+
+[functions.suggest-and-save]
+verify_jwt = false

@@ -287,7 +287,27 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
   }
 
   // Weighted random selection based on cuisine preference + recent de-prioritization
-  const pick3WithVariety = selectWithVariety(results, cuisineSliders, 3, !!filterProtein, !!filterCuisine, recentSet);
+  let pick3WithVariety = selectWithVariety(results, cuisineSliders, 3, !!filterProtein, !!filterCuisine, recentSet);
+
+  // AI FALLBACK: if 0 results after all filters, generate via AI and save permanently
+  if (pick3WithVariety.length === 0 && (filterProtein || filterCuisine || filterMethod)) {
+    try {
+      const { data, error } = await supabase.functions.invoke("suggest-and-save", {
+        body: {
+          category,
+          protein: filterProtein || undefined,
+          cuisine: filterCuisine ? (CUISINE_NAME_MAP[filterCuisine] || filterCuisine.toLowerCase()) : undefined,
+          cookTimeMax: maxCook || undefined,
+          count: 3,
+        },
+      });
+      if (!error && data?.recipes?.length > 0) {
+        pick3WithVariety = data.recipes.slice(0, 3);
+      }
+    } catch (e) {
+      console.warn("AI fallback failed:", e);
+    }
+  }
 
   return pick3WithVariety.map((r: any) => ({
     name: r.name,
