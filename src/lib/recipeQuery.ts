@@ -262,14 +262,14 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
     });
   }
 
-  // In-stock pantry filter
+  // In-stock pantry filter (with fallback: if 0 results, skip pantry filter)
+  let preFilterResults = results;
   if (inStockOnly && pantryInStock.length > 0) {
     const { extractIngredientName, findPantryMatch } = await import("./ingredientMatch");
     const stockNames = pantryInStock.map(i => i.toLowerCase());
-    results = results.filter((r: any) => {
+    const pantryFiltered = results.filter((r: any) => {
       const ingredients: string[] = r.ingredients || [];
-      if (ingredients.length === 0) return true; // No ingredient data = allow
-      // Skip common staples when counting total
+      if (ingredients.length === 0) return true;
       const staples = new Set(["salt", "pepper", "black pepper", "water", "oil", "olive oil", "cooking spray", "ice"]);
       const nonStaple = ingredients.filter(ing => {
         const cleaned = extractIngredientName(ing).toLowerCase();
@@ -280,9 +280,10 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
         const cleaned = extractIngredientName(ing).toLowerCase();
         return findPantryMatch(cleaned, stockNames) !== null;
       }).length;
-      // Require at least 30% ingredient overlap
       return matchCount >= nonStaple.length * 0.3;
     });
+    // Fallback: if pantry filter eliminated everything but we had results before, use unfiltered
+    results = pantryFiltered.length > 0 ? pantryFiltered : preFilterResults;
   }
 
   // Weighted random selection based on cuisine preference + recent de-prioritization
