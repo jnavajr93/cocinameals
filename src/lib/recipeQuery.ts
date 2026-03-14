@@ -113,6 +113,24 @@ const DIET_TAG_MAP: Record<string, string> = {
   "Shellfish-Free": "shellfish_free",
 };
 
+// Map UI protein filter values to DB primary_protein values
+const PROTEIN_DB_MAP: Record<string, string[]> = {
+  "Tilapia": ["Fish", "Tilapia"],
+  "Salmon": ["Salmon", "Fish"],
+  "Tuna": ["Tuna", "Fish"],
+  "Shrimp": ["Shrimp", "Seafood"],
+  "Seafood": ["Seafood", "Salmon", "Shrimp", "Tuna", "Fish"],
+};
+
+// Map UI method filter values to actual DB tags
+const METHOD_TAG_MAP: Record<string, string[]> = {
+  "Air Fryer Only": ["air_fryer", "quick"],
+  "Oven Only": ["comfort", "one_pan"],
+  "Griddle": ["grill", "one_pan"],
+  "One Pan": ["one_pan"],
+  "Grill": ["grill"],
+};
+
 /**
  * Query the recipes table with all filters, then pick 3 with variety rules.
  */
