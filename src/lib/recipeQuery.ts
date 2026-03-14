@@ -113,6 +113,24 @@ const DIET_TAG_MAP: Record<string, string> = {
   "Shellfish-Free": "shellfish_free",
 };
 
+// Map UI protein filter values to DB primary_protein values
+const PROTEIN_DB_MAP: Record<string, string[]> = {
+  "Tilapia": ["Fish", "Tilapia"],
+  "Salmon": ["Salmon", "Fish"],
+  "Tuna": ["Tuna", "Fish"],
+  "Shrimp": ["Shrimp", "Seafood"],
+  "Seafood": ["Seafood", "Salmon", "Shrimp", "Tuna", "Fish"],
+};
+
+// Map UI method filter values to actual DB tags
+const METHOD_TAG_MAP: Record<string, string[]> = {
+  "Air Fryer Only": ["air_fryer", "quick"],
+  "Oven Only": ["comfort", "one_pan"],
+  "Griddle": ["grill", "one_pan"],
+  "One Pan": ["one_pan"],
+  "Grill": ["grill"],
+};
+
 /**
  * Query the recipes table with all filters, then pick 3 with variety rules.
  */
@@ -148,9 +166,10 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
     query = query.lte("cook_time", maxCook);
   }
 
-  // Protein filter
+  // Protein filter — use mapping for broader matches
   if (filterProtein) {
-    query = query.eq("primary_protein", filterProtein);
+    const dbProteins = PROTEIN_DB_MAP[filterProtein] || [filterProtein];
+    query = query.in("primary_protein", dbProteins);
   }
 
   // Cuisine override filter
@@ -217,13 +236,21 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
     });
   }
 
-  // Cooking method filter
+  // Cooking method filter — use tag mapping
   if (filterMethod) {
-    const methodTag = filterMethod.toLowerCase().replace(/\s+/g, "_").replace(/_only$/, "");
-    results = results.filter((r: any) => {
-      const tags: string[] = r.tags || [];
-      return tags.some(t => t.includes(methodTag));
-    });
+    const mappedTags = METHOD_TAG_MAP[filterMethod];
+    if (mappedTags) {
+      results = results.filter((r: any) => {
+        const tags: string[] = r.tags || [];
+        return tags.some(t => mappedTags.includes(t));
+      });
+    } else {
+      const methodTag = filterMethod.toLowerCase().replace(/\s+/g, "_").replace(/_only$/, "");
+      results = results.filter((r: any) => {
+        const tags: string[] = r.tags || [];
+        return tags.some(t => t.includes(methodTag));
+      });
+    }
   }
 
   // Quick filter chip
@@ -235,14 +262,14 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
     });
   }
 
-  // In-stock pantry filter
+  // In-stock pantry filter (with fallback: if 0 results, skip pantry filter)
+  let preFilterResults = results;
   if (inStockOnly && pantryInStock.length > 0) {
     const { extractIngredientName, findPantryMatch } = await import("./ingredientMatch");
     const stockNames = pantryInStock.map(i => i.toLowerCase());
-    results = results.filter((r: any) => {
+    const pantryFiltered = results.filter((r: any) => {
       const ingredients: string[] = r.ingredients || [];
-      if (ingredients.length === 0) return true; // No ingredient data = allow
-      // Skip common staples when counting total
+      if (ingredients.length === 0) return true;
       const staples = new Set(["salt", "pepper", "black pepper", "water", "oil", "olive oil", "cooking spray", "ice"]);
       const nonStaple = ingredients.filter(ing => {
         const cleaned = extractIngredientName(ing).toLowerCase();
@@ -253,9 +280,10 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
         const cleaned = extractIngredientName(ing).toLowerCase();
         return findPantryMatch(cleaned, stockNames) !== null;
       }).length;
-      // Require at least 30% ingredient overlap
       return matchCount >= nonStaple.length * 0.3;
     });
+    // Fallback: if pantry filter eliminated everything but we had results before, use unfiltered
+    results = pantryFiltered.length > 0 ? pantryFiltered : preFilterResults;
   }
 
   // Weighted random selection based on cuisine preference + recent de-prioritization
