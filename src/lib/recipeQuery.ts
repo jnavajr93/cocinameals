@@ -166,9 +166,10 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
     query = query.lte("cook_time", maxCook);
   }
 
-  // Protein filter
+  // Protein filter — use mapping for broader matches
   if (filterProtein) {
-    query = query.eq("primary_protein", filterProtein);
+    const dbProteins = PROTEIN_DB_MAP[filterProtein] || [filterProtein];
+    query = query.in("primary_protein", dbProteins);
   }
 
   // Cuisine override filter
