@@ -236,13 +236,21 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
     });
   }
 
-  // Cooking method filter
+  // Cooking method filter — use tag mapping
   if (filterMethod) {
-    const methodTag = filterMethod.toLowerCase().replace(/\s+/g, "_").replace(/_only$/, "");
-    results = results.filter((r: any) => {
-      const tags: string[] = r.tags || [];
-      return tags.some(t => t.includes(methodTag));
-    });
+    const mappedTags = METHOD_TAG_MAP[filterMethod];
+    if (mappedTags) {
+      results = results.filter((r: any) => {
+        const tags: string[] = r.tags || [];
+        return tags.some(t => mappedTags.includes(t));
+      });
+    } else {
+      const methodTag = filterMethod.toLowerCase().replace(/\s+/g, "_").replace(/_only$/, "");
+      results = results.filter((r: any) => {
+        const tags: string[] = r.tags || [];
+        return tags.some(t => t.includes(methodTag));
+      });
+    }
   }
 
   // Quick filter chip
