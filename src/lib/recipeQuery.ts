@@ -1,11 +1,12 @@
 /**
  * Database-backed meal suggestion engine.
  * Queries the `recipes` table with all user filters applied,
- * then picks 3 results satisfying variety rules.
+ * then picks results satisfying variety rules.
  */
 
 import { supabase } from "@/integrations/supabase/client";
 import { getRecentSuggestions } from "./mealCache";
+import { extractIngredientName, findPantryMatch } from "./ingredientMatch";
 
 export interface RecipeResult {
   name: string;
@@ -19,6 +20,7 @@ export interface RecipeResult {
   primaryProtein: string | null;
   missingIngredients?: string[];
   recipeText?: string | null;
+  matchScore?: number;
 }
 
 interface QueryParams {
@@ -33,12 +35,13 @@ interface QueryParams {
   dislikedMeals: string[];
   pantryInStock: string[];
   inStockOnly: boolean;
-  // Active filters from UI
   filterCookTime?: string | null;
   filterProtein?: string | null;
   filterCuisine?: string | null;
   filterMethod?: string | null;
   activeFilter?: string | null;
+  page?: number;
+  pageSize?: number;
 }
 
 // Map cuisine slider names to DB cuisine values
@@ -86,7 +89,6 @@ function getSpiceLevels(tolerance: string): string[] {
 }
 
 function getCookTimeMax(filter: string | null | undefined, weeknightTime: string): number | null {
-  // Active filter overrides profile setting
   const source = filter || weeknightTime;
   if (!source) return null;
   const s = source.toLowerCase();
@@ -113,7 +115,6 @@ const DIET_TAG_MAP: Record<string, string> = {
   "Shellfish-Free": "shellfish_free",
 };
 
-// Map UI protein filter values to DB primary_protein values
 const PROTEIN_DB_MAP: Record<string, string[]> = {
   "Tilapia": ["Fish", "Tilapia"],
   "Salmon": ["Salmon", "Fish"],
@@ -122,7 +123,6 @@ const PROTEIN_DB_MAP: Record<string, string[]> = {
   "Seafood": ["Seafood", "Salmon", "Shrimp", "Tuna", "Fish"],
 };
 
-// Map UI method filter values to actual DB tags
 const METHOD_TAG_MAP: Record<string, string[]> = {
   "Air Fryer Only": ["air_fryer", "quick"],
   "Oven Only": ["comfort", "one_pan"],
@@ -131,16 +131,36 @@ const METHOD_TAG_MAP: Record<string, string[]> = {
   "Grill": ["grill"],
 };
 
+function calculateMatchScore(recipe: any, pantryInStock: string[]): number {
+  const ingredients: string[] = recipe.ingredients || [];
+  if (ingredients.length === 0) return 100;
+  const staples = new Set(["salt", "pepper", "black pepper", "water", "oil", "olive oil", "cooking spray", "ice"]);
+  const nonStaple = ingredients.filter((ing: string) => {
+    const cleaned = extractIngredientName(ing).toLowerCase();
+    return !staples.has(cleaned);
+  });
+  if (nonStaple.length === 0) return 100;
+  const stockNames = pantryInStock.map(i => i.toLowerCase());
+  const matched = nonStaple.filter((ing: string) => {
+    const cleaned = extractIngredientName(ing).toLowerCase();
+    return findPantryMatch(cleaned, stockNames) !== null;
+  }).length;
+  return Math.round((matched / nonStaple.length) * 100);
+}
+
 /**
- * Query the recipes table with all filters, then pick 3 with variety rules.
+ * Query the recipes table with all filters, then pick results with variety rules.
  */
-export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]> {
+export async function queryRecipes(params: QueryParams): Promise<{ results: RecipeResult[]; totalMatches: number }> {
   const {
     category, isBaby, cuisineSliders, skillLevel, spiceTolerance,
     weeknightTime, dietRestrictions, equipment, dislikedMeals,
     pantryInStock, inStockOnly,
     filterCookTime, filterProtein, filterCuisine, filterMethod, activeFilter,
   } = params;
+
+  const page = params.page ?? 0;
+  const pageSize = params.pageSize ?? 6;
 
   const recentNames = getRecentSuggestions();
   const recentSet = new Set(recentNames.slice(-18));
@@ -152,33 +172,27 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
     .eq("category", category)
     .eq("is_baby", isBaby);
 
-  // Skill level
   const skillLevels = getSkillLevels(skillLevel);
   query = query.in("skill_level", skillLevels);
 
-  // Spice level
   const spiceLevels = getSpiceLevels(spiceTolerance);
   query = query.in("spice_level", spiceLevels);
 
-  // Cook time
   const maxCook = getCookTimeMax(filterCookTime, weeknightTime);
   if (maxCook !== null) {
     query = query.lte("cook_time", maxCook);
   }
 
-  // Protein filter — use mapping for broader matches
   if (filterProtein) {
     const dbProteins = PROTEIN_DB_MAP[filterProtein] || [filterProtein];
     query = query.in("primary_protein", dbProteins);
   }
 
-  // Cuisine override filter
   const excludedCuisines: string[] = [];
   if (filterCuisine && filterCuisine !== "Surprise Me") {
     const dbCuisine = CUISINE_NAME_MAP[filterCuisine] || filterCuisine.toLowerCase();
     query = query.eq("cuisine", dbCuisine);
   } else {
-    // Apply cuisine slider exclusions (value 0 = "Don't like" → exclude)
     for (const [displayName, sliderVal] of Object.entries(cuisineSliders)) {
       if (sliderVal === 0) {
         const dbName = CUISINE_NAME_MAP[displayName] || displayName.toLowerCase().replace(/[^a-z]/g, "_");
@@ -187,35 +201,29 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
     }
   }
 
-  // Hard exclude only explicit dislikes (recent meals are soft-deprioritized instead)
   const excludeNames = [...new Set(dislikedMeals)];
 
-  // Fetch a larger pool for variety selection
-  query = query.limit(100);
+  query = query.limit(200);
 
   const { data, error } = await query;
   if (error) {
     console.error("Recipe query error:", error);
-    return [];
+    return { results: [], totalMatches: 0 };
   }
 
   let results: any[] = data || [];
 
-  // Client-side filters that are hard to do in SQL with jsonb
-
-  // Exclude by name
+  // Client-side filters
   if (excludeNames.length > 0) {
     const excludeSet = new Set(excludeNames);
     results = results.filter((r: any) => !excludeSet.has(r.name));
   }
 
-  // Excluded cuisines
   if (excludedCuisines.length > 0) {
     const exSet = new Set(excludedCuisines);
     results = results.filter((r: any) => !exSet.has(r.cuisine));
   }
 
-  // Diet restrictions — each active restriction requires a matching tag
   const activeDiets = (dietRestrictions || []).filter(d => d !== "None");
   if (activeDiets.length > 0) {
     results = results.filter((r: any) => {
@@ -227,7 +235,6 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
     });
   }
 
-  // Equipment filter — every item in recipe's equipment must be owned
   if (equipment.length > 0) {
     const ownedSet = new Set(equipment.map(e => e.toLowerCase()));
     results = results.filter((r: any) => {
@@ -236,7 +243,6 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
     });
   }
 
-  // Cooking method filter — use tag mapping
   if (filterMethod) {
     const mappedTags = METHOD_TAG_MAP[filterMethod];
     if (mappedTags) {
@@ -253,7 +259,6 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
     }
   }
 
-  // Quick filter chip
   if (activeFilter) {
     const chipTag = activeFilter.toLowerCase().replace(/[^a-z0-9]/g, "_");
     results = results.filter((r: any) => {
@@ -262,10 +267,9 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
     });
   }
 
-  // In-stock pantry filter (with fallback: if 0 results, skip pantry filter)
+  // In-stock pantry filter
   let preFilterResults = results;
   if (inStockOnly && pantryInStock.length > 0) {
-    const { extractIngredientName, findPantryMatch } = await import("./ingredientMatch");
     const stockNames = pantryInStock.map(i => i.toLowerCase());
     const pantryFiltered = results.filter((r: any) => {
       const ingredients: string[] = r.ingredients || [];
@@ -282,15 +286,16 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
       }).length;
       return matchCount >= nonStaple.length * 0.3;
     });
-    // Fallback: if pantry filter eliminated everything but we had results before, use unfiltered
     results = pantryFiltered.length > 0 ? pantryFiltered : preFilterResults;
   }
 
+  const totalMatches = results.length;
+
   // Weighted random selection based on cuisine preference + recent de-prioritization
-  let pick3WithVariety = selectWithVariety(results, cuisineSliders, 3, !!filterProtein, !!filterCuisine, recentSet);
+  let picked = selectWithVariety(results, cuisineSliders, pageSize, !!filterProtein, !!filterCuisine, recentSet);
 
   // AI FALLBACK: if 0 results after all filters, generate via AI and save permanently
-  if (pick3WithVariety.length === 0 && (filterProtein || filterCuisine || filterMethod)) {
+  if (picked.length === 0 && (filterProtein || filterCuisine || filterMethod)) {
     try {
       const { data, error } = await supabase.functions.invoke("suggest-and-save", {
         body: {
@@ -302,14 +307,14 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
         },
       });
       if (!error && data?.recipes?.length > 0) {
-        pick3WithVariety = data.recipes.slice(0, 3);
+        picked = data.recipes.slice(0, 3);
       }
     } catch (e) {
       console.warn("AI fallback failed:", e);
     }
   }
 
-  return pick3WithVariety.map((r: any) => ({
+  const mappedResults = picked.map((r: any) => ({
     name: r.name,
     cal: r.calories || 0,
     protein: r.protein || 0,
@@ -321,7 +326,13 @@ export async function queryRecipes(params: QueryParams): Promise<RecipeResult[]>
     primaryProtein: r.primary_protein,
     recipeText: r.recipe_text,
     missingIngredients: inStockOnly ? undefined : getMissingIngredients(r, pantryInStock),
+    matchScore: inStockOnly ? 100 : calculateMatchScore(r, pantryInStock),
   }));
+
+  // Sort by matchScore descending
+  mappedResults.sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0));
+
+  return { results: mappedResults, totalMatches };
 }
 
 function getMissingIngredients(recipe: any, pantryInStock: string[]): string[] {
@@ -329,11 +340,12 @@ function getMissingIngredients(recipe: any, pantryInStock: string[]): string[] {
   if (ingredients.length === 0) return [];
   const stockSet = new Set(pantryInStock.map(i => i.toLowerCase()));
   return ingredients.filter((ing: string) => {
-    const lower = ing.toLowerCase();
-    // Skip common staples
-    if (["salt", "pepper", "water", "oil", "olive oil", "black pepper"].includes(lower)) return false;
-    return !stockSet.has(lower) && ![...stockSet].some(s => lower.includes(s) || s.includes(lower));
-  }).slice(0, 6);
+    const cleaned = extractIngredientName(ing).toLowerCase();
+    if (["salt", "pepper", "water", "oil", "olive oil", "black pepper"].includes(cleaned)) return false;
+    return !stockSet.has(cleaned) && ![...stockSet].some(s => cleaned.includes(s) || s.includes(cleaned));
+  })
+  .slice(0, 6)
+  .map((ing: string) => extractIngredientName(ing));
 }
 
 /**
@@ -350,7 +362,6 @@ function selectWithVariety(
   if (pool.length === 0) return [];
   if (pool.length <= count) return pool;
 
-  // Assign weights based on cuisine preference
   const sliderMap = new Map<string, number>();
   for (const [displayName, val] of Object.entries(cuisineSliders)) {
     const dbName = CUISINE_NAME_MAP[displayName] || displayName.toLowerCase().replace(/[^a-z]/g, "_");
@@ -359,7 +370,6 @@ function selectWithVariety(
 
   const weighted = pool.map(r => {
     const cuisineVal = sliderMap.get(r.cuisine);
-    // Weight: 0=excluded(already filtered), 1=10%, 2=25%, 3=50%, 4=100%
     const weight = cuisineVal === undefined ? 50 :
       cuisineVal === 1 ? 10 :
       cuisineVal === 2 ? 25 :
@@ -370,7 +380,6 @@ function selectWithVariety(
     return { ...r, _weight: adjustedWeight + Math.random() * Math.max(adjustedWeight, 1) };
   });
 
-  // Sort by weight descending (randomized)
   weighted.sort((a, b) => b._weight - a._weight);
 
   const selected: any[] = [];
@@ -379,19 +388,13 @@ function selectWithVariety(
 
   for (const candidate of weighted) {
     if (selected.length >= count) break;
-
-    // Variety: different cuisine (unless cuisine filter active)
     if (!cuisineFilterActive && usedCuisines.has(candidate.cuisine)) continue;
-
-    // Variety: different protein (unless protein filter active)
     if (!proteinFilterActive && candidate.primary_protein && usedProteins.has(candidate.primary_protein)) continue;
-
     selected.push(candidate);
     usedCuisines.add(candidate.cuisine);
     if (candidate.primary_protein) usedProteins.add(candidate.primary_protein);
   }
 
-  // If variety rules are too strict, fill remaining slots
   if (selected.length < count) {
     for (const candidate of weighted) {
       if (selected.length >= count) break;
