@@ -366,6 +366,22 @@ export function SettingsTab() {
     return rem > 0 ? `${years}y ${rem}m` : `${years}y`;
   };
 
+  const runRecipeSeed = async () => {
+    setSeeding(true);
+    setSeedResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("batch-fill-recipe-text", {
+        body: { batchSize: 25 },
+      });
+      if (error) throw error;
+      setSeedResult(data);
+    } catch (e) {
+      toast.error("Seed failed — check console");
+      console.error(e);
+    }
+    setSeeding(false);
+  };
+
   const handleLogout = async () => { await signOut(); };
 
   const handleDeleteAccount = async () => {
