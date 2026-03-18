@@ -891,7 +891,53 @@ export function SettingsTab() {
         </section>
 
 
-        {/* About */}
+        {/* Kitchen Database */}
+        <section className="border-b border-border">
+          <button onClick={() => toggle("db")} className="flex items-center justify-between w-full py-3">
+            <h2 className="font-display text-base font-bold text-foreground flex items-center gap-2">
+              <Database size={16} />
+              Kitchen Database
+            </h2>
+            {expanded.has("db") ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
+          </button>
+          {expanded.has("db") && (
+            <div className="flex flex-col gap-3 pb-4">
+              <p className="font-body text-xs text-muted-foreground">
+                Fill in recipe instructions for meals that don't have them yet. Run this multiple times until remaining reaches 0.
+              </p>
+
+              {seedResult && (
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="font-body text-sm text-foreground">
+                    ✓ {seedResult.processed} filled · {seedResult.failed} failed · {seedResult.remaining} remaining
+                  </p>
+                  {seedResult.remaining > 0 && (
+                    <p className="font-body text-xs text-muted-foreground mt-1">
+                      ~{Math.ceil(seedResult.remaining / 25)} more taps to finish.
+                    </p>
+                  )}
+                  {seedResult.remaining === 0 && (
+                    <p className="font-body text-xs text-gold mt-1">All recipes have instructions.</p>
+                  )}
+                </div>
+              )}
+
+              <button
+                onClick={runRecipeSeed}
+                disabled={seeding || seedResult?.remaining === 0}
+                className="w-full rounded-lg bg-primary px-4 py-2.5 font-body text-sm font-medium text-primary-foreground disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {seeding
+                  ? <><div className="h-3 w-3 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" /> Filling 25 recipes...</>
+                  : seedResult?.remaining === 0
+                    ? "All done"
+                    : "Fill Recipe Instructions"
+                }
+              </button>
+            </div>
+          )}
+        </section>
+
         <section className="border-b border-border pt-4 pb-4">
           <div className="flex flex-col items-center gap-2">
             <Logo size="sm" />
