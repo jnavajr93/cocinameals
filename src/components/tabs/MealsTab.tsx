@@ -18,6 +18,7 @@ interface MealCardWithCookTime extends MealCard {
   cuisine?: string;
   primaryProtein?: string | null;
   recipeText?: string | null;
+  matchScore?: number;
 }
 
 interface RecipeViewState {
