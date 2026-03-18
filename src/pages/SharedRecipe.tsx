@@ -71,7 +71,7 @@ export default function SharedRecipe() {
             to="/"
             className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-1.5 rounded-full font-body text-xs font-medium hover:opacity-90 transition-opacity"
           >
-            Try Cocina <ArrowRight className="w-3 h-3" />
+            Try cocina <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
       </header>

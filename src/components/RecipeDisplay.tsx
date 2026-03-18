@@ -89,6 +89,31 @@ function parseRecipe(text: string): ParsedRecipe {
     }
   }
 
+  // FALLBACK: if no structured sections found, try to parse generic formats
+  if (result.ingredients.length === 0 && result.prepSteps.length === 0 && result.cookingSteps.length === 0) {
+    const allLines = text.split("\n").map(l => l.trim()).filter(Boolean);
+    for (const line of allLines) {
+      if (/^ESTIMATED/i.test(line) || /^SERVES/i.test(line)) continue;
+      if (/^(\d+[.)]\s+|Step\s+\d)/i.test(line)) {
+        const stepText = line.replace(/^(\d+[.)]\s+|Step\s+\d+[:\s.-]*)/i, "").trim();
+        if (stepText) result.cookingSteps.push(stepText);
+        continue;
+      }
+      if (/^[-•*]\s+/.test(line) || /^\d+[\s\/]*(cup|tbsp|tsp|oz|lb|g|kg|ml|clove|piece|pinch)/i.test(line)) {
+        result.ingredients.push(line.replace(/^[-•*]\s*/, ""));
+        continue;
+      }
+      const hasVerb = /\b(heat|cook|add|stir|mix|bake|fry|boil|simmer|pour|place|remove|let|bring|combine|whisk|preheat|season|serve|transfer|cover|drain|slice|chop|dice)\b/i.test(line);
+      if (!hasVerb && line.split(" ").length <= 8 && line.length <= 60 && result.cookingSteps.length === 0) {
+        result.ingredients.push(line);
+        continue;
+      }
+      if (line.length > 10) {
+        result.cookingSteps.push(line);
+      }
+    }
+  }
+
   return result;
 }
 
