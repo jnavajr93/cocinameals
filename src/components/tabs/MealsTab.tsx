@@ -426,12 +426,17 @@ export function MealsTab() {
   const shuffleSection = async (sectionId: string) => {
     setAiLoading(prev => ({ ...prev, [sectionId]: true }));
     try {
-      const params = buildQueryParams(sectionId);
-      const results = await queryRecipes(params);
+      const params = { ...buildQueryParams(sectionId), pageSize: 6 };
+      const { results, totalMatches } = await queryRecipes(params);
       if (results.length > 0) {
         const cards: MealCardWithCookTime[] = results;
-        setAiCards(prev => ({ ...prev, [sectionId]: cards }));
+        setAiCards(prev => ({
+          ...prev,
+          [sectionId]: [...cards, ...(prev[sectionId] || []).slice(0, 12)]
+        }));
         trackRecentMeals(cards);
+        setSectionTotals(prev => ({ ...prev, [sectionId]: totalMatches }));
+        setHasMore(prev => ({ ...prev, [sectionId]: (cards.length + (aiCards[sectionId]?.length || 0)) < totalMatches }));
       }
     } catch (err) {
       console.error("Shuffle error:", err);
