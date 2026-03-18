@@ -997,7 +997,6 @@ export function SettingsTab() {
         </section>
 
 
-        {/* Kitchen Database */}
         <section className="border-b border-border">
           <button onClick={() => toggle("db")} className="flex items-center justify-between w-full py-3">
             <h2 className="font-display text-base font-bold text-foreground flex items-center gap-2">
@@ -1007,39 +1006,49 @@ export function SettingsTab() {
             {expanded.has("db") ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
           </button>
           {expanded.has("db") && (
-            <div className="flex flex-col gap-3 pb-4">
+            <div className="mt-3 space-y-3">
               <p className="font-body text-xs text-muted-foreground">
-                Fill in recipe instructions for meals that don't have them yet. Run this multiple times until remaining reaches 0.
+                One tap sets up the entire recipe database automatically.
+                Imports TheMealDB, expands across all cuisines, and fills
+                all recipe instructions. Keep the app open while it runs.
               </p>
-
-              {seedResult && (
-                <div className="rounded-lg border border-border bg-card p-3">
-                  <p className="font-body text-sm text-foreground">
-                    ✓ {seedResult.processed} filled · {seedResult.failed} failed · {seedResult.remaining} remaining
-                  </p>
-                  {seedResult.remaining > 0 && (
-                    <p className="font-body text-xs text-muted-foreground mt-1">
-                      ~{Math.ceil(seedResult.remaining / 25)} more taps to finish.
+              {dbSetupLog.length > 0 && (
+                <div className="rounded-lg bg-secondary p-3 space-y-1 max-h-40 overflow-y-auto">
+                  {dbSetupLog.map((line, i) => (
+                    <p key={i} className={`font-body text-xs ${
+                      line.startsWith("✓") || line.startsWith("🎉")
+                        ? "text-gold"
+                        : "text-muted-foreground"
+                    }`}>
+                      {line}
                     </p>
-                  )}
-                  {seedResult.remaining === 0 && (
-                    <p className="font-body text-xs text-gold mt-1">All recipes have instructions.</p>
-                  )}
+                  ))}
                 </div>
               )}
-
-              <button
-                onClick={runRecipeSeed}
-                disabled={seeding || seedResult?.remaining === 0}
-                className="w-full rounded-lg bg-primary px-4 py-2.5 font-body text-sm font-medium text-primary-foreground disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {seeding
-                  ? <><div className="h-3 w-3 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" /> Filling 25 recipes...</>
-                  : seedResult?.remaining === 0
-                    ? "All done"
-                    : "Fill Recipe Instructions"
-                }
-              </button>
+              {dbSetupRunning && (
+                <div className="rounded-lg bg-gold/10 border border-gold/30 p-3 flex items-center gap-2">
+                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-gold border-t-transparent shrink-0" />
+                  <p className="font-body text-xs text-foreground">
+                    Running — keep app open. This takes 20–40 minutes.
+                  </p>
+                </div>
+              )}
+              {!dbSetupRunning ? (
+                <button
+                  onClick={runFullDatabaseSetup}
+                  disabled={dbSetupDone}
+                  className="w-full rounded-lg bg-primary px-4 py-2.5 font-body text-sm font-medium text-primary-foreground disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {dbSetupDone ? "✓ Database Ready" : "Set Up Database"}
+                </button>
+              ) : (
+                <button
+                  onClick={stopDbSetup}
+                  className="w-full rounded-lg bg-destructive/10 border border-destructive/30 px-4 py-2.5 font-body text-sm font-medium text-destructive"
+                >
+                  Stop
+                </button>
+              )}
             </div>
           )}
         </section>
