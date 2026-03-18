@@ -18,6 +18,7 @@ interface MealCardWithCookTime extends MealCard {
   cuisine?: string;
   primaryProtein?: string | null;
   recipeText?: string | null;
+  matchScore?: number;
 }
 
 interface RecipeViewState {
@@ -50,7 +51,10 @@ export function MealsTab() {
   const [profile, setProfile] = useState<any>(null);
   const [pantryInStock, setPantryInStock] = useState<string[]>([]);
   const [expiringItems, setExpiringItems] = useState<string[]>([]);
-  
+  const [sectionPages, setSectionPages] = useState<Record<string, number>>({});
+  const [sectionTotals, setSectionTotals] = useState<Record<string, number>>({});
+  const [sectionLoadingMore, setSectionLoadingMore] = useState<Record<string, boolean>>({});
+  const [hasMore, setHasMore] = useState<Record<string, boolean>>({});
 
   // Craving popup state
   const [cravingPopup, setCravingPopup] = useState<{ meals: MealCardWithCookTime[]; loading: boolean } | null>(null);
@@ -240,6 +244,32 @@ export function MealsTab() {
 
 
 
+  const loadMoreForSection = async (sectionId: string) => {
+    if (sectionLoadingMore[sectionId]) return;
+    setSectionLoadingMore(prev => ({ ...prev, [sectionId]: true }));
+    const nextPage = (sectionPages[sectionId] || 0) + 1;
+    const params = { ...buildQueryParams(sectionId), page: nextPage, pageSize: 6 };
+    try {
+      const { results, totalMatches } = await queryRecipes(params);
+      if (results.length > 0) {
+        setAiCards(prev => ({
+          ...prev,
+          [sectionId]: [...(prev[sectionId] || []), ...results]
+        }));
+        setSectionPages(prev => ({ ...prev, [sectionId]: nextPage }));
+        trackRecentMeals(results);
+        const currentCount = (aiCards[sectionId]?.length || 0) + results.length;
+        setHasMore(prev => ({ ...prev, [sectionId]: currentCount < totalMatches }));
+        setSectionTotals(prev => ({ ...prev, [sectionId]: totalMatches }));
+      } else {
+        setHasMore(prev => ({ ...prev, [sectionId]: false }));
+      }
+    } catch (err) {
+      console.error("loadMore error:", err);
+    }
+    setSectionLoadingMore(prev => ({ ...prev, [sectionId]: false }));
+  };
+
 
   const clearFilter = (key: string) => {
     if (key === "cookTime") setFilterCookTime(null);
@@ -422,12 +452,17 @@ export function MealsTab() {
   const shuffleSection = async (sectionId: string) => {
     setAiLoading(prev => ({ ...prev, [sectionId]: true }));
     try {
-      const params = buildQueryParams(sectionId);
-      const results = await queryRecipes(params);
+      const params = { ...buildQueryParams(sectionId), pageSize: 6 };
+      const { results, totalMatches } = await queryRecipes(params);
       if (results.length > 0) {
         const cards: MealCardWithCookTime[] = results;
-        setAiCards(prev => ({ ...prev, [sectionId]: cards }));
+        setAiCards(prev => ({
+          ...prev,
+          [sectionId]: [...cards, ...(prev[sectionId] || []).slice(0, 12)]
+        }));
         trackRecentMeals(cards);
+        setSectionTotals(prev => ({ ...prev, [sectionId]: totalMatches }));
+        setHasMore(prev => ({ ...prev, [sectionId]: (cards.length + (aiCards[sectionId]?.length || 0)) < totalMatches }));
       }
     } catch (err) {
       console.error("Shuffle error:", err);
@@ -444,28 +479,34 @@ export function MealsTab() {
     // Query all sections in parallel
     const promises = sections.map(async (section) => {
       try {
-        const params = buildQueryParams(section.id);
-        const results = await queryRecipes(params);
-        return { sectionId: section.id, results };
+        const params = { ...buildQueryParams(section.id), pageSize: 6 };
+        const { results, totalMatches } = await queryRecipes(params);
+        return { sectionId: section.id, results, totalMatches };
       } catch {
-        return { sectionId: section.id, results: [] as RecipeResult[] };
+        return { sectionId: section.id, results: [] as RecipeResult[], totalMatches: 0 };
       }
     });
 
     const allResults = await Promise.all(promises);
     const newCards: Record<string, MealCardWithCookTime[]> = {};
     const loadingClear: Record<string, boolean> = {};
+    const newTotals: Record<string, number> = {};
+    const newHasMore: Record<string, boolean> = {};
 
-    for (const { sectionId, results } of allResults) {
+    for (const { sectionId, results, totalMatches } of allResults) {
       if (results.length > 0) {
         newCards[sectionId] = results;
         trackRecentMeals(results);
       }
       loadingClear[sectionId] = false;
+      newTotals[sectionId] = totalMatches;
+      newHasMore[sectionId] = results.length < totalMatches;
     }
 
     setAiCards(prev => ({ ...prev, ...newCards }));
     setAiLoading(prev => ({ ...prev, ...loadingClear }));
+    setSectionTotals(prev => ({ ...prev, ...newTotals }));
+    setHasMore(prev => ({ ...prev, ...newHasMore }));
   };
 
   // Trigger batch load when active sections and profile are ready
@@ -1221,12 +1262,20 @@ export function MealsTab() {
         ) : (
           activeSections.map(section => {
             const isLoading = aiLoading[section.id];
-            const cards = getCardsForSection(section.id);
+            const cards = getCardsForSection(section.id)
+              .sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0));
             const hasCards = cards.length > 0;
             return (
               <div key={section.id} className="mb-6">
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="font-display text-base font-bold text-foreground">{section.name}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-display text-base font-bold text-foreground">{section.name}</h2>
+                    {sectionTotals[section.id] > 0 && (
+                      <span className="font-body text-xs text-muted-foreground">
+                        {sectionTotals[section.id]} meals
+                      </span>
+                    )}
+                  </div>
                   <button
                     onClick={() => shuffleSection(section.id)}
                     disabled={isLoading}
@@ -1253,6 +1302,18 @@ export function MealsTab() {
                   <div className="rounded-lg border border-dashed border-border bg-card/50 px-3 py-2">
                     <p className="font-body text-xs text-muted-foreground">No matches for current filters yet—tap Shuffle or loosen a filter.</p>
                   </div>
+                )}
+                {hasMore[section.id] && (
+                  <button
+                    onClick={() => loadMoreForSection(section.id)}
+                    disabled={sectionLoadingMore[section.id]}
+                    className="w-full mt-2 rounded-lg border border-border bg-card py-2.5 font-body text-xs text-muted-foreground flex items-center justify-center gap-2 transition-colors hover:border-gold hover:text-foreground disabled:opacity-50"
+                  >
+                    {sectionLoadingMore[section.id]
+                      ? <><div className="h-3 w-3 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" /> Loading more...</>
+                      : <>Show more meals</>
+                    }
+                  </button>
                 )}
               </div>
             );
@@ -1299,6 +1360,15 @@ export function MealsTab() {
               )}
               <span className="font-body text-xs text-muted-foreground">{card.cal} cal</span>
               <span className="font-body text-xs text-muted-foreground">P:{card.protein}g C:{card.carbs}g F:{card.fat}g</span>
+              {!filterInStockOnly && card.matchScore !== undefined && (
+                <span className={`rounded-full px-1.5 py-0.5 font-body text-[10px] font-medium ${
+                  card.matchScore >= 80 ? "bg-gold/15 text-gold" :
+                  card.matchScore >= 50 ? "bg-secondary text-muted-foreground" :
+                  "bg-destructive/10 text-destructive"
+                }`}>
+                  {card.matchScore}% match
+                </span>
+              )}
             </div>
             {cuisineTag && (
               <span className="inline-block mt-1 rounded-full bg-secondary px-2 py-0.5 font-body text-xs text-muted-foreground">{cuisineTag}</span>
@@ -1308,7 +1378,7 @@ export function MealsTab() {
         {hasMissing && (
           <div className="px-3 pb-1">
             <p className="font-body text-xs text-destructive leading-snug">
-              Need: {card.missingIngredients!.join(", ")}
+              Need: {card.missingIngredients!.map(i => extractIngredientName(i)).join(", ")}
             </p>
           </div>
         )}

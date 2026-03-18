@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { CUISINES, CUISINE_LABELS } from "@/data/cuisines";
 import { EQUIPMENT_CATEGORIES } from "@/data/equipment";
 import { MEAL_SECTIONS, QUICK_FILTERS, DIET_RESTRICTIONS, DEFAULT_SECTION_TIMES } from "@/data/mealSections";
-import { Copy, LogOut, ChevronRight, ChevronDown, Search, Trash2, Plus, GripVertical, Heart } from "lucide-react";
+import { Copy, LogOut, ChevronRight, ChevronDown, Search, Trash2, Plus, GripVertical, Heart, Database } from "lucide-react";
 
 const HEALTH_CONDITIONS = [
   "High Blood Pressure", "Type 2 Diabetes", "Pre-Diabetic", "High Cholesterol",
@@ -81,6 +81,8 @@ export function SettingsTab() {
 
   // Drag reorder state
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [seeding, setSeeding] = useState(false);
+  const [seedResult, setSeedResult] = useState<{ processed: number; failed: number; remaining: number } | null>(null);
 
   const loadSettings = async () => {
     if (!householdId || !user) return;
@@ -362,6 +364,22 @@ export function SettingsTab() {
     const years = Math.floor(months / 12);
     const rem = months % 12;
     return rem > 0 ? `${years}y ${rem}m` : `${years}y`;
+  };
+
+  const runRecipeSeed = async () => {
+    setSeeding(true);
+    setSeedResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("batch-fill-recipe-text", {
+        body: { batchSize: 25 },
+      });
+      if (error) throw error;
+      setSeedResult(data);
+    } catch (e) {
+      toast.error("Seed failed — check console");
+      console.error(e);
+    }
+    setSeeding(false);
   };
 
   const handleLogout = async () => { await signOut(); };
@@ -873,7 +891,53 @@ export function SettingsTab() {
         </section>
 
 
-        {/* About */}
+        {/* Kitchen Database */}
+        <section className="border-b border-border">
+          <button onClick={() => toggle("db")} className="flex items-center justify-between w-full py-3">
+            <h2 className="font-display text-base font-bold text-foreground flex items-center gap-2">
+              <Database size={16} />
+              Kitchen Database
+            </h2>
+            {expanded.has("db") ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
+          </button>
+          {expanded.has("db") && (
+            <div className="flex flex-col gap-3 pb-4">
+              <p className="font-body text-xs text-muted-foreground">
+                Fill in recipe instructions for meals that don't have them yet. Run this multiple times until remaining reaches 0.
+              </p>
+
+              {seedResult && (
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="font-body text-sm text-foreground">
+                    ✓ {seedResult.processed} filled · {seedResult.failed} failed · {seedResult.remaining} remaining
+                  </p>
+                  {seedResult.remaining > 0 && (
+                    <p className="font-body text-xs text-muted-foreground mt-1">
+                      ~{Math.ceil(seedResult.remaining / 25)} more taps to finish.
+                    </p>
+                  )}
+                  {seedResult.remaining === 0 && (
+                    <p className="font-body text-xs text-gold mt-1">All recipes have instructions.</p>
+                  )}
+                </div>
+              )}
+
+              <button
+                onClick={runRecipeSeed}
+                disabled={seeding || seedResult?.remaining === 0}
+                className="w-full rounded-lg bg-primary px-4 py-2.5 font-body text-sm font-medium text-primary-foreground disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {seeding
+                  ? <><div className="h-3 w-3 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" /> Filling 25 recipes...</>
+                  : seedResult?.remaining === 0
+                    ? "All done"
+                    : "Fill Recipe Instructions"
+                }
+              </button>
+            </div>
+          )}
+        </section>
+
         <section className="border-b border-border pt-4 pb-4">
           <div className="flex flex-col items-center gap-2">
             <Logo size="sm" />
