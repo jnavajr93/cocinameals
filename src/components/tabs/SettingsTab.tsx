@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { clearRecentSuggestions, clearAllMealCaches } from "@/lib/mealCache";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -81,8 +81,10 @@ export function SettingsTab() {
 
   // Drag reorder state
   const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [seeding, setSeeding] = useState(false);
-  const [seedResult, setSeedResult] = useState<{ processed: number; failed: number; remaining: number } | null>(null);
+  const [dbSetupRunning, setDbSetupRunning] = useState(false);
+  const [dbSetupLog, setDbSetupLog] = useState<string[]>([]);
+  const [dbSetupDone, setDbSetupDone] = useState(false);
+  const dbSetupRef = useRef<boolean>(false);
 
   const loadSettings = async () => {
     if (!householdId || !user) return;
@@ -366,20 +368,124 @@ export function SettingsTab() {
     return rem > 0 ? `${years}y ${rem}m` : `${years}y`;
   };
 
-  const runRecipeSeed = async () => {
-    setSeeding(true);
-    setSeedResult(null);
+  const runFullDatabaseSetup = async () => {
+    dbSetupRef.current = true;
+    setDbSetupRunning(true);
+    setDbSetupDone(false);
+    setDbSetupLog(["Starting database setup..."]);
+    const log = (msg: string) => setDbSetupLog(prev => [...prev.slice(-8), msg]);
+
+    // ── PHASE 1: Import TheMealDB ──────────────────────────────
+    log("Phase 1: Importing TheMealDB recipes...");
     try {
-      const { data, error } = await supabase.functions.invoke("batch-fill-recipe-text", {
-        body: { batchSize: 25 },
-      });
-      if (error) throw error;
-      setSeedResult(data);
-    } catch (e) {
-      toast.error("Seed failed — check console");
-      console.error(e);
+      const { data } = await supabase.functions.invoke("import-mealdb", { body: {} });
+      log(`✓ TheMealDB: ${data?.inserted || 0} recipes imported`);
+    } catch {
+      log("TheMealDB import failed — continuing...");
     }
-    setSeeding(false);
+    if (!dbSetupRef.current) { setDbSetupRunning(false); return; }
+    await new Promise(r => setTimeout(r, 2000));
+
+    // ── PHASE 2: Bulk seed across all cuisine + category combos ──
+    log("Phase 2: Expanding recipe database...");
+    const combinations = [
+      { category: "dinner", cuisine: "mexican" },
+      { category: "dinner", cuisine: "italian" },
+      { category: "dinner", cuisine: "asian" },
+      { category: "dinner", cuisine: "american" },
+      { category: "dinner", cuisine: "mediterranean" },
+      { category: "dinner", cuisine: "korean" },
+      { category: "dinner", cuisine: "japanese" },
+      { category: "dinner", cuisine: "south_asian" },
+      { category: "dinner", cuisine: "french" },
+      { category: "dinner", cuisine: "latin_american" },
+      { category: "dinner", cuisine: "caribbean" },
+      { category: "dinner", cuisine: "african" },
+      { category: "dinner", cuisine: "middle_eastern" },
+      { category: "dinner", cuisine: "greek" },
+      { category: "dinner", cuisine: "southeast_asian" },
+      { category: "dinner", cuisine: "bbq" },
+      { category: "dinner", cuisine: "southern" },
+      { category: "lunch", cuisine: "mexican" },
+      { category: "lunch", cuisine: "asian" },
+      { category: "lunch", cuisine: "mediterranean" },
+      { category: "lunch", cuisine: "american" },
+      { category: "lunch", cuisine: "italian" },
+      { category: "lunch", cuisine: "south_asian" },
+      { category: "breakfast", cuisine: "american" },
+      { category: "breakfast", cuisine: "mexican" },
+      { category: "breakfast", cuisine: "asian" },
+      { category: "breakfast", cuisine: "mediterranean" },
+      { category: "snack", cuisine: "american" },
+      { category: "snack", cuisine: "mexican" },
+      { category: "snack", cuisine: "asian" },
+      { category: "snack", cuisine: "mediterranean" },
+      { category: "date_night", cuisine: "italian" },
+      { category: "date_night", cuisine: "french" },
+      { category: "date_night", cuisine: "mediterranean" },
+      { category: "date_night", cuisine: "japanese" },
+      { category: "meal_prep", cuisine: "american" },
+      { category: "meal_prep", cuisine: "asian" },
+      { category: "meal_prep", cuisine: "mediterranean" },
+      { category: "meal_prep", cuisine: "mexican" },
+      { category: "crowd_feed", cuisine: "american" },
+      { category: "crowd_feed", cuisine: "mexican" },
+      { category: "crowd_feed", cuisine: "asian" },
+    ];
+    let totalAdded = 0;
+    for (let i = 0; i < combinations.length; i++) {
+      if (!dbSetupRef.current) break;
+      const combo = combinations[i];
+      try {
+        const { data, error } = await supabase.functions.invoke("bulk-seed-recipes", {
+          body: { ...combo, count: 50 },
+        });
+        if (!error && data?.inserted) totalAdded += data.inserted;
+        log(`Phase 2: ${i + 1}/${combinations.length} combos done — ${totalAdded} new recipes added`);
+      } catch { }
+      await new Promise(r => setTimeout(r, 1500));
+    }
+    log(`✓ Phase 2 complete: ${totalAdded} new recipes added`);
+    if (!dbSetupRef.current) { setDbSetupRunning(false); return; }
+
+    // ── PHASE 3: Auto-fill all recipe_text until remaining = 0 ──
+    log("Phase 3: Filling recipe instructions — this may take a while...");
+    let totalFilled = 0;
+    let consecutiveZero = 0;
+    while (dbSetupRef.current) {
+      try {
+        const { data, error } = await supabase.functions.invoke("batch-fill-recipe-text", {
+          body: { batchSize: 25 },
+        });
+        if (error || !data) { consecutiveZero++; }
+        else {
+          totalFilled += data.processed || 0;
+          if (data.remaining === 0 || (data.processed === 0 && data.failed === 0)) {
+            log(`✓ Phase 3 complete: ${totalFilled} recipes filled`);
+            break;
+          }
+          if (data.processed === 0) consecutiveZero++;
+          else consecutiveZero = 0;
+          log(`Phase 3: ${totalFilled} filled — ${data.remaining} remaining...`);
+        }
+        if (consecutiveZero >= 3) {
+          log("Phase 3: No more recipes to fill");
+          break;
+        }
+      } catch { consecutiveZero++; }
+      await new Promise(r => setTimeout(r, 3000));
+    }
+
+    dbSetupRef.current = false;
+    setDbSetupRunning(false);
+    setDbSetupDone(true);
+    log("🎉 Database setup complete!");
+  };
+
+  const stopDbSetup = () => {
+    dbSetupRef.current = false;
+    setDbSetupRunning(false);
+    setDbSetupLog(prev => [...prev, "Stopped by user."]);
   };
 
   const handleLogout = async () => { await signOut(); };
@@ -891,7 +997,6 @@ export function SettingsTab() {
         </section>
 
 
-        {/* Kitchen Database */}
         <section className="border-b border-border">
           <button onClick={() => toggle("db")} className="flex items-center justify-between w-full py-3">
             <h2 className="font-display text-base font-bold text-foreground flex items-center gap-2">
@@ -901,39 +1006,49 @@ export function SettingsTab() {
             {expanded.has("db") ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
           </button>
           {expanded.has("db") && (
-            <div className="flex flex-col gap-3 pb-4">
+            <div className="mt-3 space-y-3">
               <p className="font-body text-xs text-muted-foreground">
-                Fill in recipe instructions for meals that don't have them yet. Run this multiple times until remaining reaches 0.
+                One tap sets up the entire recipe database automatically.
+                Imports TheMealDB, expands across all cuisines, and fills
+                all recipe instructions. Keep the app open while it runs.
               </p>
-
-              {seedResult && (
-                <div className="rounded-lg border border-border bg-card p-3">
-                  <p className="font-body text-sm text-foreground">
-                    ✓ {seedResult.processed} filled · {seedResult.failed} failed · {seedResult.remaining} remaining
-                  </p>
-                  {seedResult.remaining > 0 && (
-                    <p className="font-body text-xs text-muted-foreground mt-1">
-                      ~{Math.ceil(seedResult.remaining / 25)} more taps to finish.
+              {dbSetupLog.length > 0 && (
+                <div className="rounded-lg bg-secondary p-3 space-y-1 max-h-40 overflow-y-auto">
+                  {dbSetupLog.map((line, i) => (
+                    <p key={i} className={`font-body text-xs ${
+                      line.startsWith("✓") || line.startsWith("🎉")
+                        ? "text-gold"
+                        : "text-muted-foreground"
+                    }`}>
+                      {line}
                     </p>
-                  )}
-                  {seedResult.remaining === 0 && (
-                    <p className="font-body text-xs text-gold mt-1">All recipes have instructions.</p>
-                  )}
+                  ))}
                 </div>
               )}
-
-              <button
-                onClick={runRecipeSeed}
-                disabled={seeding || seedResult?.remaining === 0}
-                className="w-full rounded-lg bg-primary px-4 py-2.5 font-body text-sm font-medium text-primary-foreground disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {seeding
-                  ? <><div className="h-3 w-3 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" /> Filling 25 recipes...</>
-                  : seedResult?.remaining === 0
-                    ? "All done"
-                    : "Fill Recipe Instructions"
-                }
-              </button>
+              {dbSetupRunning && (
+                <div className="rounded-lg bg-gold/10 border border-gold/30 p-3 flex items-center gap-2">
+                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-gold border-t-transparent shrink-0" />
+                  <p className="font-body text-xs text-foreground">
+                    Running — keep app open. This takes 20–40 minutes.
+                  </p>
+                </div>
+              )}
+              {!dbSetupRunning ? (
+                <button
+                  onClick={runFullDatabaseSetup}
+                  disabled={dbSetupDone}
+                  className="w-full rounded-lg bg-primary px-4 py-2.5 font-body text-sm font-medium text-primary-foreground disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {dbSetupDone ? "✓ Database Ready" : "Set Up Database"}
+                </button>
+              ) : (
+                <button
+                  onClick={stopDbSetup}
+                  className="w-full rounded-lg bg-destructive/10 border border-destructive/30 px-4 py-2.5 font-body text-sm font-medium text-destructive"
+                >
+                  Stop
+                </button>
+              )}
             </div>
           )}
         </section>

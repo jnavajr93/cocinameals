@@ -11,8 +11,8 @@ serve(async (req) => {
 
   try {
     const { category, protein, cuisine, cookTimeMax, count = 3 } = await req.json();
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -24,17 +24,18 @@ serve(async (req) => {
 
 For each recipe, provide a JSON object. Return ONLY a JSON array, no other text.`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        system: systemPrompt,
-        messages: [{ role: "user", content: prompt }],
+        model: "google/gemini-2.5-flash-lite",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: prompt },
+        ],
         max_tokens: 2048,
       }),
     });
@@ -54,7 +55,7 @@ For each recipe, provide a JSON object. Return ONLY a JSON array, no other text.
     }
 
     const data = await response.json();
-    const content = data.content?.[0]?.text || "[]";
+    const content = data.choices?.[0]?.message?.content || "[]";
     let recipes: any[] = [];
 
     try {
@@ -70,7 +71,6 @@ For each recipe, provide a JSON object. Return ONLY a JSON array, no other text.
       });
     }
 
-    // Save to DB permanently
     const toInsert = recipes.map(r => ({
       name: r.name,
       category: category || "dinner",
@@ -90,7 +90,6 @@ For each recipe, provide a JSON object. Return ONLY a JSON array, no other text.
       recipe_text: null,
     }));
 
-    // Insert, ignoring duplicates
     const savedRecipes: any[] = [];
     for (const recipe of toInsert) {
       const { data: inserted, error } = await supabase

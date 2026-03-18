@@ -12,8 +12,8 @@ serve(async (req) => {
     const { imageBase64 } = await req.json();
     if (!imageBase64) throw new Error("No image provided");
 
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const systemPrompt = `You are a grocery receipt scanner for a kitchen pantry app.
 Analyze the receipt image and extract grocery/food items purchased.
@@ -37,27 +37,24 @@ RULES:
 - If you cannot read the receipt or it's not a grocery receipt, return an empty array []
 - Be generous in interpretation — abbreviations on receipts are common`;
 
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        system: systemPrompt,
+        model: "google/gemini-2.5-flash",
         messages: [
+          { role: "system", content: systemPrompt },
           {
             role: "user",
             content: [
               { type: "text", text: "Extract all grocery items from this receipt." },
               {
-                type: "image",
-                source: {
-                  type: "base64",
-                  media_type: "image/jpeg",
-                  data: imageBase64,
+                type: "image_url",
+                image_url: {
+                  url: `data:image/jpeg;base64,${imageBase64}`,
                 },
               },
             ],
@@ -69,13 +66,12 @@ RULES:
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Anthropic API error: ${res.status} ${errText}`);
+      throw new Error(`AI gateway error: ${res.status} ${errText}`);
     }
 
     const data = await res.json();
-    const raw = data.content?.[0]?.text || "[]";
+    const raw = data.choices?.[0]?.message?.content || "[]";
     
-    // Extract JSON from response
     let items;
     try {
       const jsonMatch = raw.match(/\[[\s\S]*\]/);

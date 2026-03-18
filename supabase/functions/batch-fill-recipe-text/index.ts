@@ -11,12 +11,12 @@ serve(async (req) => {
 
   try {
     const { batchSize = 25 } = await req.json().catch(() => ({}));
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not configured");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const { data: recipes, error: fetchError } = await supabase
       .from("recipes")
@@ -79,17 +79,18 @@ NEXT LEVEL TIP: [One specific technique that takes this dish from home cooking t
 ESTIMATED: ${recipe.calories || 450} cal | P:${recipe.protein || 30}g C:${recipe.carbs || 35}g F:${recipe.fat || 18}g
 SERVES: 2 people | Cook time: ${recipe.cook_time || 30} min`;
 
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
+        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
-            "x-api-key": ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
+            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "claude-haiku-4-5-20251001",
-            system: "You write clear, practical, restaurant-quality home cooking recipes in plain text. No markdown. No asterisks. No bullet symbols. Follow the exact format given.",
-            messages: [{ role: "user", content: prompt }],
+            model: "google/gemini-2.5-flash-lite",
+            messages: [
+              { role: "system", content: "You write clear, practical, restaurant-quality home cooking recipes in plain text. No markdown. No asterisks. No bullet symbols. Follow the exact format given." },
+              { role: "user", content: prompt },
+            ],
             max_tokens: 2000,
           }),
         });
@@ -102,7 +103,7 @@ SERVES: 2 people | Cook time: ${recipe.cook_time || 30} min`;
         }
 
         const data = await response.json();
-        const recipeText = data.content?.[0]?.text || "";
+        const recipeText = data.choices?.[0]?.message?.content || "";
 
         if (recipeText.length < 100) {
           console.error(`Short response for "${recipe.name}": ${recipeText.length} chars`);
