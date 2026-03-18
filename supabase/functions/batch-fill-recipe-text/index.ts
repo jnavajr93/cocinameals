@@ -99,7 +99,8 @@ SERVES: 2 people | Cook time: ${recipe.cook_time || 30} min`;
         });
 
         if (!response.ok) {
-          console.error(`Failed for ${recipe.name}: ${response.status}`);
+          const errBody = await response.text();
+          console.error(`AI failed for "${recipe.name}": status=${response.status} body=${errBody}`);
           failed++;
           continue;
         }
@@ -108,6 +109,7 @@ SERVES: 2 people | Cook time: ${recipe.cook_time || 30} min`;
         const recipeText = data.choices?.[0]?.message?.content || "";
 
         if (recipeText.length < 100) {
+          console.error(`Short response for "${recipe.name}": ${recipeText.length} chars`);
           failed++;
           continue;
         }
