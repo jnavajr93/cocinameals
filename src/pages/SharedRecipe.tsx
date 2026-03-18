@@ -24,7 +24,7 @@ export default function SharedRecipe() {
       } else {
         setRecipe(data);
         // Update page title & meta for link previews
-        document.title = `${data.meal_name} — from Cocina app`;
+        document.title = `${data.meal_name} — from cocina`;
         const metaDesc = document.querySelector('meta[name="description"]');
         if (metaDesc) metaDesc.setAttribute("content", `${data.meal_name} — Cook restaurant-quality meals with what you already have.`);
       }
