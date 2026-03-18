@@ -1262,12 +1262,20 @@ export function MealsTab() {
         ) : (
           activeSections.map(section => {
             const isLoading = aiLoading[section.id];
-            const cards = getCardsForSection(section.id);
+            const cards = getCardsForSection(section.id)
+              .sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0));
             const hasCards = cards.length > 0;
             return (
               <div key={section.id} className="mb-6">
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="font-display text-base font-bold text-foreground">{section.name}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-display text-base font-bold text-foreground">{section.name}</h2>
+                    {sectionTotals[section.id] > 0 && (
+                      <span className="font-body text-xs text-muted-foreground">
+                        {sectionTotals[section.id]} meals
+                      </span>
+                    )}
+                  </div>
                   <button
                     onClick={() => shuffleSection(section.id)}
                     disabled={isLoading}
@@ -1294,6 +1302,18 @@ export function MealsTab() {
                   <div className="rounded-lg border border-dashed border-border bg-card/50 px-3 py-2">
                     <p className="font-body text-xs text-muted-foreground">No matches for current filters yet—tap Shuffle or loosen a filter.</p>
                   </div>
+                )}
+                {hasMore[section.id] && (
+                  <button
+                    onClick={() => loadMoreForSection(section.id)}
+                    disabled={sectionLoadingMore[section.id]}
+                    className="w-full mt-2 rounded-lg border border-border bg-card py-2.5 font-body text-xs text-muted-foreground flex items-center justify-center gap-2 transition-colors hover:border-gold hover:text-foreground disabled:opacity-50"
+                  >
+                    {sectionLoadingMore[section.id]
+                      ? <><div className="h-3 w-3 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" /> Loading more...</>
+                      : <>Show more meals</>
+                    }
+                  </button>
                 )}
               </div>
             );
