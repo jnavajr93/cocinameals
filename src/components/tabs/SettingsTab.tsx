@@ -81,8 +81,10 @@ export function SettingsTab() {
 
   // Drag reorder state
   const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [seeding, setSeeding] = useState(false);
-  const [seedResult, setSeedResult] = useState<{ processed: number; failed: number; remaining: number } | null>(null);
+  const [dbSetupRunning, setDbSetupRunning] = useState(false);
+  const [dbSetupLog, setDbSetupLog] = useState<string[]>([]);
+  const [dbSetupDone, setDbSetupDone] = useState(false);
+  const dbSetupRef = useRef<boolean>(false);
 
   const loadSettings = async () => {
     if (!householdId || !user) return;
