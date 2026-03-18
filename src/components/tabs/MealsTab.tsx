@@ -1360,6 +1360,15 @@ export function MealsTab() {
               )}
               <span className="font-body text-xs text-muted-foreground">{card.cal} cal</span>
               <span className="font-body text-xs text-muted-foreground">P:{card.protein}g C:{card.carbs}g F:{card.fat}g</span>
+              {!filterInStockOnly && card.matchScore !== undefined && (
+                <span className={`rounded-full px-1.5 py-0.5 font-body text-[10px] font-medium ${
+                  card.matchScore >= 80 ? "bg-gold/15 text-gold" :
+                  card.matchScore >= 50 ? "bg-secondary text-muted-foreground" :
+                  "bg-destructive/10 text-destructive"
+                }`}>
+                  {card.matchScore}% match
+                </span>
+              )}
             </div>
             {cuisineTag && (
               <span className="inline-block mt-1 rounded-full bg-secondary px-2 py-0.5 font-body text-xs text-muted-foreground">{cuisineTag}</span>
