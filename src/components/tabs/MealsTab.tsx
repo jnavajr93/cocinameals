@@ -453,28 +453,34 @@ export function MealsTab() {
     // Query all sections in parallel
     const promises = sections.map(async (section) => {
       try {
-        const params = buildQueryParams(section.id);
-        const results = await queryRecipes(params);
-        return { sectionId: section.id, results };
+        const params = { ...buildQueryParams(section.id), pageSize: 6 };
+        const { results, totalMatches } = await queryRecipes(params);
+        return { sectionId: section.id, results, totalMatches };
       } catch {
-        return { sectionId: section.id, results: [] as RecipeResult[] };
+        return { sectionId: section.id, results: [] as RecipeResult[], totalMatches: 0 };
       }
     });
 
     const allResults = await Promise.all(promises);
     const newCards: Record<string, MealCardWithCookTime[]> = {};
     const loadingClear: Record<string, boolean> = {};
+    const newTotals: Record<string, number> = {};
+    const newHasMore: Record<string, boolean> = {};
 
-    for (const { sectionId, results } of allResults) {
+    for (const { sectionId, results, totalMatches } of allResults) {
       if (results.length > 0) {
         newCards[sectionId] = results;
         trackRecentMeals(results);
       }
       loadingClear[sectionId] = false;
+      newTotals[sectionId] = totalMatches;
+      newHasMore[sectionId] = results.length < totalMatches;
     }
 
     setAiCards(prev => ({ ...prev, ...newCards }));
     setAiLoading(prev => ({ ...prev, ...loadingClear }));
+    setSectionTotals(prev => ({ ...prev, ...newTotals }));
+    setHasMore(prev => ({ ...prev, ...newHasMore }));
   };
 
   // Trigger batch load when active sections and profile are ready
