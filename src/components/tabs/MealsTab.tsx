@@ -244,6 +244,32 @@ export function MealsTab() {
 
 
 
+  const loadMoreForSection = async (sectionId: string) => {
+    if (sectionLoadingMore[sectionId]) return;
+    setSectionLoadingMore(prev => ({ ...prev, [sectionId]: true }));
+    const nextPage = (sectionPages[sectionId] || 0) + 1;
+    const params = { ...buildQueryParams(sectionId), page: nextPage, pageSize: 6 };
+    try {
+      const { results, totalMatches } = await queryRecipes(params);
+      if (results.length > 0) {
+        setAiCards(prev => ({
+          ...prev,
+          [sectionId]: [...(prev[sectionId] || []), ...results]
+        }));
+        setSectionPages(prev => ({ ...prev, [sectionId]: nextPage }));
+        trackRecentMeals(results);
+        const currentCount = (aiCards[sectionId]?.length || 0) + results.length;
+        setHasMore(prev => ({ ...prev, [sectionId]: currentCount < totalMatches }));
+        setSectionTotals(prev => ({ ...prev, [sectionId]: totalMatches }));
+      } else {
+        setHasMore(prev => ({ ...prev, [sectionId]: false }));
+      }
+    } catch (err) {
+      console.error("loadMore error:", err);
+    }
+    setSectionLoadingMore(prev => ({ ...prev, [sectionId]: false }));
+  };
+
 
   const clearFilter = (key: string) => {
     if (key === "cookTime") setFilterCookTime(null);
