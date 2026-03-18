@@ -10,8 +10,8 @@ serve(async (req) => {
 
   try {
     const { recipeName, recipeText, equipment, skillLevel, messages } = await req.json();
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const systemPrompt = `You are a knowledgeable cooking companion inside Cocina, a meal planning app.
 The user is actively cooking or preparing this recipe and needs real-time help.
@@ -36,18 +36,19 @@ Never say you are an AI. Never use the word generate.
 Never mention health conditions under any circumstances.
 Never repeat the entire recipe back. Just answer the question asked.`;
 
-    const apiMessages = (messages || []).map((m: any) => ({ role: m.role, content: m.content }));
+    const apiMessages = [
+      { role: "system", content: systemPrompt },
+      ...(messages || []).map((m: any) => ({ role: m.role, content: m.content })),
+    ];
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        system: systemPrompt,
+        model: "google/gemini-2.5-flash",
         messages: apiMessages,
         max_tokens: 500,
       }),
@@ -55,17 +56,17 @@ Never repeat the entire recipe back. Just answer the question asked.`;
 
     if (!response.ok) {
       const t = await response.text();
-      console.error("Anthropic API error:", response.status, t);
+      console.error("AI gateway error:", response.status, t);
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded, please try again later." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error("Anthropic API error");
+      throw new Error("AI gateway error");
     }
 
     const data = await response.json();
-    const reply = data.content?.[0]?.text || "Sorry, I couldn't help with that.";
+    const reply = data.choices?.[0]?.message?.content || "Sorry, I couldn't help with that.";
 
     return new Response(JSON.stringify({ reply }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

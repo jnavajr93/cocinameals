@@ -10,8 +10,8 @@ serve(async (req) => {
 
   try {
     const { sections, section, craving, pantryItems, expiringItems, profile, filters, feedback, childAgeMonths, recentSuggestions } = await req.json();
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const inStockOnly = filters?.inStockOnly ?? true;
 
@@ -70,6 +70,25 @@ Return ONLY valid JSON. No preamble, no markdown.`;
 
     const mealJsonDesc = `Each meal object: { "name": string, "cal": number, "protein": number, "carbs": number, "fat": number, "cookTime": number, "tags": string[]${!inStockOnly ? ', "missingIngredients": string[]' : ''} }`;
 
+    // Helper to call gateway
+    const callGateway = async (systemPrompt: string, userPrompt: string, maxTokens: number) => {
+      return fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          max_tokens: maxTokens,
+        }),
+      });
+    };
+
     // BATCH MODE: multiple sections in one call
     if (sections && Array.isArray(sections) && sections.length > 0) {
       const systemPrompt = baseSystemPrompt + `\n\nYou must suggest meals for multiple sections at once. Return a JSON object with one key per section, each containing exactly 3 meal suggestions.\n\n${mealJsonDesc}`;
@@ -93,20 +112,7 @@ Return ONLY valid JSON. No preamble, no markdown.`;
         childAgeMonths: childAgeMonths || null,
       });
 
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "x-api-key": ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "claude-haiku-4-5-20251001",
-          system: systemPrompt,
-          messages: [{ role: "user", content: userPrompt }],
-          max_tokens: 4096,
-        }),
-      });
+      const response = await callGateway(systemPrompt, userPrompt, 4096);
 
       if (!response.ok) {
         if (response.status === 429) {
@@ -122,14 +128,13 @@ Return ONLY valid JSON. No preamble, no markdown.`;
           });
         }
         const t = await response.text();
-        console.error("Anthropic API error:", response.status, t);
-        throw new Error("Anthropic API error");
+        console.error("AI gateway error:", response.status, t);
+        throw new Error("AI gateway error");
       }
 
       const data = await response.json();
-      const content = data.content?.[0]?.text || "{}";
+      const content = data.choices?.[0]?.message?.content || "{}";
 
-      // Parse JSON from response
       try {
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
@@ -146,7 +151,7 @@ Return ONLY valid JSON. No preamble, no markdown.`;
       }
     }
 
-    // SINGLE SECTION MODE (shuffle, craving, etc.)
+    // SINGLE SECTION MODE
     const systemPrompt = baseSystemPrompt + `\n\nSuggest exactly 3 meals. Return ONLY a valid JSON array. No preamble. No markdown.\n\n${mealJsonDesc}`;
 
     const userPrompt = JSON.stringify({
@@ -168,20 +173,7 @@ Return ONLY valid JSON. No preamble, no markdown.`;
       childAgeMonths: childAgeMonths || null,
     });
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        system: systemPrompt,
-        messages: [{ role: "user", content: userPrompt }],
-        max_tokens: 2048,
-      }),
-    });
+    const response = await callGateway(systemPrompt, userPrompt, 2048);
 
     if (!response.ok) {
       if (response.status === 429) {
@@ -195,14 +187,13 @@ Return ONLY valid JSON. No preamble, no markdown.`;
         });
       }
       const t = await response.text();
-      console.error("Anthropic API error:", response.status, t);
-      throw new Error("Anthropic API error");
+      console.error("AI gateway error:", response.status, t);
+      throw new Error("AI gateway error");
     }
 
     const data = await response.json();
-    const content = data.content?.[0]?.text || "[]";
+    const content = data.choices?.[0]?.message?.content || "[]";
 
-    // Parse JSON array from response
     try {
       const jsonMatch = content.match(/\[[\s\S]*\]/);
       const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
