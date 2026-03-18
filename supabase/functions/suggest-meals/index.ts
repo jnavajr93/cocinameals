@@ -10,8 +10,8 @@ serve(async (req) => {
 
   try {
     const { sections, section, craving, pantryItems, expiringItems, profile, filters, feedback, childAgeMonths, recentSuggestions } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
     const inStockOnly = filters?.inStockOnly ?? true;
 
@@ -64,42 +64,15 @@ HEALTH CONDITION SILENT ADJUSTMENTS (never mention in output):
   Kidney Disease → avoid potassium-heavy and phosphorus-heavy
   Obesity / Weight Loss → favor high satiety, high protein, lower calorie density
 
-TAGS TO USE: mexican, asian, southeast_asian, south_asian, mediterranean, italian, american, latin_american, caribbean, african, french, seafood, high_protein, low_carb, quick, vegetarian, vegan, kid_friendly, comfort, light, spicy, mild, one_pan, grill, air_fryer, date_night, crowd`;
+TAGS TO USE: mexican, asian, southeast_asian, south_asian, mediterranean, italian, american, latin_american, caribbean, african, french, seafood, high_protein, low_carb, quick, vegetarian, vegan, kid_friendly, comfort, light, spicy, mild, one_pan, grill, air_fryer, date_night, crowd
 
-    const mealSchema: Record<string, any> = {
-      type: "object",
-      properties: {
-        name: { type: "string" },
-        cal: { type: "number" },
-        protein: { type: "number" },
-        carbs: { type: "number" },
-        fat: { type: "number" },
-        cookTime: { type: "number" },
-        tags: { type: "array", items: { type: "string" } },
-      },
-      required: ["name", "cal", "protein", "carbs", "fat", "cookTime", "tags"],
-    };
+Return ONLY valid JSON. No preamble, no markdown.`;
 
-    if (!inStockOnly) {
-      mealSchema.properties.missingIngredients = { type: "array", items: { type: "string" } };
-      mealSchema.required.push("missingIngredients");
-    }
+    const mealJsonDesc = `Each meal object: { "name": string, "cal": number, "protein": number, "carbs": number, "fat": number, "cookTime": number, "tags": string[]${!inStockOnly ? ', "missingIngredients": string[]' : ''} }`;
 
     // BATCH MODE: multiple sections in one call
     if (sections && Array.isArray(sections) && sections.length > 0) {
-      const systemPrompt = baseSystemPrompt + `\n\nYou must suggest meals for multiple sections at once. Return a JSON object with one key per section, each containing exactly 3 meal suggestions.\n\nEach meal object: { "name": string, "cal": number, "protein": number, "carbs": number, "fat": number, "cookTime": number, "tags": string[]${!inStockOnly ? ', "missingIngredients": string[]' : ''} }`;
-
-      const sectionResultSchema: Record<string, any> = {
-        type: "object",
-        properties: {},
-        required: sections,
-      };
-      for (const s of sections) {
-        sectionResultSchema.properties[s] = {
-          type: "array",
-          items: mealSchema,
-        };
-      }
+      const systemPrompt = baseSystemPrompt + `\n\nYou must suggest meals for multiple sections at once. Return a JSON object with one key per section, each containing exactly 3 meal suggestions.\n\n${mealJsonDesc}`;
 
       const userPrompt = JSON.stringify({
         sections,
@@ -120,35 +93,18 @@ TAGS TO USE: mexican, asian, southeast_asian, south_asian, mediterranean, italia
         childAgeMonths: childAgeMonths || null,
       });
 
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          tools: [
-            {
-              type: "function",
-              function: {
-                name: "suggest_meals_batch",
-                description: "Return meal suggestions for multiple sections",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    results: sectionResultSchema,
-                  },
-                  required: ["results"],
-                },
-              },
-            },
-          ],
-          tool_choice: { type: "function", function: { name: "suggest_meals_batch" } },
+          model: "claude-haiku-4-5-20251001",
+          system: systemPrompt,
+          messages: [{ role: "user", content: userPrompt }],
+          max_tokens: 4096,
         }),
       });
 
@@ -158,7 +114,7 @@ TAGS TO USE: mexican, asian, southeast_asian, south_asian, mediterranean, italia
             status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        if (response.status === 402) {
+        if (response.status === 402 || response.status === 400) {
           const fallbackResults: Record<string, any[]> = {};
           for (const s of sections) fallbackResults[s] = [];
           return new Response(JSON.stringify(fallbackResults), {
@@ -166,27 +122,32 @@ TAGS TO USE: mexican, asian, southeast_asian, south_asian, mediterranean, italia
           });
         }
         const t = await response.text();
-        console.error("AI gateway error:", response.status, t);
-        throw new Error("AI gateway error");
+        console.error("Anthropic API error:", response.status, t);
+        throw new Error("Anthropic API error");
       }
 
       const data = await response.json();
-      const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-      if (toolCall) {
-        const parsed = JSON.parse(toolCall.function.arguments);
-        return new Response(JSON.stringify(parsed.results), {
+      const content = data.content?.[0]?.text || "{}";
+
+      // Parse JSON from response
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+        return new Response(JSON.stringify(parsed), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch {
+        console.error("Failed to parse batch response:", content);
+        const fallbackResults: Record<string, any[]> = {};
+        for (const s of sections) fallbackResults[s] = [];
+        return new Response(JSON.stringify(fallbackResults), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-
-      const content = data.choices?.[0]?.message?.content || "{}";
-      return new Response(content, {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
     }
 
     // SINGLE SECTION MODE (shuffle, craving, etc.)
-    const systemPrompt = baseSystemPrompt + `\n\nSuggest exactly 3 meals. Return ONLY a valid JSON array. No preamble. No markdown.\n\nEach meal object: { "name": string, "cal": number, "protein": number, "carbs": number, "fat": number, "cookTime": number, "tags": string[]${!inStockOnly ? ', "missingIngredients": string[]' : ''} }`;
+    const systemPrompt = baseSystemPrompt + `\n\nSuggest exactly 3 meals. Return ONLY a valid JSON array. No preamble. No markdown.\n\n${mealJsonDesc}`;
 
     const userPrompt = JSON.stringify({
       section: section || "full_dinner",
@@ -207,38 +168,18 @@ TAGS TO USE: mexican, asian, southeast_asian, south_asian, mediterranean, italia
       childAgeMonths: childAgeMonths || null,
     });
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "suggest_meals",
-              description: "Return exactly 3 meal suggestions",
-              parameters: {
-                type: "object",
-                properties: {
-                  meals: {
-                    type: "array",
-                    items: mealSchema,
-                  },
-                },
-                required: ["meals"],
-              },
-            },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "suggest_meals" } },
+        model: "claude-haiku-4-5-20251001",
+        system: systemPrompt,
+        messages: [{ role: "user", content: userPrompt }],
+        max_tokens: 2048,
       }),
     });
 
@@ -248,30 +189,32 @@ TAGS TO USE: mexican, asian, southeast_asian, south_asian, mediterranean, italia
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
+      if (response.status === 402 || response.status === 400) {
         return new Response(JSON.stringify([]), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      throw new Error("AI gateway error");
+      console.error("Anthropic API error:", response.status, t);
+      throw new Error("Anthropic API error");
     }
 
     const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    if (toolCall) {
-      const parsed = JSON.parse(toolCall.function.arguments);
-      return new Response(JSON.stringify(parsed.meals), {
+    const content = data.content?.[0]?.text || "[]";
+
+    // Parse JSON array from response
+    try {
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+      return new Response(JSON.stringify(parsed), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } catch {
+      console.error("Failed to parse single response:", content);
+      return new Response(JSON.stringify([]), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    // Fallback: try to parse content directly
-    const content = data.choices?.[0]?.message?.content || "[]";
-    return new Response(content, {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   } catch (e) {
     console.error("suggest-meals error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
