@@ -1378,7 +1378,7 @@ export function MealsTab() {
         {hasMissing && (
           <div className="px-3 pb-1">
             <p className="font-body text-xs text-destructive leading-snug">
-              Need: {card.missingIngredients!.join(", ")}
+              Need: {card.missingIngredients!.map(i => extractIngredientName(i)).join(", ")}
             </p>
           </div>
         )}
