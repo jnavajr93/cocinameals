@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.suggest-and-save]
 verify_jwt = false
+
+[functions.batch-fill-recipe-text]
+verify_jwt = false
