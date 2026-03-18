@@ -51,7 +51,10 @@ export function MealsTab() {
   const [profile, setProfile] = useState<any>(null);
   const [pantryInStock, setPantryInStock] = useState<string[]>([]);
   const [expiringItems, setExpiringItems] = useState<string[]>([]);
-  
+  const [sectionPages, setSectionPages] = useState<Record<string, number>>({});
+  const [sectionTotals, setSectionTotals] = useState<Record<string, number>>({});
+  const [sectionLoadingMore, setSectionLoadingMore] = useState<Record<string, boolean>>({});
+  const [hasMore, setHasMore] = useState<Record<string, boolean>>({});
 
   // Craving popup state
   const [cravingPopup, setCravingPopup] = useState<{ meals: MealCardWithCookTime[]; loading: boolean } | null>(null);
