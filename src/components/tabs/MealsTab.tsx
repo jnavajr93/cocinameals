@@ -765,7 +765,7 @@ export function MealsTab() {
 
       const shareUrl = `${window.location.origin}/recipe/${data.id}`;
 
-      const shareText = `🍽️ ${recipeView.mealName} - from Cocina app.\n\nCook restaurant-quality meals with what you already have. Sign up free today!`;
+      const shareText = `🍽️ ${recipeView.mealName} - from cocina.\n\nCook what you have. Eat like a chef.`;
 
       if (navigator.share) {
         await navigator.share({

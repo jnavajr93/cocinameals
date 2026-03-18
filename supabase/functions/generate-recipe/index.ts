@@ -89,7 +89,7 @@ Spice tolerance: ${profile?.spiceTolerance || "medium"}`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         max_tokens: 8192,
         messages: [
           { role: "system", content: systemPrompt },
