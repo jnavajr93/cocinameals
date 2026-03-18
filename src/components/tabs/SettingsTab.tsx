@@ -997,6 +997,7 @@ export function SettingsTab() {
         </section>
 
 
+        {user?.email === "jnavajr93@gmail.com" && (
         <section className="border-b border-border">
           <button onClick={() => toggle("db")} className="flex items-center justify-between w-full py-3">
             <h2 className="font-display text-base font-bold text-foreground flex items-center gap-2">
@@ -1052,6 +1053,7 @@ export function SettingsTab() {
             </div>
           )}
         </section>
+        )}
 
         <section className="border-b border-border pt-4 pb-4">
           <div className="flex flex-col items-center gap-2">
