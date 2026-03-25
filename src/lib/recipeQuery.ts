@@ -178,7 +178,8 @@ export async function queryRecipes(params: QueryParams): Promise<{ results: Reci
   const spiceLevels = getSpiceLevels(spiceTolerance);
   query = query.in("spice_level", spiceLevels);
 
-  const maxCook = getCookTimeMax(filterCookTime, weeknightTime);
+  const weeknightCategories = ["breakfast", "lunch", "dinner", "snack"];
+  const maxCook = getCookTimeMax(filterCookTime, weeknightCategories.includes(category) ? weeknightTime : "");
   if (maxCook !== null) {
     query = query.lte("cook_time", maxCook);
   }
@@ -203,7 +204,7 @@ export async function queryRecipes(params: QueryParams): Promise<{ results: Reci
 
   const excludeNames = [...new Set(dislikedMeals)];
 
-  query = query.limit(200);
+  query = query.order('random()' as any).limit(200);
 
   const { data, error } = await query;
   if (error) {
@@ -295,7 +296,7 @@ export async function queryRecipes(params: QueryParams): Promise<{ results: Reci
   let picked = selectWithVariety(results, cuisineSliders, pageSize, !!filterProtein, !!filterCuisine, recentSet);
 
   // AI FALLBACK: if 0 results after all filters, generate via AI and save permanently
-  if (picked.length === 0 && (filterProtein || filterCuisine || filterMethod)) {
+  if (picked.length === 0) {
     try {
       const { data, error } = await supabase.functions.invoke("suggest-and-save", {
         body: {
