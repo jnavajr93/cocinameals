@@ -1,7 +1,8 @@
 /**
  * Database-backed meal suggestion engine.
  * Queries the `recipes` table with all user filters applied,
- * then picks results satisfying variety rules.
+ * fetches 500 rows per category, shuffles once per session,
+ * and paginates through the shuffled pool with deduplication.
  */
 
 import { supabase } from "@/integrations/supabase/client";
@@ -148,10 +149,49 @@ function calculateMatchScore(recipe: any, pantryInStock: string[]): number {
   return Math.round((matched / nonStaple.length) * 100);
 }
 
-/**
- * Query the recipes table with all filters, then pick results with variety rules.
- */
-export async function queryRecipes(params: QueryParams): Promise<{ results: RecipeResult[]; totalMatches: number }> {
+// ── Session pool: fetch once, shuffle, paginate ──────────────────────
+
+interface SessionPool {
+  recipes: any[];
+  filterKey: string;
+  fetchedAt: number;
+}
+
+const sessionPools = new Map<string, SessionPool>();
+const sessionShownNames = new Set<string>();
+
+function buildFilterKey(params: QueryParams): string {
+  return JSON.stringify([
+    params.category, params.isBaby, params.skillLevel, params.spiceTolerance,
+    params.filterCookTime, params.filterProtein, params.filterCuisine,
+    params.filterMethod, params.activeFilter, params.inStockOnly,
+    params.weeknightTime,
+  ]);
+}
+
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+export function clearSessionPools(): void {
+  sessionPools.clear();
+  sessionShownNames.clear();
+}
+
+async function getOrFetchPool(params: QueryParams): Promise<any[]> {
+  const poolKey = `${params.category}_${params.isBaby}`;
+  const filterKey = buildFilterKey(params);
+  const existing = sessionPools.get(poolKey);
+
+  if (existing && existing.filterKey === filterKey && (Date.now() - existing.fetchedAt) < 10 * 60 * 1000) {
+    return existing.recipes;
+  }
+
   const {
     category, isBaby, cuisineSliders, skillLevel, spiceTolerance,
     weeknightTime, dietRestrictions, equipment, dislikedMeals,
@@ -159,24 +199,14 @@ export async function queryRecipes(params: QueryParams): Promise<{ results: Reci
     filterCookTime, filterProtein, filterCuisine, filterMethod, activeFilter,
   } = params;
 
-  const page = params.page ?? 0;
-  const pageSize = params.pageSize ?? 6;
-
-  const recentNames = getRecentSuggestions();
-  const recentSet = new Set(recentNames.slice(-18));
-
-  // Build query
   let query = supabase
     .from("recipes" as any)
     .select("*")
     .eq("category", category)
     .eq("is_baby", isBaby);
 
-  const skillLevels = getSkillLevels(skillLevel);
-  query = query.in("skill_level", skillLevels);
-
-  const spiceLevels = getSpiceLevels(spiceTolerance);
-  query = query.in("spice_level", spiceLevels);
+  query = query.in("skill_level", getSkillLevels(skillLevel));
+  query = query.in("spice_level", getSpiceLevels(spiceTolerance));
 
   const weeknightCategories = ["breakfast", "lunch", "dinner", "snack"];
   const maxCook = getCookTimeMax(filterCookTime, weeknightCategories.includes(category) ? weeknightTime : "");
@@ -202,22 +232,42 @@ export async function queryRecipes(params: QueryParams): Promise<{ results: Reci
     }
   }
 
-  const excludeNames = [...new Set(dislikedMeals)];
-
-  query = query.limit(200);
+  // Fetch 500 rows using a random offset to get a different slice each session
+  const totalEstimate = 32000;
+  const fetchSize = 500;
+  const maxOffset = Math.max(0, totalEstimate - fetchSize);
+  const randomOffset = Math.floor(Math.random() * maxOffset);
+  query = query.range(randomOffset, randomOffset + fetchSize - 1);
 
   const { data, error } = await query;
   if (error) {
     console.error("Recipe query error:", error);
-    return { results: [], totalMatches: 0 };
+    return [];
   }
 
   let results: any[] = data || [];
 
+  // If we got fewer than expected and offset was high, fetch from start too
+  if (results.length < 100 && randomOffset > 0) {
+    const { data: data2 } = await supabase
+      .from("recipes" as any)
+      .select("*")
+      .eq("category", category)
+      .eq("is_baby", isBaby)
+      .in("skill_level", getSkillLevels(skillLevel))
+      .in("spice_level", getSpiceLevels(spiceTolerance))
+      .range(0, fetchSize - 1);
+    if (data2?.length) {
+      const existingIds = new Set(results.map((r: any) => r.id));
+      const extra = data2.filter((r: any) => !existingIds.has(r.id));
+      results = [...results, ...extra];
+    }
+  }
+
   // Client-side filters
-  if (excludeNames.length > 0) {
-    const excludeSet = new Set(excludeNames);
-    results = results.filter((r: any) => !excludeSet.has(r.name));
+  const excludeNames = new Set(dislikedMeals);
+  if (excludeNames.size > 0) {
+    results = results.filter((r: any) => !excludeNames.has(r.name));
   }
 
   if (excludedCuisines.length > 0) {
@@ -269,7 +319,6 @@ export async function queryRecipes(params: QueryParams): Promise<{ results: Reci
   }
 
   // In-stock pantry filter
-  let preFilterResults = results;
   if (inStockOnly && pantryInStock.length > 0) {
     const stockNames = pantryInStock.map(i => i.toLowerCase());
     const pantryFiltered = results.filter((r: any) => {
@@ -287,20 +336,84 @@ export async function queryRecipes(params: QueryParams): Promise<{ results: Reci
       }).length;
       return matchCount >= nonStaple.length * 0.3;
     });
-    results = pantryFiltered.length > 0 ? pantryFiltered : preFilterResults;
+    if (pantryFiltered.length > 0) results = pantryFiltered;
   }
 
-  const totalMatches = results.length;
+  // Apply weighted sorting by cuisine preference, then shuffle with weights
+  const recentSet = new Set(getRecentSuggestions().slice(-18));
+  const sliderMap = new Map<string, number>();
+  for (const [displayName, val] of Object.entries(cuisineSliders)) {
+    const dbName = CUISINE_NAME_MAP[displayName] || displayName.toLowerCase().replace(/[^a-z]/g, "_");
+    sliderMap.set(dbName, val as number);
+  }
 
-  // Weighted random selection based on cuisine preference + recent de-prioritization
-  let picked = selectWithVariety(results, cuisineSliders, pageSize, !!filterProtein, !!filterCuisine, recentSet);
+  results = results.map(r => {
+    const cuisineVal = sliderMap.get(r.cuisine);
+    const weight = cuisineVal === undefined ? 50 :
+      cuisineVal === 1 ? 10 :
+      cuisineVal === 2 ? 25 :
+      cuisineVal === 3 ? 50 :
+      cuisineVal === 4 ? 100 : 50;
+    const recencyBias = recentSet.has(r.name) ? 0.35 : 1;
+    return { ...r, _sortWeight: weight * recencyBias + Math.random() * 20 };
+  });
 
-  // AI FALLBACK: if 0 results after all filters, generate via AI and save permanently
-  if (picked.length === 0) {
+  results.sort((a, b) => b._sortWeight - a._sortWeight);
+
+  // Shuffle within weight tiers to avoid pure deterministic order
+  results = shuffleWithinTiers(results);
+
+  // Deduplicate by name
+  const seenNames = new Set<string>();
+  results = results.filter(r => {
+    if (seenNames.has(r.name)) return false;
+    seenNames.add(r.name);
+    return true;
+  });
+
+  sessionPools.set(poolKey, { recipes: results, filterKey, fetchedAt: Date.now() });
+  return results;
+}
+
+function shuffleWithinTiers(arr: any[]): any[] {
+  if (arr.length <= 1) return arr;
+  const result: any[] = [];
+  const chunkSize = 10;
+  for (let i = 0; i < arr.length; i += chunkSize) {
+    const chunk = arr.slice(i, i + chunkSize);
+    result.push(...shuffleArray(chunk));
+  }
+  return result;
+}
+
+/**
+ * Query the recipes table with all filters, paginate from session pool.
+ */
+export async function queryRecipes(params: QueryParams): Promise<{ results: RecipeResult[]; totalMatches: number }> {
+  const {
+    pantryInStock, inStockOnly,
+    filterCookTime, filterProtein, filterCuisine,
+  } = params;
+
+  const page = params.page ?? 0;
+  const pageSize = params.pageSize ?? 6;
+
+  const pool = await getOrFetchPool(params);
+  const totalMatches = pool.length;
+
+  if (totalMatches === 0) {
+    // AI fallback
+    const { category, isBaby } = sectionToCategory(
+      Object.entries({ breakfast: "breakfast", lunch: "lunch", dinner: "dinner", snack: "snack" })
+        .find(([, v]) => v === params.category)?.[0] || params.category
+    );
+    const weeknightCategories = ["breakfast", "lunch", "dinner", "snack"];
+    const maxCook = getCookTimeMax(filterCookTime, weeknightCategories.includes(params.category) ? params.weeknightTime : "");
+    
     try {
       const { data, error } = await supabase.functions.invoke("suggest-and-save", {
         body: {
-          category,
+          category: params.category,
           protein: filterProtein || undefined,
           cuisine: filterCuisine ? (CUISINE_NAME_MAP[filterCuisine] || filterCuisine.toLowerCase()) : undefined,
           cookTimeMax: maxCook || undefined,
@@ -308,14 +421,33 @@ export async function queryRecipes(params: QueryParams): Promise<{ results: Reci
         },
       });
       if (!error && data?.recipes?.length > 0) {
-        picked = data.recipes.slice(0, 3);
+        const fallbackResults = data.recipes.slice(0, 3).map((r: any) => mapToResult(r, inStockOnly, pantryInStock));
+        return { results: fallbackResults, totalMatches: fallbackResults.length };
       }
     } catch (e) {
       console.warn("AI fallback failed:", e);
     }
+    return { results: [], totalMatches: 0 };
   }
 
-  const mappedResults = picked.map((r: any) => ({
+  // Paginate: skip already-shown recipes
+  const start = page * pageSize;
+  const pageSlice = pool.slice(start, start + pageSize);
+
+  // Filter out recipes already shown in this session for dedup
+  const deduped = pageSlice.filter(r => !sessionShownNames.has(r.name));
+  deduped.forEach(r => sessionShownNames.add(r.name));
+
+  const mappedResults = deduped.map((r: any) => mapToResult(r, inStockOnly, pantryInStock));
+
+  // Sort by matchScore descending
+  mappedResults.sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0));
+
+  return { results: mappedResults, totalMatches };
+}
+
+function mapToResult(r: any, inStockOnly: boolean, pantryInStock: string[]): RecipeResult {
+  return {
     name: r.name,
     cal: r.calories || 0,
     protein: r.protein || 0,
@@ -328,12 +460,7 @@ export async function queryRecipes(params: QueryParams): Promise<{ results: Reci
     recipeText: r.recipe_text,
     missingIngredients: inStockOnly ? undefined : getMissingIngredients(r, pantryInStock),
     matchScore: inStockOnly ? 100 : calculateMatchScore(r, pantryInStock),
-  }));
-
-  // Sort by matchScore descending
-  mappedResults.sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0));
-
-  return { results: mappedResults, totalMatches };
+  };
 }
 
 function getMissingIngredients(recipe: any, pantryInStock: string[]): string[] {
@@ -347,65 +474,6 @@ function getMissingIngredients(recipe: any, pantryInStock: string[]): string[] {
   })
   .slice(0, 6)
   .map((ing: string) => extractIngredientName(ing));
-}
-
-/**
- * Pick `count` items with weighted random selection + variety rules.
- */
-function selectWithVariety(
-  pool: any[],
-  cuisineSliders: Record<string, number>,
-  count: number,
-  proteinFilterActive: boolean,
-  cuisineFilterActive: boolean,
-  recentSet: Set<string>,
-): any[] {
-  if (pool.length === 0) return [];
-  if (pool.length <= count) return pool;
-
-  const sliderMap = new Map<string, number>();
-  for (const [displayName, val] of Object.entries(cuisineSliders)) {
-    const dbName = CUISINE_NAME_MAP[displayName] || displayName.toLowerCase().replace(/[^a-z]/g, "_");
-    sliderMap.set(dbName, val as number);
-  }
-
-  const weighted = pool.map(r => {
-    const cuisineVal = sliderMap.get(r.cuisine);
-    const weight = cuisineVal === undefined ? 50 :
-      cuisineVal === 1 ? 10 :
-      cuisineVal === 2 ? 25 :
-      cuisineVal === 3 ? 50 :
-      cuisineVal === 4 ? 100 : 50;
-    const recencyBias = recentSet.has(r.name) ? 0.35 : 1;
-    const adjustedWeight = weight * recencyBias;
-    return { ...r, _weight: adjustedWeight + Math.random() * Math.max(adjustedWeight, 1) };
-  });
-
-  weighted.sort((a, b) => b._weight - a._weight);
-
-  const selected: any[] = [];
-  const usedCuisines = new Set<string>();
-  const usedProteins = new Set<string>();
-
-  for (const candidate of weighted) {
-    if (selected.length >= count) break;
-    if (!cuisineFilterActive && usedCuisines.has(candidate.cuisine)) continue;
-    if (!proteinFilterActive && candidate.primary_protein && usedProteins.has(candidate.primary_protein)) continue;
-    selected.push(candidate);
-    usedCuisines.add(candidate.cuisine);
-    if (candidate.primary_protein) usedProteins.add(candidate.primary_protein);
-  }
-
-  if (selected.length < count) {
-    for (const candidate of weighted) {
-      if (selected.length >= count) break;
-      if (!selected.includes(candidate)) {
-        selected.push(candidate);
-      }
-    }
-  }
-
-  return selected.slice(0, count);
 }
 
 /**
