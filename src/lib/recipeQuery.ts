@@ -204,7 +204,7 @@ export async function queryRecipes(params: QueryParams): Promise<{ results: Reci
 
   const excludeNames = [...new Set(dislikedMeals)];
 
-  query = query.order('random()' as any).limit(200);
+  query = query.limit(200);
 
   const { data, error } = await query;
   if (error) {
