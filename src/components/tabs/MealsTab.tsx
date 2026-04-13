@@ -10,7 +10,7 @@ import { MealCard } from "@/data/mealPools";
 import { DEFAULT_SECTION_TIMES } from "@/data/mealSections";
 import { toast } from "sonner";
 import { getRecentSuggestions, addRecentSuggestions } from "@/lib/mealCache";
-import { queryRecipes, sectionToCategory, RecipeResult } from "@/lib/recipeQuery";
+import { queryRecipes, sectionToCategory, RecipeResult, clearSessionPools } from "@/lib/recipeQuery";
 
 interface MealCardWithCookTime extends MealCard {
   cookTime?: number;
@@ -185,7 +185,9 @@ export function MealsTab() {
     if (dist > 50) {
       setPullRefreshing(true);
       setPullDistance(50);
+      clearSessionPools();
       setAiCards({});
+      setSectionPages({});
       setBatchLoaded(false);
       setShuffleKey(k => k + 1);
       await loadMealsData();
@@ -242,6 +244,8 @@ export function MealsTab() {
   useEffect(() => {
     if (prevFiltersRef.current !== filtersSignature && activeSections.length > 0 && profile) {
       prevFiltersRef.current = filtersSignature;
+      clearSessionPools();
+      setSectionPages({});
       setAiCards({});
       setBatchLoaded(false);
     }
@@ -456,18 +460,20 @@ export function MealsTab() {
 
   const shuffleSection = async (sectionId: string) => {
     setAiLoading(prev => ({ ...prev, [sectionId]: true }));
+    clearSessionPools();
+    setSectionPages(prev => ({ ...prev, [sectionId]: 0 }));
     try {
-      const params = { ...buildQueryParams(sectionId), pageSize: 6 };
+      const params = { ...buildQueryParams(sectionId), page: 0, pageSize: 6 };
       const { results, totalMatches } = await queryRecipes(params);
       if (results.length > 0) {
         const cards: MealCardWithCookTime[] = results;
         setAiCards(prev => ({
           ...prev,
-          [sectionId]: [...cards, ...(prev[sectionId] || []).slice(0, 12)]
+          [sectionId]: cards
         }));
         trackRecentMeals(cards);
         setSectionTotals(prev => ({ ...prev, [sectionId]: totalMatches }));
-        setHasMore(prev => ({ ...prev, [sectionId]: (cards.length + (aiCards[sectionId]?.length || 0)) < totalMatches }));
+        setHasMore(prev => ({ ...prev, [sectionId]: cards.length < totalMatches }));
       }
     } catch (err) {
       console.error("Shuffle error:", err);
