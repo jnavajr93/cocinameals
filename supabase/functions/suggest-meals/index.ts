@@ -10,8 +10,8 @@ serve(async (req) => {
 
   try {
     const { sections, section, craving, pantryItems, expiringItems, profile, filters, feedback, childAgeMonths, recentSuggestions } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
     const inStockOnly = filters?.inStockOnly ?? true;
 
@@ -70,23 +70,31 @@ Return ONLY valid JSON. No preamble, no markdown.`;
 
     const mealJsonDesc = `Each meal object: { "name": string, "cal": number, "protein": number, "carbs": number, "fat": number, "cookTime": number, "tags": string[]${!inStockOnly ? ', "missingIngredients": string[]' : ''} }`;
 
-    // Helper to call gateway
-    const callGateway = async (systemPrompt: string, userPrompt: string, maxTokens: number) => {
-      return fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const callAnthropic = async (systemPrompt: string, userPrompt: string, maxTokens: number) => {
+      return fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: maxTokens,
+          system: systemPrompt,
           messages: [
-            { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
           ],
-          max_tokens: maxTokens,
         }),
       });
+    };
+
+    const parseAnthropicText = (data: any): string => {
+      if (data.content && Array.isArray(data.content)) {
+        const textBlock = data.content.find((b: any) => b.type === "text");
+        return textBlock?.text || "";
+      }
+      return "";
     };
 
     // BATCH MODE: multiple sections in one call
@@ -112,7 +120,7 @@ Return ONLY valid JSON. No preamble, no markdown.`;
         childAgeMonths: childAgeMonths || null,
       });
 
-      const response = await callGateway(systemPrompt, userPrompt, 4096);
+      const response = await callAnthropic(systemPrompt, userPrompt, 4096);
 
       if (!response.ok) {
         if (response.status === 429) {
@@ -128,12 +136,12 @@ Return ONLY valid JSON. No preamble, no markdown.`;
           });
         }
         const t = await response.text();
-        console.error("AI gateway error:", response.status, t);
-        throw new Error("AI gateway error");
+        console.error("Anthropic error:", response.status, t);
+        throw new Error("Anthropic error");
       }
 
       const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || "{}";
+      const content = parseAnthropicText(data);
 
       try {
         const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -173,7 +181,7 @@ Return ONLY valid JSON. No preamble, no markdown.`;
       childAgeMonths: childAgeMonths || null,
     });
 
-    const response = await callGateway(systemPrompt, userPrompt, 2048);
+    const response = await callAnthropic(systemPrompt, userPrompt, 2048);
 
     if (!response.ok) {
       if (response.status === 429) {
@@ -187,12 +195,12 @@ Return ONLY valid JSON. No preamble, no markdown.`;
         });
       }
       const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      throw new Error("AI gateway error");
+      console.error("Anthropic error:", response.status, t);
+      throw new Error("Anthropic error");
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "[]";
+    const content = parseAnthropicText(data);
 
     try {
       const jsonMatch = content.match(/\[[\s\S]*\]/);

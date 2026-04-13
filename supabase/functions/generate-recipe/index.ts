@@ -10,8 +10,8 @@ serve(async (req) => {
 
   try {
     const { mealName, craving, pantryItems, expiringItems, profile, isBaby } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
     const stoveRules = (profile?.equipment || []).includes("Gas Stove")
       ? "Gas stove → flame description: low / medium-low / medium / medium-high / high."
@@ -82,20 +82,21 @@ Allergies (NEVER include these): ${(profile?.allergies || []).join(", ") || "Non
 Foods to avoid: ${(profile?.dislikes || []).join(", ") || "None"}
 Spice tolerance: ${profile?.spiceTolerance || "medium"}`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
+        model: "claude-sonnet-4-20250514",
         max_tokens: 8192,
         stream: true,
+        system: systemPrompt,
+        messages: [
+          { role: "user", content: userPrompt },
+        ],
       }),
     });
 
@@ -111,12 +112,57 @@ Spice tolerance: ${profile?.spiceTolerance || "medium"}`;
         });
       }
       const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      throw new Error("AI gateway error");
+      console.error("Anthropic error:", response.status, t);
+      throw new Error("Anthropic error");
     }
 
-    // Gateway already returns OpenAI-compatible SSE — pass through directly
-    return new Response(response.body, {
+    // Transform Anthropic SSE stream to OpenAI-compatible format for the frontend
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        const reader = response.body!.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+
+            let newlineIdx: number;
+            while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
+              const line = buffer.slice(0, newlineIdx).trim();
+              buffer = buffer.slice(newlineIdx + 1);
+
+              if (!line.startsWith("data: ")) continue;
+              const jsonStr = line.slice(6);
+              if (jsonStr === "[DONE]") continue;
+
+              try {
+                const event = JSON.parse(jsonStr);
+                if (event.type === "content_block_delta" && event.delta?.text) {
+                  const openaiChunk = {
+                    choices: [{ delta: { content: event.delta.text } }],
+                  };
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(openaiChunk)}\n\n`));
+                } else if (event.type === "message_stop") {
+                  controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+                }
+              } catch {
+                // skip unparseable lines
+              }
+            }
+          }
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          controller.close();
+        } catch (err) {
+          controller.error(err);
+        }
+      },
+    });
+
+    return new Response(stream, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
