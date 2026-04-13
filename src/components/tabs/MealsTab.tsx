@@ -185,7 +185,9 @@ export function MealsTab() {
     if (dist > 50) {
       setPullRefreshing(true);
       setPullDistance(50);
+      clearSessionPools();
       setAiCards({});
+      setSectionPages({});
       setBatchLoaded(false);
       setShuffleKey(k => k + 1);
       await loadMealsData();
