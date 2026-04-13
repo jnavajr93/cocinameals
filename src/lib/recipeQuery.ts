@@ -1,7 +1,7 @@
 /**
  * Database-backed meal suggestion engine.
  * Queries the `recipes` table with all user filters applied,
- * fetches 500 rows per category, shuffles once per session,
+ * fetches 500 rows per category via random offset, shuffles client-side,
  * and paginates through the shuffled pool with deduplication.
  */
 
