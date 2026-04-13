@@ -470,7 +470,7 @@ function getMissingIngredients(recipe: any, pantryInStock: string[]): string[] {
   return ingredients.filter((ing: string) => {
     const cleaned = extractIngredientName(ing).toLowerCase();
     if (["salt", "pepper", "water", "oil", "olive oil", "black pepper"].includes(cleaned)) return false;
-    return !stockSet.has(cleaned) && ![...stockSet].some(s => cleaned.includes(s) || s.includes(cleaned));
+    return !stockSet.has(cleaned) && !Array.from(stockSet).some(s => cleaned.includes(s) || s.includes(cleaned));
   })
   .slice(0, 6)
   .map((ing: string) => extractIngredientName(ing));
