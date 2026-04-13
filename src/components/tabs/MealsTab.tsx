@@ -257,7 +257,7 @@ export function MealsTab() {
     if (sectionLoadingMore[sectionId]) return;
     setSectionLoadingMore(prev => ({ ...prev, [sectionId]: true }));
     const nextPage = (sectionPages[sectionId] || 0) + 1;
-    const params = { ...buildQueryParams(sectionId), page: nextPage, pageSize: 6 };
+    const params = { ...buildQueryParams(sectionId), page: nextPage, pageSize: 3 };
     try {
       const { results, totalMatches } = await queryRecipes(params);
       if (results.length > 0) {
@@ -463,7 +463,7 @@ export function MealsTab() {
     clearSessionPools();
     setSectionPages(prev => ({ ...prev, [sectionId]: 0 }));
     try {
-      const params = { ...buildQueryParams(sectionId), page: 0, pageSize: 6 };
+      const params = { ...buildQueryParams(sectionId), page: 0, pageSize: 3 };
       const { results, totalMatches } = await queryRecipes(params);
       if (results.length > 0) {
         const cards: MealCardWithCookTime[] = results;
@@ -490,7 +490,7 @@ export function MealsTab() {
     // Query all sections in parallel
     const promises = sections.map(async (section) => {
       try {
-        const params = { ...buildQueryParams(section.id), pageSize: 6 };
+        const params = { ...buildQueryParams(section.id), pageSize: 3 };
         const { results, totalMatches } = await queryRecipes(params);
         return { sectionId: section.id, results, totalMatches };
       } catch {

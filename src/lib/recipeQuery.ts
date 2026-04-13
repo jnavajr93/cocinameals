@@ -232,12 +232,11 @@ async function getOrFetchPool(params: QueryParams): Promise<any[]> {
     }
   }
 
-  // Fetch 500 rows using a random offset to get a different slice each session
-  const totalEstimate = 32000;
-  const fetchSize = 500;
-  const maxOffset = Math.max(0, totalEstimate - fetchSize);
-  const randomOffset = Math.floor(Math.random() * maxOffset);
-  query = query.range(randomOffset, randomOffset + fetchSize - 1);
+  // Fetch up to 1000 rows from the filtered result set, then shuffle client-side
+  // NOTE: range() operates on filtered result positions, NOT raw table offsets,
+  // so a random offset would miss most rows when filters are applied.
+  const fetchSize = 1000;
+  query = query.limit(fetchSize);
 
   const { data, error } = await query;
   if (error) {
@@ -246,23 +245,6 @@ async function getOrFetchPool(params: QueryParams): Promise<any[]> {
   }
 
   let results: any[] = data || [];
-
-  // If we got fewer than expected and offset was high, fetch from start too
-  if (results.length < 100 && randomOffset > 0) {
-    const { data: data2 } = await supabase
-      .from("recipes" as any)
-      .select("*")
-      .eq("category", category)
-      .eq("is_baby", isBaby)
-      .in("skill_level", getSkillLevels(skillLevel))
-      .in("spice_level", getSpiceLevels(spiceTolerance))
-      .range(0, fetchSize - 1);
-    if (data2?.length) {
-      const existingIds = new Set(results.map((r: any) => r.id));
-      const extra = data2.filter((r: any) => !existingIds.has(r.id));
-      results = [...results, ...extra];
-    }
-  }
 
   // Client-side filters
   const excludeNames = new Set(dislikedMeals);
@@ -396,7 +378,7 @@ export async function queryRecipes(params: QueryParams): Promise<{ results: Reci
   } = params;
 
   const page = params.page ?? 0;
-  const pageSize = params.pageSize ?? 6;
+  const pageSize = params.pageSize ?? 3;
 
   const pool = await getOrFetchPool(params);
   const totalMatches = pool.length;
