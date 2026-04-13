@@ -244,6 +244,8 @@ export function MealsTab() {
   useEffect(() => {
     if (prevFiltersRef.current !== filtersSignature && activeSections.length > 0 && profile) {
       prevFiltersRef.current = filtersSignature;
+      clearSessionPools();
+      setSectionPages({});
       setAiCards({});
       setBatchLoaded(false);
     }
