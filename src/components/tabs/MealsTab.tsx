@@ -10,7 +10,7 @@ import { MealCard } from "@/data/mealPools";
 import { DEFAULT_SECTION_TIMES } from "@/data/mealSections";
 import { toast } from "sonner";
 import { getRecentSuggestions, addRecentSuggestions } from "@/lib/mealCache";
-import { queryRecipes, sectionToCategory, RecipeResult } from "@/lib/recipeQuery";
+import { queryRecipes, sectionToCategory, RecipeResult, clearSessionPools } from "@/lib/recipeQuery";
 
 interface MealCardWithCookTime extends MealCard {
   cookTime?: number;
